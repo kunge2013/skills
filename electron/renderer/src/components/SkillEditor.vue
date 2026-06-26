@@ -36,7 +36,7 @@ const validationErrors = ref<string[]>([])
 const originalContent = ref('')
 const expectedMtime = ref(0)
 
-const toolbars = ['bold','underline','italic','strikeThrough','-','title','quote','unorderedList','orderedList','task','-','codeRow','code','link','image','table','revoke','next','save','=','preview','fullscreen']
+const toolbars = ['bold','underline','italic','strikeThrough','-','title','quote','unorderedList','orderedList','task','-','codeRow','code','link','image','table','revoke','next','save','=','preview','fullscreen'] as any
 
 async function loadContent() {
   if (!store.selectedSkill) return

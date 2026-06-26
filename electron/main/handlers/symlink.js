@@ -7,7 +7,7 @@ const { createSkillSymlink, removeSkillSymlink, getSymlinkStatus } = require('..
 const { findProjectSkillsDir } = require('../../../src/commands/shared.js');
 
 function installSkill(skillName, projectPath) {
-  const skillsDir = findProjectSkillsDir(projectPath);
+  const skillsDir = findProjectSkillsDir(projectPath || undefined);
   const linkPath = path.join(skillsDir, skillName);
   const { getAllMarketplaceDirs } = require('../../../src/core/cache.js');
   const { findSkillMerged } = require('../../../src/core/registry.js');

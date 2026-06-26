@@ -62,7 +62,7 @@ function startEditing() {
 
 async function handleInstall() {
   if (!store.selectedSkill) return
-  const res = await store.installSkill(store.selectedSkill.skillName, process.cwd())
+  const res = await store.installSkill(store.selectedSkill.skillName, '')
   if (res.success) ElMessage.success(`Skill '${store.selectedSkill.skillName}' installed`)
   else ElMessage.error(res.error || 'Failed to install skill')
 }
