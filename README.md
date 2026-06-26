@@ -106,6 +106,18 @@ Code analysis and business logic knowledge base. Enables you to:
 | `opst-code-anysic` | Analyze archived OpenSpec change code, extract business logic, and archive into a versioned knowledge base with five-section design documents |
 | `opst-business-search` | Search the archived business logic knowledge base by keyword, browse by domain, or view exact modules |
 
+### anthropics
+
+Anthropic official Claude Code skills — document processing and developer tools. Author: **Anthropic**.
+
+| Skill | Description | Trigger |
+|-------|-------------|---------|
+| `pdf` | PDF processing: read, merge, split, rotate, watermark, encrypt, OCR, form filling | User mentions .pdf files or asks to generate/process PDFs |
+| `xlsx` | Excel spreadsheet: create, edit, format, chart, formulas, data cleaning | User mentions .xlsx/.csv/.tsv or asks to create/edit spreadsheets |
+| `docx` | Word documents: create, edit, format, TOC, page numbers, letterheads | User mentions .docx, Word document, report, memo, letter |
+| `mcp-builder` | MCP server development guide for integrating external APIs | User needs to build MCP servers to integrate external services |
+| `skill-creator` | Skill creator: create, evaluate, benchmark, and optimize Claude Code skills | User wants to create/edit/test Claude Code skills |
+
 ## Tech Stack
 
 - OpenSpec (spec-driven development workflow)

@@ -32,6 +32,15 @@
       "license": "MIT",
       "keywords": ["npm", "publish", "registry", "package"],
       "category": "devops"
+    },
+    {
+      "name": "anthropics",
+      "source": "./plugins/anthropics",
+      "description": "Anthropic official Claude Code skills — document processing and developer tools",
+      "author": { "name": "Anthropic" },
+      "license": "Proprietary",
+      "keywords": ["anthropic", "official", "pdf", "docx", "xlsx", "mcp", "skill-creator"],
+      "category": "official"
     }
   ]
 }

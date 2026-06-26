@@ -1,0 +1,7 @@
+{
+  "name": "anthropics",
+  "description": "Anthropic official Claude Code skills — document processing and developer tools",
+  "author": { "name": "Anthropic" },
+  "license": "Proprietary",
+  "keywords": ["anthropic", "official", "pdf", "docx", "xlsx", "mcp", "skill-creator"]
+}
