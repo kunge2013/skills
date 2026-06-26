@@ -1,0 +1,28 @@
+{
+  "name": "kunge-skills",
+  "owner": {
+    "name": "kunge2013",
+    "email": "kun_ja@163.com"
+  },
+  "description": "OpenSpec-based development workflow skills for Claude Code",
+  "plugins": [
+    {
+      "name": "openspec-workflow",
+      "source": "./plugins/openspec-workflow",
+      "description": "Spec-driven change lifecycle: explore, propose, apply, archive",
+      "author": { "name": "kunge2013" },
+      "license": "MIT",
+      "keywords": ["openspec", "workflow", "spec-driven", "planning"],
+      "category": "workflow"
+    },
+    {
+      "name": "openspec-trace",
+      "source": "./plugins/openspec-trace",
+      "description": "Code analysis and business logic knowledge base",
+      "author": { "name": "kunge2013" },
+      "license": "MIT",
+      "keywords": ["openspec", "knowledge-base", "code-analysis", "documentation"],
+      "category": "documentation"
+    }
+  ]
+}

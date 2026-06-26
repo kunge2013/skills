@@ -1,0 +1,6 @@
+{
+  "name": "openspec-trace",
+  "description": "Code analysis and business logic knowledge base with versioned design documents",
+  "author": { "name": "kunge2013" },
+  "license": "MIT"
+}
