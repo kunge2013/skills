@@ -1,0 +1,25 @@
+// [AGC:FILE] tool=Cc author=fangkun date=2026-06-26
+{
+  "name": "kungeskill-renderer",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^3.5.0",
+    "pinia": "^2.2.0",
+    "md-editor-v3": "^5.0.0",
+    "element-plus": "^2.9.0",
+    "marked": "^15.0.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.0",
+    "vite": "^6.0.0",
+    "vue-tsc": "^2.1.0",
+    "typescript": "~5.6.0"
+  }
+}

@@ -1,0 +1,8 @@
+// [AGC:FILE] tool=Cc author=fangkun date=2026-06-26
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
+}
