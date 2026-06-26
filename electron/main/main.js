@@ -1,9 +1,8 @@
 // [AGC:FILE] tool=Cc author=fangkun date=2026-06-26
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow } = require('electron');
 const path = require('path');
-const log = require('electron-log');
 
-// Register IPC handlers
+// IPC handlers (created in Tasks 4-8)
 const marketplaceHandlers = require('./handlers/marketplace');
 const skillHandlers = require('./handlers/skill');
 const symlinkHandlers = require('./handlers/symlink');
