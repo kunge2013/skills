@@ -1,0 +1,33 @@
+{
+  "name": "kungeskill",
+  "version": "0.4.1",
+  "description": "Manage Claude Code skills via symlinks — install, remove, update skills from a marketplace cache",
+  "main": "src/cli.js",
+  "bin": {
+    "kungeskill": "src/cli.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "src/**/*.js",
+    "plugins/**/*",
+    ".claude-plugin/**/*"
+  ],
+  "scripts": {
+    "start": "node src/cli.js",
+    "prepublishOnly": "node src/cli.js --version",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["claude-code", "skills", "marketplace", "symlink", "skill-manager"],
+  "author": "kungeskills",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kunge2013/skills"
+  },
+  "bugs": {
+    "url": "https://github.com/kunge2013/skills/issues"
+  },
+  "homepage": "https://github.com/kunge2013/skills#readme"
+}

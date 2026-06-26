@@ -19,6 +19,7 @@ yarn.lock
 .env
 .env.local
 .env.*.local
+.npmrc
 
 # Claude Code local state (user-specific, not project)
 .claude/settings.local.json

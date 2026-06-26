@@ -1,0 +1,14 @@
+# Development files
+openspec/
+plugins/
+docs/
+.claude/
+.claude-plugin/
+.git/
+.gitignore
+*.md
+!src/
+
+# Config
+.claude-plugin/
+.npmrc

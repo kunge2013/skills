@@ -23,6 +23,15 @@
       "license": "MIT",
       "keywords": ["openspec", "knowledge-base", "code-analysis", "documentation"],
       "category": "documentation"
+    },
+    {
+      "name": "publish",
+      "source": "./plugins/publish",
+      "description": "Package publishing skills — npm, PyPI, and other registries",
+      "author": { "name": "kunge2013" },
+      "license": "MIT",
+      "keywords": ["npm", "publish", "registry", "package"],
+      "category": "devops"
     }
   ]
 }

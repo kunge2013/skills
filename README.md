@@ -6,13 +6,61 @@ This marketplace provides reusable skills that enable a spec-driven approach to 
 
 ## Installation
 
-### Add the marketplace
+### Option 1: Install kungeskill CLI (Recommended)
+
+Manage skills via npm — install, remove, update skills with one command.
+
+```bash
+# Install globally
+npm install -g kungeskill
+
+# Initialize marketplace cache (first time only)
+kungeskill init
+
+# View available skills
+kungeskill list
+
+# Install a skill (creates symlink in your project)
+cd your-project
+kungeskill add openspec-explore
+```
+
+**CLI Commands:**
+
+| Command | Description |
+|---------|-------------|
+| `kungeskill init` | Download marketplace cache (first time only) |
+| `kungeskill list` | List all available skills |
+| `kungeskill add <skill>` | Install a skill into your project via symlink |
+| `kungeskill remove <skill>` | Remove a skill from your project |
+| `kungeskill view` | Show installed skills with health status |
+| `kungeskill update` | Update marketplace cache to latest |
+| `kungeskill doctor` | Check symlink health and detect broken links |
+
+### Uninstall
+
+```bash
+# Remove a skill from your project
+kungeskill remove openspec-explore
+
+# Uninstall kungeskill CLI globally
+npm uninstall -g kungeskill
+
+# (Optional) Clean up marketplace cache
+rm -rf ~/.kungeskills
+```
+
+### Option 2: Claude Code Plugin Marketplace
+
+Install skills via Claude Code's built-in plugin system.
+
+#### Add the marketplace
 
 ```
 /plugin marketplace add kunge2013/skills
 ```
 
-### Install individual plugins
+#### Install individual plugins
 
 ```
 # Spec-driven change lifecycle (explore, propose, apply, archive)
@@ -22,7 +70,7 @@ This marketplace provides reusable skills that enable a spec-driven approach to 
 /plugin install openspec-trace@kunge-skills
 ```
 
-### Update to latest
+#### Update to latest
 
 ```
 /plugin marketplace update kunge-skills
@@ -62,6 +110,7 @@ Code analysis and business logic knowledge base. Enables you to:
 
 - OpenSpec (spec-driven development workflow)
 - Claude Code skills framework
+- Node.js >= 18 (kungeskill CLI)
 
 ## License
 

@@ -1,0 +1,6 @@
+{
+  "name": "publish",
+  "description": "Package publishing skills — npm, PyPI, and other registries",
+  "author": { "name": "kunge2013" },
+  "license": "MIT"
+}
