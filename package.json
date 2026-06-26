@@ -21,11 +21,17 @@
     "list": "node src/cli.js list",
     "init": "node src/cli.js init",
     "prepublishOnly": "node src/cli.js --version",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
     "dev:desktop": "npx electron electron/main/main.js",
     "build:desktop": "electron-builder"
   },
-  "keywords": ["claude-code", "skills", "marketplace", "symlink", "skill-manager"],
+  "keywords": [
+    "claude-code",
+    "skills",
+    "marketplace",
+    "symlink",
+    "skill-manager"
+  ],
   "author": "kungeskills",
   "license": "MIT",
   "repository": {
@@ -37,9 +43,10 @@
   },
   "homepage": "https://github.com/kunge2013/skills#readme",
   "devDependencies": {
+    "chokidar": "^4.0.0",
     "electron": "^33.0.0",
     "electron-builder": "^25.0.0",
     "electron-log": "^5.0.0",
-    "chokidar": "^4.0.0"
+    "vitest": "^4.1.9"
   }
 }
