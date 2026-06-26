@@ -1,14 +1,20 @@
-# Development files
+# Build artifacts
+node_modules/
+dist/
+dist-desktop/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Dev-only
 openspec/
-plugins/
 docs/
 .claude/
-.claude-plugin/
-.git/
-.gitignore
-*.md
-!src/
 
-# Config
-.claude-plugin/
+# Logs
+*.log
+
+# Config (may contain secrets)
 .npmrc

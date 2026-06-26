@@ -1,0 +1,24 @@
+appId: com.kunge2013.skills
+productName: KungeSkill Desktop
+directories:
+  output: dist-desktop
+files:
+  - electron/main/**/*
+  - electron/renderer/dist/**/*
+  - src/**/*.js
+  - plugins/**/*
+  - .claude-plugin/**/*
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+mac:
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+linux:
+  target:
+    - target: AppImage
+      arch: [x64]
+extraMetadata:
+  main: electron/main/main.js
