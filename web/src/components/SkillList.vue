@@ -1,19 +1,19 @@
 <template>
   <div class="skill-list">
     <div class="toolbar">
-      <el-input v-model="searchQuery" placeholder="Search skills..." clearable class="search-input" @input="handleSearch" />
-      <el-select v-model="store.selectedCategory" placeholder="Category" clearable class="filter-select" @change="store.applyFilters()">
-        <el-option label="All" value="" /><el-option v-for="cat in store.categories" :key="cat" :label="cat" :value="cat" />
+      <el-input v-model="searchQuery" :placeholder="$t('list.searchPlaceholder')" clearable class="search-input" @input="handleSearch" />
+      <el-select v-model="store.selectedCategory" :placeholder="$t('list.category')" clearable class="filter-select" @change="store.applyFilters()">
+        <el-option :label="$t('list.all')" value="" /><el-option v-for="cat in store.categories" :key="cat" :label="cat" :value="cat" />
       </el-select>
       <el-select v-model="store.sortBy" class="sort-select" @change="store.applyFilters()">
-        <el-option label="Sort: Name" value="name" /><el-option label="Sort: Plugin" value="plugin" /><el-option label="Sort: Author" value="author" />
+        <el-option :label="$t('list.sortName')" value="name" /><el-option :label="$t('list.sortPlugin')" value="plugin" /><el-option :label="$t('list.sortAuthor')" value="author" />
       </el-select>
     </div>
     <div class="plugin-groups" v-loading="store.loading">
       <div v-for="plugin in groupedSkills" :key="plugin.name" class="plugin-group">
         <div class="plugin-header">
-          <div class="plugin-info"><h3>{{ plugin.name }}</h3><span class="plugin-desc">{{ plugin.description }}</span><span class="plugin-meta">{{ plugin.skillCount }} skills · {{ plugin.author }} · {{ plugin.category }}</span></div>
-          <el-button size="small" @click="expandPlugin(plugin.name)">View Skills</el-button>
+          <div class="plugin-info"><h3>{{ plugin.name }}</h3><span class="plugin-desc">{{ plugin.description }}</span><span class="plugin-meta">{{ plugin.skillCount }} {{ $t('skills') }} · {{ plugin.author }} · {{ plugin.category }}</span></div>
+          <el-button size="small" @click="expandPlugin(plugin.name)">{{ $t('list.viewSkills') }}</el-button>
         </div>
         <div v-if="expandedPlugins.has(plugin.name)" class="skill-items">
           <div v-for="skill in pluginSkills[plugin.name]" :key="skill.skillName" class="skill-item" @click="store.selectSkill(skill)">
@@ -22,7 +22,7 @@
         </div>
       </div>
     </div>
-    <el-empty v-if="!store.loading && store.filteredSkills.length === 0" description="No skills found" />
+    <el-empty v-if="!store.loading && store.filteredSkills.length === 0" :description="$t('list.noSkills')" />
   </div>
 </template>
 <script setup lang="ts">

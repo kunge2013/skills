@@ -1,0 +1,81 @@
+{
+  "nav": {
+    "title": "KungeSkill",
+    "allSkills": "全部技能",
+    "cacheValid": "缓存: 正常",
+    "cacheMissing": "缓存: 缺失",
+    "synced": "同步于:",
+    "initialize": "初始化",
+    "update": "更新",
+    "language": "语言",
+    "langEn": "English",
+    "langZh": "中文"
+  },
+  "list": {
+    "searchPlaceholder": "搜索技能...",
+    "category": "分类",
+    "all": "全部",
+    "sortName": "排序: 名称",
+    "sortPlugin": "排序: 插件",
+    "sortAuthor": "排序: 作者",
+    "viewSkills": "查看技能",
+    "noSkills": "未找到技能"
+  },
+  "detail": {
+    "back": "返回",
+    "metadata": "元数据",
+    "preview": "预览",
+    "editSkill": "编辑技能",
+    "installSkill": "安装到项目",
+    "name": "名称",
+    "plugin": "插件",
+    "author": "作者",
+    "license": "许可证",
+    "path": "路径"
+  },
+  "editor": {
+    "back": "返回",
+    "editing": "编辑:",
+    "validate": "验证",
+    "discard": "放弃",
+    "save": "保存"
+  },
+  "status": {
+    "title": "市场状态",
+    "cache": "缓存:",
+    "location": "位置:",
+    "lastSync": "上次同步:",
+    "version": "版本:",
+    "valid": "正常",
+    "missing": "缺失",
+    "never": "从未",
+    "na": "无",
+    "initialize": "初始化",
+    "updateNow": "立即更新"
+  },
+  "skills": "技能",
+  "plugin": "插件",
+  "pluginDescription": "描述",
+  "pluginAuthor": "作者",
+  "pluginCategory": "分类",
+  "pluginLicense": "许可证",
+  "pluginKeywords": "关键词",
+  "pluginSourceDir": "源目录",
+  "pluginSource": "来源",
+  "message": {
+    "cacheInitialized": "缓存已初始化",
+    "updated": "已更新",
+    "initialized": "已初始化",
+    "skillInstalled": "已安装: {name}",
+    "saved": "已保存",
+    "valid": "验证通过",
+    "discarded": "已放弃",
+    "failed": "操作失败"
+  },
+  "confirm": {
+    "conflictTitle": "文件冲突",
+    "conflictMessage": "文件已被外部修改。是否覆盖？",
+    "overwrite": "覆盖",
+    "reload": "重新加载"
+  }
+}

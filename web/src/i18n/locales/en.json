@@ -1,0 +1,81 @@
+{
+  "nav": {
+    "title": "KungeSkill",
+    "allSkills": "All Skills",
+    "cacheValid": "Cache: OK",
+    "cacheMissing": "Cache: Missing",
+    "synced": "Synced:",
+    "initialize": "Initialize",
+    "update": "Update",
+    "language": "Language",
+    "langEn": "English",
+    "langZh": "中文"
+  },
+  "list": {
+    "searchPlaceholder": "Search skills...",
+    "category": "Category",
+    "all": "All",
+    "sortName": "Sort: Name",
+    "sortPlugin": "Sort: Plugin",
+    "sortAuthor": "Sort: Author",
+    "viewSkills": "View Skills",
+    "noSkills": "No skills found"
+  },
+  "detail": {
+    "back": "Back",
+    "metadata": "Metadata",
+    "preview": "Preview",
+    "editSkill": "Edit Skill",
+    "installSkill": "Install to Project",
+    "name": "Name",
+    "plugin": "Plugin",
+    "author": "Author",
+    "license": "License",
+    "path": "Path"
+  },
+  "editor": {
+    "back": "Back",
+    "editing": "Editing:",
+    "validate": "Validate",
+    "discard": "Discard",
+    "save": "Save"
+  },
+  "status": {
+    "title": "Marketplace Status",
+    "cache": "Cache:",
+    "location": "Location:",
+    "lastSync": "Last Sync:",
+    "version": "Version:",
+    "valid": "Valid",
+    "missing": "Missing",
+    "never": "Never",
+    "na": "N/A",
+    "initialize": "Initialize",
+    "updateNow": "Update Now"
+  },
+  "skills": "skills",
+  "plugin": "plugin",
+  "pluginDescription": "description",
+  "pluginAuthor": "author",
+  "pluginCategory": "category",
+  "pluginLicense": "license",
+  "pluginKeywords": "keywords",
+  "pluginSourceDir": "source directory",
+  "pluginSource": "source",
+  "message": {
+    "cacheInitialized": "Cache initialized",
+    "updated": "Updated",
+    "initialized": "Initialized",
+    "skillInstalled": "Installed: {name}",
+    "saved": "Saved",
+    "valid": "Valid",
+    "discarded": "Discarded",
+    "failed": "Failed"
+  },
+  "confirm": {
+    "conflictTitle": "Conflict",
+    "conflictMessage": "File modified externally. Overwrite?",
+    "overwrite": "Overwrite",
+    "reload": "Reload"
+  }
+}

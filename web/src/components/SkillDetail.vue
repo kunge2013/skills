@@ -1,22 +1,22 @@
 <template>
   <div class="skill-detail">
     <div class="detail-header">
-      <el-button text @click="store.clearSelection()">&#8592; Back</el-button>
+      <el-button text @click="store.clearSelection()">&#8592; {{ $t('detail.back') }}</el-button>
       <h2>{{ store.selectedSkill?.skillName }}</h2>
       <span class="plugin-badge">{{ store.selectedSkill?.pluginName }}</span>
     </div>
     <div class="detail-content" v-loading="loading">
-      <div class="metadata"><h3>Metadata</h3><el-descriptions :column="1" border>
-        <el-descriptions-item label="Name">{{ store.selectedSkill?.skillName }}</el-descriptions-item>
-        <el-descriptions-item label="Plugin">{{ store.selectedSkill?.pluginName }}</el-descriptions-item>
-        <el-descriptions-item label="Author">{{ store.selectedSkill?.pluginAuthor }}</el-descriptions-item>
-        <el-descriptions-item label="License">{{ store.selectedSkill?.pluginLicense }}</el-descriptions-item>
-        <el-descriptions-item label="Path">{{ skillContent?.path }}</el-descriptions-item>
+      <div class="metadata"><h3>{{ $t('detail.metadata') }}</h3><el-descriptions :column="1" border>
+        <el-descriptions-item :label="$t('detail.name')">{{ store.selectedSkill?.skillName }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('detail.plugin')">{{ store.selectedSkill?.pluginName }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('detail.author')">{{ store.selectedSkill?.pluginAuthor }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('detail.license')">{{ store.selectedSkill?.pluginLicense }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('detail.path')">{{ skillContent?.path }}</el-descriptions-item>
       </el-descriptions></div>
-      <div class="preview"><h3>Preview</h3><div class="markdown-body" v-html="renderedMarkdown"></div></div>
+      <div class="preview"><h3>{{ $t('detail.preview') }}</h3><div class="markdown-body" v-html="renderedMarkdown"></div></div>
       <div class="detail-actions">
-        <el-button type="primary" @click="startEditing">Edit Skill</el-button>
-        <el-button type="success" @click="handleInstall">Install to Project</el-button>
+        <el-button type="primary" @click="startEditing">{{ $t('detail.editSkill') }}</el-button>
+        <el-button type="success" @click="handleInstall">{{ $t('detail.installSkill') }}</el-button>
       </div>
     </div>
   </div>
@@ -25,14 +25,16 @@
 import { ref, computed, onMounted } from 'vue'
 import { useSkillsStore } from '../stores/skills'
 import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import { marked } from 'marked'
 const store = useSkillsStore()
+const { t } = useI18n()
 const loading = ref(false)
 const skillContent = ref<{ content: string; path: string; lastModified: number } | null>(null)
 const renderedMarkdown = computed(() => skillContent.value?.content ? marked.parse(skillContent.value.content) : '')
 async function loadContent() { if (!store.selectedSkill) return; loading.value = true; try { const c = await store.loadSkillContent(store.selectedSkill.sourcePath); if (c) skillContent.value = c } finally { loading.value = false } }
 function startEditing() { store.skillContent = skillContent.value; store.setView('editor') }
-async function handleInstall() { if (!store.selectedSkill) return; const r = await store.installSkill(store.selectedSkill.skillName, ''); if (r.success) ElMessage.success(`Installed: ${store.selectedSkill.skillName}`); else ElMessage.error(r.error || 'Failed') }
+async function handleInstall() { if (!store.selectedSkill) return; const r = await store.installSkill(store.selectedSkill.skillName, ''); if (r.success) ElMessage.success(t('message.skillInstalled', { name: store.selectedSkill!.skillName })); else ElMessage.error(t('message.failed')) }
 onMounted(loadContent)
 </script>
 <style scoped>
