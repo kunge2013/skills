@@ -1,6 +1,6 @@
 {
   "name": "kungeskill",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Manage Claude Code skills via symlinks — install, remove, update skills from a marketplace cache",
   "main": "src/cli.js",
   "bin": {
@@ -12,18 +12,14 @@
   "files": [
     "src/**/*.js",
     "plugins/**/*",
-    ".claude-plugin/**/*",
-    "electron/**/*",
-    "electron-builder.yml"
+    ".claude-plugin/**/*"
   ],
   "scripts": {
     "start": "node src/cli.js",
     "list": "node src/cli.js list",
     "init": "node src/cli.js init",
     "prepublishOnly": "node src/cli.js --version",
-    "test": "vitest run",
-    "dev:desktop": "npx electron electron/main/main.js",
-    "build:desktop": "electron-builder"
+    "test": "vitest run"
   },
   "keywords": [
     "claude-code",
@@ -43,10 +39,6 @@
   },
   "homepage": "https://github.com/kunge2013/skills#readme",
   "devDependencies": {
-    "chokidar": "^4.0.0",
-    "electron": "^33.4.11",
-    "electron-builder": "^25.0.0",
-    "electron-log": "^5.0.0",
     "vitest": "^4.1.9"
   }
 }

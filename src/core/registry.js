@@ -115,6 +115,7 @@ function findSkill(marketplace, cacheDir, skillName) {
 
 module.exports = {
   parseMarketplace,
+  listSkillsFromSource,
   listAllSkills,
   listAllSkillsMerged,
   findSkill,
