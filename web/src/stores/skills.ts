@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { SkillInfo, PluginInfo, SkillContent, SkillValidation, CacheStatus } from '../types/skill'
+import type { SkillInfo, PluginInfo, SkillContent, SkillValidation, CacheStatus, InstallMode, InstallStatus } from '../types/skill'
 import i18n from '../i18n'
 interface ApiResponse<T> { success: boolean; data?: T; error?: string }
 
@@ -26,7 +26,10 @@ export const useSkillsStore = defineStore('skills', {
     async saveSkillContent(p: string, c: string, m?: number) { this.loading = true; try { return await window.api.saveSkillContent(p, c, m) } catch(e: any) { this.error = e.message; return { success: false, error: e.message } } finally { this.loading = false } },
     async validateSkillMd(c: string) { const r = await window.api.validateSkillMd(c); if (r.success && r.data) return r.data; return { valid: false, errors: ['Validation failed'] } },
     async installSkill(n: string, p: string) { this.loading = true; try { return await window.api.installSkill(n, p) } catch(e: any) { return { success: false, error: e.message } } finally { this.loading = false } },
+    async installSkillWithMode(n: string, p: string, mode: InstallMode, targetDir: string) { this.loading = true; try { return await window.api.installSkillWithMode(n, p, mode, targetDir) } catch(e: any) { return { success: false, error: e.message } } finally { this.loading = false } },
     async uninstallSkill(n: string, p: string) { this.loading = true; try { return await window.api.uninstallSkill(n, p) } catch(e: any) { return { success: false, error: e.message } } finally { this.loading = false } },
+    async checkInstallStatus(n: string, p: string): Promise<InstallStatus | null> { try { const r = await window.api.checkInstallStatus(n, p); if (r.success && r.data) return r.data; return null } catch(e: any) { return null } },
+    async getDefaultDir(p: string): Promise<string> { try { const r = await window.api.getDefaultDir(p); if (r.success && r.data) return r.data.defaultDir; return '' } catch(e: any) { return '' } },
     async checkCacheStatus() { try { const r = await window.api.checkCacheStatus(); if (r.success && r.data) this.cacheStatus = r.data } catch(e: any) { this.error = e.message } },
     async initMarketplace() { this.loading = true; try { const r = await window.api.initMarketplace(); if (r.success) { await this.checkCacheStatus(); await this.loadPlugins(); await this.loadSkills() } return r } catch(e: any) { return { success: false, error: e.message } } finally { this.loading = false } },
     async updateMarketplace() { this.loading = true; try { const r = await window.api.updateMarketplace(); if (r.success) { await this.loadPlugins(); await this.loadSkills() } return r } catch(e: any) { return { success: false, error: e.message } } finally { this.loading = false } },

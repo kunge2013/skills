@@ -12,7 +12,8 @@ const logger = require('../utils/logger');
 // Reuse CLI core modules
 const { getAllMarketplaceDirs, getMarketplaceSourceDir } = require('../core/cache.js');
 const { parseMarketplace, findSkillMerged } = require('../core/registry.js');
-const { createSkillSymlink, removeSkillSymlink, getSymlinkStatus } = require('../core/symlink.js');
+const { createSkillSymlink, removeSkillSymlink, getSymlinkStatus, copyDirRecursive } = require('../core/symlink.js');
+const { copyInstallSkill, uninstallCopySkill, getCopyInstallStatus } = require('../core/copy-install.js');
 const { findProjectSkillsDir } = require('../commands/shared.js');
 const { cloneRepo, pullRepo } = require('../utils/git.js');
 const { getConfig, updateConfig } = require('../core/config.js');
@@ -98,18 +99,109 @@ function saveSkill(skillPath, content, expectedMtime) {
 }
 
 function installSkill(skillName, projectPath) {
-  const sDir = findProjectSkillsDir(projectPath || undefined);
-  const lp = path.join(sDir, skillName);
+  return installSkillWithMode(skillName, projectPath, 'symlink', '');
+}
+
+/**
+ * Unified install handler supporting both symlink and copy modes.
+ * @param {string} skillName
+ * @param {string} projectPath
+ * @param {'symlink'|'copy'} mode
+ * @param {string} customTargetDir - Optional custom target directory
+ */
+function installSkillWithMode(skillName, projectPath, mode, customTargetDir) {
+  const sDir = customTargetDir || findProjectSkillsDir(projectPath || undefined);
   const skill = findSkillMerged(getAllMarketplaceDirs(), skillName);
   if (!skill) return { success: false, error: 'Skill not found: ' + skillName };
-  createSkillSymlink(skill.sourcePath, lp);
-  return { success: true, linkPath: lp, targetPath: skill.sourcePath };
+
+  if (mode === 'copy') {
+    return copyInstallSkill(skillName, skill.sourcePath, sDir);
+  }
+
+  // Default: symlink mode
+  const lp = path.join(sDir, skillName);
+  try {
+    createSkillSymlink(skill.sourcePath, lp);
+    return { success: true, linkPath: lp, targetPath: skill.sourcePath, mode: 'symlink' };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
 }
 
 function uninstallSkill(skillName, projectPath) {
+  return uninstallSkillUnified(skillName, projectPath);
+}
+
+/**
+ * Unified uninstall handler that detects install mode and dispatches correctly.
+ */
+function uninstallSkillUnified(skillName, projectPath) {
   const sDir = findProjectSkillsDir(projectPath || undefined);
-  removeSkillSymlink(path.join(sDir, skillName));
-  return { success: true };
+  const skillPath = path.join(sDir, skillName);
+
+  if (!fs.existsSync(skillPath)) {
+    return { success: false, error: `Skill not installed: ${skillName}` };
+  }
+
+  // Check if it's a copy-mode install
+  const copyStatus = getCopyInstallStatus(skillPath);
+  if (copyStatus.isCopy) {
+    return uninstallCopySkill(skillPath);
+  }
+
+  // Check if it's a symlink
+  const stat = fs.lstatSync(skillPath);
+  if (stat.isSymbolicLink()) {
+    removeSkillSymlink(skillPath);
+    return { success: true, mode: 'symlink' };
+  }
+
+  // Not a symlink, no manifest — refuse to delete
+  return { success: false, error: 'Not a managed install (no symlink, no manifest). Refusing to delete.' };
+}
+
+/**
+ * Get detailed install status for a skill in a project.
+ */
+function getInstallStatus(skillName, projectPath) {
+  const sDir = findProjectSkillsDir(projectPath || undefined);
+  const skillPath = path.join(sDir, skillName);
+
+  if (!fs.existsSync(skillPath)) {
+    return { success: true, data: { installed: false, skillName } };
+  }
+
+  // Check copy mode first
+  const copyStatus = getCopyInstallStatus(skillPath);
+  if (copyStatus.isCopy) {
+    return {
+      success: true,
+      data: {
+        installed: true,
+        skillName,
+        mode: 'copy',
+        installPath: skillPath,
+        installedAt: copyStatus.manifest?.installedAt || null,
+        sourcePath: copyStatus.manifest?.sourcePath || null,
+      },
+    };
+  }
+
+  // Check symlink
+  const s = getSymlinkStatus(skillPath);
+  return {
+    success: true,
+    data: {
+      installed: true,
+      skillName,
+      mode: 'symlink',
+      linkPath: skillPath,
+      isLink: s.isLink,
+      isValid: s.isValid,
+      hasSkillMd: s.hasSkillMd,
+      targetPath: s.target,
+    },
+  };
 }
 
 function checkSkillStatus(skillName) {
@@ -146,6 +238,39 @@ function cacheStatus() {
   return { valid: fs.existsSync(path.join(cacheDir, '.git')), cacheDir, hasBundled: fs.existsSync(path.join(pkgRoot, 'plugins')), lastSync: config.marketplace.lastSync, repoUrl: config.marketplace.url };
 }
 
+/**
+ * List directories at a given path for the directory picker.
+ * Returns subdirectories with their label, value, and whether they have children.
+ */
+function listDirectories(dirPath) {
+  // Resolve to absolute path
+  const resolved = path.resolve(dirPath || '/')
+  if (!fs.existsSync(resolved)) {
+    return { success: false, error: `Path not found: ${resolved}` }
+  }
+  const stat = fs.statSync(resolved)
+  if (!stat.isDirectory()) {
+    return { success: false, error: `Not a directory: ${resolved}` }
+  }
+  try {
+    const entries = fs.readdirSync(resolved, { withFileTypes: true })
+    const dirs = entries
+      .filter(e => e.isDirectory() && !e.name.startsWith('.'))
+      .map(e => ({
+        label: e.name,
+        value: path.join(resolved, e.name),
+        isLeaf: false,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+    return {
+      success: true,
+      data: { path: resolved, children: dirs, parent: path.dirname(resolved) },
+    }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+}
+
 // ---------- HTTP Server ----------
 
 function createServer(port) {
@@ -178,6 +303,12 @@ function createServer(port) {
             case '/api/skill/read': result = { success: true, data: readSkill(body.skillPath) }; break;
             case '/api/skill/save': result = saveSkill(body.skillPath, body.content, body.expectedMtime); break;
             case '/api/skill/validate': result = { success: true, data: validateSkillMd(body.content) }; break;
+            case '/api/skill/install': result = installSkillWithMode(body.skillName, body.projectPath, body.mode || 'symlink', body.targetDir || ''); break;
+            case '/api/skill/uninstall': result = uninstallSkillUnified(body.skillName, body.projectPath); break;
+            case '/api/skill/status': result = getInstallStatus(body.skillName, body.projectPath); break;
+            case '/api/skill/default-dir': result = { success: true, data: { defaultDir: findProjectSkillsDir(body?.projectPath || undefined) } }; break;
+            case '/api/fs/dirs': result = listDirectories(body?.path || '/'); break;
+            // Deprecated aliases — use /api/skill/* instead
             case '/api/symlink/install': result = installSkill(body.skillName, body.projectPath); break;
             case '/api/symlink/uninstall': result = uninstallSkill(body.skillName, body.projectPath); break;
             case '/api/symlink/status': result = checkSkillStatus(body.skillName); break;
@@ -222,8 +353,12 @@ window.api = {
   saveSkillContent: function(p, c, m) { return this._post('/skill/save', { skillPath: p, content: c, expectedMtime: m }); },
   validateSkillMd: function(c) { return this._post('/skill/validate', { content: c }); },
   installSkill: function(n, p) { return this._post('/symlink/install', { skillName: n, projectPath: p }); },
-  uninstallSkill: function(n, p) { return this._post('/symlink/uninstall', { skillName: n, projectPath: p }); },
+  installSkillWithMode: function(n, p, m, td) { return this._post('/skill/install', { skillName: n, projectPath: p, mode: m, targetDir: td }); },
+  uninstallSkill: function(n, p) { return this._post('/skill/uninstall', { skillName: n, projectPath: p }); },
   checkSkillStatus: function(n) { return this._post('/symlink/status', { skillName: n }); },
+  checkInstallStatus: function(n, p) { return this._post('/skill/status', { skillName: n, projectPath: p }); },
+  getDefaultDir: function(p) { return this._post('/skill/default-dir', { projectPath: p }); },
+  listDirs: function(p) { return this._post('/fs/dirs', { path: p }); },
   initMarketplace: function() { return this._post('/git/init'); },
   updateMarketplace: function() { return this._post('/git/update'); },
   checkCacheStatus: function() { return this._post('/git/cache-status'); },

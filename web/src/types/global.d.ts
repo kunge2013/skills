@@ -1,4 +1,6 @@
 export {}
+import type { InstallStatus } from './skill'
+
 declare global {
   interface Window {
     api: {
@@ -9,8 +11,12 @@ declare global {
       saveSkillContent: (p: string, c: string, m?: number) => Promise<any>
       validateSkillMd: (c: string) => Promise<{ success: boolean; data?: any; error?: string }>
       installSkill: (n: string, p: string) => Promise<any>
+      installSkillWithMode: (n: string, p: string, mode: 'symlink' | 'copy', targetDir: string) => Promise<any>
       uninstallSkill: (n: string, p: string) => Promise<any>
       checkSkillStatus: (n: string) => Promise<any>
+      checkInstallStatus: (n: string, p: string) => Promise<{ success: boolean; data?: InstallStatus | null; error?: string }>
+      getDefaultDir: (p: string) => Promise<{ success: boolean; data?: { defaultDir: string }; error?: string }>
+      listDirs: (p: string) => Promise<{ success: boolean; data?: { path: string; children: any[]; parent: string }; error?: string }>
       initMarketplace: () => Promise<any>
       updateMarketplace: () => Promise<any>
       checkCacheStatus: () => Promise<{ success: boolean; data?: any; error?: string }>
