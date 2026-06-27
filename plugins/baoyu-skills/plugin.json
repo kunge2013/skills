@@ -4,5 +4,6 @@
   "author": { "name": "JimLiu" },
   "license": "Proprietary",
   "homepage": "https://github.com/JimLiu/baoyu-skills",
-  "keywords": ["article", "illustration", "image-generation", "infographic", "visual"]
+  "keywords": ["article", "illustration", "image-generation", "infographic", "visual"],
+  "category": "content"
 }
