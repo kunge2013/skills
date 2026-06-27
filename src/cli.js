@@ -10,6 +10,7 @@ const { cmdView } = require('./commands/view');
 const { cmdUpdate } = require('./commands/update');
 const { cmdDoctor } = require('./commands/doctor');
 const { cmdDashboard } = require('./commands/dashboard');
+const { cmdWeb } = require('./commands/web');
 const logger = require('./utils/logger');
 
 const VERSION = '0.1.0';
@@ -26,6 +27,7 @@ Commands:
   view               Show installed skills with health status
   update             Update marketplace cache via git pull
   dashboard          Launch desktop UI
+  web                Launch web UI in browser (same as dashboard)
   doctor             Check symlink health and cache status
 
 Options:
@@ -118,6 +120,10 @@ async function main() {
 
       case 'dashboard':
         await cmdDashboard();
+        break;
+
+      case 'web':
+        await cmdWeb();
         break;
 
       default:
