@@ -1,0 +1,8 @@
+{
+  "name": "baoyu-skills",
+  "description": "Article illustration skills — analyze article structure, generate images with Type × Style × Palette approach",
+  "author": { "name": "JimLiu" },
+  "license": "Proprietary",
+  "homepage": "https://github.com/JimLiu/baoyu-skills",
+  "keywords": ["article", "illustration", "image-generation", "infographic", "visual"]
+}

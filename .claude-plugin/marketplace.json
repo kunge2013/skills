@@ -41,6 +41,24 @@
       "license": "Proprietary",
       "keywords": ["anthropic", "official", "pdf", "docx", "xlsx", "mcp", "skill-creator"],
       "category": "official"
+    },
+    {
+      "name": "baoyu-skills",
+      "source": "./plugins/baoyu-skills",
+      "description": "Article illustration skills — analyze structure, generate images with Type × Style × Palette approach",
+      "author": { "name": "JimLiu" },
+      "license": "Proprietary",
+      "keywords": ["article", "illustration", "image-generation", "infographic", "visual"],
+      "category": "content"
+    },
+    {
+      "name": "skill-manage",
+      "source": "./plugins/skill-manage",
+      "description": "Skill management utilities — load, install, and register skills into the local plugin system",
+      "author": { "name": "kunge2013" },
+      "license": "MIT",
+      "keywords": ["skill", "loader", "install", "plugin", "register"],
+      "category": "utility"
     }
   ]
 }
