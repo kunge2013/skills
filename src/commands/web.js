@@ -244,19 +244,30 @@ async function cmdWeb() {
     process.exit(1);
   }
 
-  // Find available port
-  const startPort = 3010;
-  const server = createServer(startPort);
+  // Find available port starting from 3010
+  let port = 3010;
+  while (true) {
+    try {
+      await new Promise((resolve, reject) => {
+        const srv = http.createServer();
+        srv.listen(port, '127.0.0.1', () => { srv.close(resolve); });
+        srv.on('error', (e) => { if (e.code === 'EADDRINUSE') reject(e); else reject(e); });
+      });
+      break; // port available
+    } catch (e) { port++; }
+  }
+
+  const server = createServer(port);
 
   await new Promise((resolve, reject) => {
-    server.listen(startPort, '127.0.0.1', () => {
-      logger.success(`KungeSkill Web running at http://127.0.0.1:${startPort}`);
+    server.listen(port, '127.0.0.1', () => {
+      logger.success(`KungeSkill Web running at http://127.0.0.1:${port}`);
       logger.info('Press Ctrl+C to stop');
 
       // Open browser
-      const open = require('child_process').exec;
+      const { exec } = require('child_process');
       const cmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
-      open(`${cmd} http://127.0.0.1:${startPort}`);
+      exec(`${cmd} http://127.0.0.1:${port}`);
       resolve();
     });
     server.on('error', reject);
