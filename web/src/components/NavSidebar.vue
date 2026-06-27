@@ -22,7 +22,7 @@ import { Document } from '@element-plus/icons-vue'
 import { useSkillsStore } from '../stores/skills'
 import { ElMessage } from 'element-plus'
 const store = useSkillsStore()
-const version = '0.8.0'
+const version = __APP_VERSION__
 async function handleInit() { const r = await store.initMarketplace(); if (r.success) ElMessage.success('Cache initialized'); else ElMessage.error(r.error || 'Failed') }
 async function handleUpdate() { const r = await store.updateMarketplace(); if (r.success) ElMessage.success('Updated'); else ElMessage.error(r.error || 'Failed') }
 </script>

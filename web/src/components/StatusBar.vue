@@ -6,7 +6,7 @@
         <div class="status-item"><span class="label">Cache:</span><el-tag :type="store.hasCache ? 'success' : 'danger'" size="small">{{ store.hasCache ? 'Valid' : 'Missing' }}</el-tag></div>
         <div class="status-item"><span class="label">Location:</span><span class="value">{{ store.cacheStatus?.cacheDir || 'N/A' }}</span></div>
         <div class="status-item"><span class="label">Last Sync:</span><span class="value">{{ store.cacheStatus?.lastSync ? new Date(store.cacheStatus.lastSync).toLocaleString() : 'Never' }}</span></div>
-        <div class="status-item"><span class="label">Version:</span><span class="value">v0.8.0</span></div>
+        <div class="status-item"><span class="label">Version:</span><span class="value">v{{ version }}</span></div>
       </div>
       <div class="status-actions">
         <el-button v-if="!store.hasCache" type="primary" @click="handleInit" :loading="store.loading">Initialize</el-button>
@@ -19,6 +19,7 @@
 import { useSkillsStore } from '../stores/skills'
 import { ElMessage } from 'element-plus'
 const store = useSkillsStore()
+const version = __APP_VERSION__
 async function handleInit() { const r = await store.initMarketplace(); if (r.success) ElMessage.success('Initialized'); else ElMessage.error(r.error || 'Failed') }
 async function handleUpdate() { const r = await store.updateMarketplace(); if (r.success) ElMessage.success('Updated'); else ElMessage.error(r.error || 'Failed') }
 </script>

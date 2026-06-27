@@ -3,7 +3,7 @@ import vue from '@vitejs/plugin-vue'
 import path from 'path'
 import { readFileSync } from 'fs'
 
-const rootPkg = JSON.parse(readFileSync(path.resolve(__dirname, '../../../package.json'), 'utf-8'))
+const rootPkg = JSON.parse(readFileSync(path.resolve(__dirname, '../package.json'), 'utf-8'))
 
 export default defineConfig({
   plugins: [vue()],
