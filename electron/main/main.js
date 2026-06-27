@@ -1,6 +1,7 @@
 // [AGC:FILE] tool=Cc author=fangkun date=2026-06-26
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
 // IPC handlers (created in Tasks 4-8)
 const marketplaceHandlers = require('./handlers/marketplace');
@@ -25,11 +26,12 @@ function createWindow() {
 
   // In development, load Vite dev server
   // In production, load built files
-  if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
-    mainWindow.loadURL('http://localhost:5173');
-    mainWindow.webContents.openDevTools();
+  const prodPath = path.join(__dirname, '..', 'renderer', 'dist', 'index.html')
+  if (fs.existsSync(prodPath)) {
+    mainWindow.loadFile(prodPath)
   } else {
-    mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'dist', 'index.html'));
+    mainWindow.loadURL('http://localhost:5173')
+    mainWindow.webContents.openDevTools()
   }
 
   mainWindow.on('closed', () => {
