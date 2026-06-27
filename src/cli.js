@@ -9,6 +9,7 @@ const { cmdRemove } = require('./commands/remove');
 const { cmdView } = require('./commands/view');
 const { cmdUpdate } = require('./commands/update');
 const { cmdDoctor } = require('./commands/doctor');
+const { cmdDashboard } = require('./commands/dashboard');
 const logger = require('./utils/logger');
 
 const VERSION = '0.1.0';
@@ -24,6 +25,7 @@ Commands:
   remove <skill>     Remove a skill symlink from this project
   view               Show installed skills with health status
   update             Update marketplace cache via git pull
+  dashboard          Launch desktop UI
   doctor             Check symlink health and cache status
 
 Options:
@@ -112,6 +114,10 @@ async function main() {
 
       case 'doctor':
         cmdDoctor();
+        break;
+
+      case 'dashboard':
+        await cmdDashboard();
         break;
 
       default:
