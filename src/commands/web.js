@@ -18,7 +18,7 @@ const { cloneRepo, pullRepo } = require('../utils/git.js');
 const { getConfig, updateConfig } = require('../core/config.js');
 
 const pkgRoot = path.resolve(__dirname, '../..');
-const rendererDist = path.join(pkgRoot, 'electron', 'renderer', 'dist');
+const rendererDist = path.join(pkgRoot, 'web', 'dist');
 
 // ---------- API Handlers (reusing CLI core modules) ----------
 
@@ -240,7 +240,7 @@ window.api = {
 
 async function cmdWeb() {
   if (!fs.existsSync(rendererDist)) {
-    logger.error('Renderer not built. Run: cd electron/renderer && npm run build');
+    logger.error('Renderer not built. Run: cd web && npm run build');
     process.exit(1);
   }
 

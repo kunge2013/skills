@@ -1,6 +1,6 @@
 {
   "name": "kungeskill",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "Manage Claude Code skills via symlinks — install, remove, update skills from a marketplace cache",
   "main": "src/cli.js",
   "bin": {
@@ -13,7 +13,7 @@
     "src/**/*.js",
     "plugins/**/*",
     ".claude-plugin/**/*",
-    "electron/renderer/dist/**/*"
+    "web/dist/**/*"
   ],
   "scripts": {
     "start": "node src/cli.js",
