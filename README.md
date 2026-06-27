@@ -8,7 +8,7 @@ This marketplace provides reusable skills that enable a spec-driven approach to 
 
 ### Option 1: Install kungeskill CLI (Recommended)
 
-Manage skills via npm — install, remove, update skills with one command.
+Manage skills via npm — install, remove, update skills with one command, plus a web UI for browsing and editing.
 
 ```bash
 # Install globally
@@ -23,6 +23,9 @@ kungeskill list
 # Install a skill (creates symlink in your project)
 cd your-project
 kungeskill add openspec-explore
+
+# Launch web UI in browser
+kungeskill web
 ```
 
 **CLI Commands:**
@@ -35,7 +38,39 @@ kungeskill add openspec-explore
 | `kungeskill remove <skill>` | Remove a skill from your project |
 | `kungeskill view` | Show installed skills with health status |
 | `kungeskill update` | Update marketplace cache to latest |
+| `kungeskill web` | Launch web UI in browser for browsing, editing, and managing skills |
 | `kungeskill doctor` | Check symlink health and detect broken links |
+
+### Web UI
+
+`kungeskill web` launches a local HTTP server with a full-featured Vue 3 interface for managing skills.
+
+#### Launch
+
+```bash
+kungeskill web
+```
+
+The command automatically opens your default browser at `http://127.0.0.1:3010` (or the next available port).
+
+#### Features
+
+| Feature | Description |
+|---------|-------------|
+| **Browse** | View all plugins and skills grouped by category, with search, filter, and sort |
+| **Preview** | Rendered markdown preview of any skill's SKILL.md content |
+| **Edit** | Full markdown editor with syntax highlighting, live preview, and frontmatter validation |
+| **Install** | Install skills to your current project with one click |
+| **Cache** | Initialize and update marketplace cache directly from the UI |
+
+#### Editor
+
+The built-in editor (powered by md-editor-v3) supports:
+
+- Split-pane editing with live markdown preview
+- YAML frontmatter validation (requires `name` and `description`)
+- Save with conflict detection (warns if file was modified externally)
+- Validate button to check frontmatter before saving
 
 ### Uninstall
 
