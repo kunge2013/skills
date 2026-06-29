@@ -271,6 +271,186 @@ function listDirectories(dirPath) {
   }
 }
 
+// [AGC:START] tool=Cc author=fangkun
+/**
+ * List installed skills from the default .claude/skills/ directory.
+ * Returns skills with their actual install paths (not marketplace source paths).
+ */
+function listInstalledSkills() {
+  const skillsDir = findProjectSkillsDir();
+  if (!fs.existsSync(skillsDir)) {
+    return [];
+  }
+  const installed = [];
+  const entries = fs.readdirSync(skillsDir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (entry.name.startsWith('.') || !entry.isDirectory()) continue;
+    const skillPath = path.join(skillsDir, entry.name);
+    const skillMd = path.join(skillPath, 'SKILL.md');
+    if (!fs.existsSync(skillMd)) continue;
+
+    // Read SKILL.md to extract metadata
+    const content = fs.readFileSync(skillMd, 'utf-8');
+    const nameMatch = content.match(/^name:\s*(.+)$/m);
+    const descMatch = content.match(/^description:\s*(.+)$/m);
+
+    // Check install mode
+    let mode = 'unknown';
+    try {
+      const lstat = fs.lstatSync(skillPath);
+      if (lstat.isSymbolicLink()) {
+        mode = 'symlink';
+      } else {
+        const manifestPath = path.join(skillPath, '.install-manifest.json');
+        if (fs.existsSync(manifestPath)) {
+          mode = 'copy';
+        }
+      }
+    } catch { /* skip */ }
+
+    installed.push({
+      skillName: entry.name,
+      pluginName: '',
+      sourcePath: skillPath,
+      installPath: skillPath,
+      installMode: mode,
+      pluginDescription: descMatch ? descMatch[1].trim() : '',
+      pluginAuthor: '',
+      pluginLicense: '',
+      pluginCategory: '',
+      pluginKeywords: [],
+    });
+  }
+  return installed;
+}
+// [AGC:END]
+
+// [AGC:START] tool=Cc author=fangkun
+/**
+ * List a skill directory as a tree structure for the file browser.
+ */
+function listSkillDirectory(dirPath) {
+  const resolved = path.resolve(dirPath);
+  if (!fs.existsSync(resolved)) {
+    return { success: false, error: `Path not found: ${resolved}` };
+  }
+  const stat = fs.statSync(resolved);
+  if (!stat.isDirectory()) {
+    return { success: false, error: `Not a directory: ${resolved}` };
+  }
+  try {
+    const node = buildDirectoryNode(resolved);
+    return { success: true, data: node };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+function buildDirectoryNode(dirPath) {
+  const name = path.basename(dirPath);
+  const node = { name, path: dirPath, type: 'directory', children: [] };
+  const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+  for (const entry of entries) {
+    if (entry.name.startsWith('.')) continue;
+    const fullPath = path.join(dirPath, entry.name);
+    if (entry.isDirectory()) {
+      // Only return directory metadata, do NOT recurse - client loads lazily
+      node.children.push({ name: entry.name, path: fullPath, type: 'directory', isLeaf: false });
+    } else {
+      node.children.push({ name: entry.name, path: fullPath, type: 'file', isLeaf: true });
+    }
+  }
+  node.children.sort((a, b) => {
+    if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
+  return node;
+}
+
+/**
+ * List files in a skill directory with metadata.
+ */
+function listSkillFiles(dirPath) {
+  const resolved = path.resolve(dirPath);
+  if (!fs.existsSync(resolved)) {
+    return { success: false, error: `Path not found: ${resolved}` };
+  }
+  try {
+    const entries = fs.readdirSync(resolved, { withFileTypes: true, recursive: true });
+    const files = entries
+      .filter(e => e.isFile() && !e.name.startsWith('.'))
+      .map(e => {
+        const fullPath = path.resolve(resolved, typeof e === 'string' ? e : path.join(e.path || resolved, e.name));
+        const stat = fs.statSync(fullPath);
+        return { name: e.name, path: fullPath, size: stat.size, lastModified: stat.mtimeMs, isDirectory: false, extension: path.extname(e.name) };
+      });
+    return { success: true, data: files };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Read a file's content by path.
+ */
+function readFileContent(filePath) {
+  const resolved = path.resolve(filePath);
+  if (!fs.existsSync(resolved)) {
+    return { success: false, error: `File not found: ${resolved}` };
+  }
+  try {
+    const content = fs.readFileSync(resolved, 'utf-8');
+    const stat = fs.statSync(resolved);
+    return { success: true, data: { content, path: resolved, lastModified: stat.mtimeMs } };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Save a single file's content with optimistic locking.
+ */
+function saveFileContent(filePath, content, expectedMtime) {
+  const resolved = path.resolve(filePath);
+  if (!fs.existsSync(resolved)) {
+    return { success: false, error: `File not found: ${resolved}` };
+  }
+  try {
+    if (expectedMtime != null) {
+      const s = fs.statSync(resolved);
+      if (s.mtimeMs !== expectedMtime) {
+        return { success: false, error: 'File was modified externally', conflict: true, currentContent: fs.readFileSync(resolved, 'utf-8') };
+      }
+    }
+    fs.writeFileSync(resolved, content, 'utf-8');
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Batch save multiple files with optimistic locking.
+ */
+function batchSaveFiles(fileOperations) {
+  const result = { success: true, saved: [], failed: [], conflicts: [] };
+  for (const op of fileOperations) {
+    const r = saveFileContent(op.path, op.content, op.expectedMtime);
+    if (r.success) {
+      result.saved.push(op.path);
+    } else if (r.conflict) {
+      result.conflicts.push({ path: op.path, currentContent: r.currentContent });
+      result.success = false;
+      break;
+    } else {
+      result.failed.push({ path: op.path, error: r.error });
+      result.success = false;
+    }
+  }
+  return { success: result.success, data: result };
+}
+// [AGC:END]
+
 // ---------- HTTP Server ----------
 
 function createServer(port) {
@@ -300,6 +480,7 @@ function createServer(port) {
             case '/api/marketplace/plugins': result = { success: true, data: listPlugins() }; break;
             case '/api/marketplace/skills': result = { success: true, data: listAllSkills() }; break;
             case '/api/marketplace/search': result = { success: true, data: searchSkills(body?.query || '', body?.filters || {}) }; break;
+            case '/api/marketplace/installed': result = { success: true, data: listInstalledSkills() }; break;
             case '/api/skill/read': result = { success: true, data: readSkill(body.skillPath) }; break;
             case '/api/skill/save': result = saveSkill(body.skillPath, body.content, body.expectedMtime); break;
             case '/api/skill/validate': result = { success: true, data: validateSkillMd(body.content) }; break;
@@ -308,6 +489,11 @@ function createServer(port) {
             case '/api/skill/status': result = getInstallStatus(body.skillName, body.projectPath); break;
             case '/api/skill/default-dir': result = { success: true, data: { defaultDir: findProjectSkillsDir(body?.projectPath || undefined) } }; break;
             case '/api/fs/dirs': result = listDirectories(body?.path || '/'); break;
+            case '/api/skill/dir': result = listSkillDirectory(body?.path || '/'); break;
+            case '/api/skill/files': result = listSkillFiles(body?.path || '/'); break;
+            case '/api/skill/read-file': result = readFileContent(body?.path || ''); break;
+            case '/api/skill/save-file': result = saveFileContent(body?.path || '', body?.content || '', body?.expectedMtime); break;
+            case '/api/skill/batch-save': result = batchSaveFiles(body?.files || []); break;
             // Deprecated aliases — use /api/skill/* instead
             case '/api/symlink/install': result = installSkill(body.skillName, body.projectPath); break;
             case '/api/symlink/uninstall': result = uninstallSkill(body.skillName, body.projectPath); break;
@@ -362,6 +548,12 @@ window.api = {
   initMarketplace: function() { return this._post('/git/init'); },
   updateMarketplace: function() { return this._post('/git/update'); },
   checkCacheStatus: function() { return this._post('/git/cache-status'); },
+  listInstalledSkills: function() { return this._post('/marketplace/installed'); },
+  listSkillDirectory: function(p) { return this._post('/skill/dir', { path: p }); },
+  listSkillFiles: function(p) { return this._post('/skill/files', { path: p }); },
+  readSkillFile: function(p) { return this._post('/skill/read-file', { path: p }); },
+  saveSkillFile: function(p, c, m) { return this._post('/skill/save-file', { path: p, content: c, expectedMtime: m }); },
+  batchSaveFiles: function(files) { return this._post('/skill/batch-save', { files }); },
   onFileChanged: function() { return function() {}; }
 };
 </script></body>`;

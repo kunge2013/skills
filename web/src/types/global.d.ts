@@ -1,5 +1,5 @@
 export {}
-import type { InstallStatus } from './skill'
+import type { InstallStatus, DirectoryNode, FileInfo, LinkedFileReference } from './skill'
 
 declare global {
   interface Window {
@@ -20,6 +20,12 @@ declare global {
       initMarketplace: () => Promise<any>
       updateMarketplace: () => Promise<any>
       checkCacheStatus: () => Promise<{ success: boolean; data?: any; error?: string }>
+      listInstalledSkills: () => Promise<{ success: boolean; data?: any[]; error?: string }>
+      listSkillDirectory: (p: string) => Promise<{ success: boolean; data?: DirectoryNode; error?: string }>
+      listSkillFiles: (p: string) => Promise<{ success: boolean; data?: FileInfo[]; error?: string }>
+      readSkillFile: (p: string) => Promise<{ success: boolean; data?: { content: string; path: string; lastModified: number }; error?: string }>
+      saveSkillFile: (p: string, c: string, m?: number) => Promise<{ success: boolean; error?: string; conflict?: boolean; currentContent?: string }>
+      batchSaveFiles: (files: { path: string; content: string; expectedMtime?: number }[]) => Promise<{ success: boolean; data?: any; error?: string }>
       onFileChanged: (cb: (d: { path: string }) => void) => () => void
     }
   }

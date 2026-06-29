@@ -9,7 +9,8 @@
     "update": "Update",
     "language": "Language",
     "langEn": "English",
-    "langZh": "中文"
+    "langZh": "中文",
+    "skillManagement": "Skill Management"
   },
   "list": {
     "searchPlaceholder": "Search skills...",
@@ -96,5 +97,28 @@
     "conflictMessage": "File modified externally. Overwrite?",
     "overwrite": "Overwrite",
     "reload": "Reload"
+  },
+  "manage": {
+    "title": "Skill Management",
+    "searchPlaceholder": "Search skills...",
+    "fileTree": "File Tree",
+    "editor": "Editor",
+    "linkedFiles": "Linked Files",
+    "saveAll": "Save All",
+    "saving": "Saving...",
+    "saveComplete": "Save complete",
+    "saveFailed": "Save failed",
+    "noFileSelected": "No file selected",
+    "noDirectory": "Select a skill directory to browse",
+    "modified": "Modified",
+    "conflictTitle": "File Conflict",
+    "conflictMessage": "The file \"{file}\" has been modified externally. Choose an action:",
+    "overwrite": "Overwrite",
+    "reload": "Reload",
+    "skip": "Skip",
+    "noResults": "No skills found",
+    "browseDirectory": "Browse Directory",
+    "openFile": "Open File",
+    "closeFile": "Close"
   }
 }

@@ -4,8 +4,9 @@
       <h2>{{ $t('nav.title') }}</h2>
       <span class="version">v{{ version }}</span>
     </div>
-    <el-menu :default-active="'list'" class="nav-menu" @select="() => store.clearSelection()">
+    <el-menu :default-active="activeMenu" class="nav-menu" @select="handleMenuSelect">
       <el-menu-item index="list"><el-icon><Document /></el-icon><span>{{ $t('nav.allSkills') }}</span></el-menu-item>
+      <el-menu-item index="manage"><el-icon><FolderOpened /></el-icon><span>{{ $t('nav.skillManagement') }}</span></el-menu-item>
     </el-menu>
     <div class="nav-footer">
       <div class="cache-status">
@@ -24,8 +25,8 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Document } from '@element-plus/icons-vue'
+import { ref, computed } from 'vue'
+import { Document, FolderOpened } from '@element-plus/icons-vue'
 import { useSkillsStore } from '../stores/skills'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
@@ -34,6 +35,15 @@ const store = useSkillsStore()
 const { t } = useI18n()
 const version = __APP_VERSION__
 const currentLocale = ref(i18n.global.locale.value as SupportedLocale)
+const activeMenu = computed(() => store.currentView === 'manage' ? 'manage' : 'list')
+
+function handleMenuSelect(index: string) {
+  if (index === 'manage') {
+    store.setView('manage')
+  } else {
+    store.clearSelection()
+  }
+}
 
 async function handleInit() { const r = await store.initMarketplace(); if (r.success) ElMessage.success(t('message.cacheInitialized')); else ElMessage.error(t('message.failed')) }
 async function handleUpdate() { const r = await store.updateMarketplace(); if (r.success) ElMessage.success(t('message.updated')); else ElMessage.error(t('message.failed')) }

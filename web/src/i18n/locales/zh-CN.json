@@ -9,7 +9,8 @@
     "update": "更新",
     "language": "语言",
     "langEn": "English",
-    "langZh": "中文"
+    "langZh": "中文",
+    "skillManagement": "技能管理"
   },
   "list": {
     "searchPlaceholder": "搜索技能...",
@@ -96,5 +97,28 @@
     "conflictMessage": "文件已被外部修改。是否覆盖？",
     "overwrite": "覆盖",
     "reload": "重新加载"
+  },
+  "manage": {
+    "title": "技能管理",
+    "searchPlaceholder": "搜索技能...",
+    "fileTree": "文件树",
+    "editor": "编辑器",
+    "linkedFiles": "关联文件",
+    "saveAll": "全部保存",
+    "saving": "保存中...",
+    "saveComplete": "保存完成",
+    "saveFailed": "保存失败",
+    "noFileSelected": "未选择文件",
+    "noDirectory": "选择技能目录以浏览",
+    "modified": "已修改",
+    "conflictTitle": "文件冲突",
+    "conflictMessage": "文件 \"{file}\" 已被外部修改。请选择操作：",
+    "overwrite": "覆盖",
+    "reload": "重新加载",
+    "skip": "跳过",
+    "noResults": "未找到技能",
+    "browseDirectory": "浏览目录",
+    "openFile": "打开文件",
+    "closeFile": "关闭"
   }
 }
