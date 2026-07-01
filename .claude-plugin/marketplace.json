@@ -59,6 +59,51 @@
       "license": "MIT",
       "keywords": ["skill", "loader", "install", "plugin", "register"],
       "category": "utility"
+    },
+    {
+      "name": "mattpocock-engineering",
+      "source": "./plugins/mattpocock-engineering",
+      "description": "Engineering workflow skills from Matt Pocock — TDD, design, triage, prototyping, and codebase improvement",
+      "author": { "name": "Matt Pocock" },
+      "license": "Proprietary",
+      "keywords": ["tdd", "design", "triage", "prototyping", "codebase", "engineering", "workflow"],
+      "category": "workflow"
+    },
+    {
+      "name": "mattpocock-in-progress",
+      "source": "./plugins/mattpocock-in-progress",
+      "description": "In-progress skills from Matt Pocock — decision mapping, review, writing, and experimental workflows",
+      "author": { "name": "Matt Pocock" },
+      "license": "Proprietary",
+      "keywords": ["decision", "review", "writing", "loop", "wizard", "experimental"],
+      "category": "workflow"
+    },
+    {
+      "name": "mattpocock-misc",
+      "source": "./plugins/mattpocock-misc",
+      "description": "Miscellaneous utility skills from Matt Pocock — git guardrails, test migration, exercise scaffolding, and pre-commit setup",
+      "author": { "name": "Matt Pocock" },
+      "license": "Proprietary",
+      "keywords": ["git", "guardrails", "migration", "scaffold", "pre-commit", "husky", "utilities"],
+      "category": "utility"
+    },
+    {
+      "name": "mattpocock-personal",
+      "source": "./plugins/mattpocock-personal",
+      "description": "Personal skills from Matt Pocock — article editing and Obsidian vault management",
+      "author": { "name": "Matt Pocock" },
+      "license": "Proprietary",
+      "keywords": ["article", "editing", "obsidian", "vault", "notes", "personal"],
+      "category": "utility"
+    },
+    {
+      "name": "mattpocock-productivity",
+      "source": "./plugins/mattpocock-productivity",
+      "description": "Productivity skills from Matt Pocock — grilling, handoff, teaching, and writing great skills",
+      "author": { "name": "Matt Pocock" },
+      "license": "Proprietary",
+      "keywords": ["productivity", "grilling", "handoff", "teach", "writing", "workflow", "design"],
+      "category": "workflow"
     }
   ]
 }
