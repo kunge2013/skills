@@ -1,0 +1,8 @@
+{
+  "name": "mattpocock-in-progress",
+  "description": "In-progress skills from Matt Pocock — decision mapping, review, writing, and experimental workflows",
+  "author": { "name": "Matt Pocock" },
+  "license": "Proprietary",
+  "keywords": ["decision", "review", "writing", "loop", "wizard", "experimental"],
+  "category": "workflow"
+}

@@ -1,0 +1,8 @@
+{
+  "name": "mattpocock-personal",
+  "description": "Personal skills from Matt Pocock — article editing and Obsidian vault management",
+  "author": { "name": "Matt Pocock" },
+  "license": "Proprietary",
+  "keywords": ["article", "editing", "obsidian", "vault", "notes", "personal"],
+  "category": "utility"
+}
