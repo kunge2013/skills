@@ -32,11 +32,15 @@ function listPlugins() {
     for (const p of mp.plugins) {
       if (seen.has(p.name)) continue; seen.add(p.name);
       const sDir = path.join(sd, p.source, 'skills');
-      let skillCount = 0;
-      if (fs.existsSync(sDir)) skillCount = fs.readdirSync(sDir).filter(d => {
-        const f = path.join(sDir, d); return fs.statSync(f).isDirectory() && fs.existsSync(path.join(f, 'SKILL.md'));
-      }).length;
-      all.push({ name: p.name, source: p.source, description: p.description, author: p.author?.name || 'Unknown', license: p.license || 'Unknown', category: p.category || 'other', keywords: p.keywords || [], skillCount, sourceDir: path.join(sd, p.source) });
+      const skills = [];
+      if (fs.existsSync(sDir)) {
+        for (const d of fs.readdirSync(sDir)) {
+          const f = path.join(sDir, d);
+          if (!fs.statSync(f).isDirectory() || !fs.existsSync(path.join(f, 'SKILL.md'))) continue;
+          skills.push({ skillName: d, sourcePath: path.join(sDir, d), description: p.description, author: p.author?.name || 'Unknown', license: p.license || 'Unknown', category: p.category || 'other', keywords: p.keywords || [] });
+        }
+      }
+      all.push({ name: p.name, source: p.source, description: p.description, author: p.author?.name || 'Unknown', license: p.license || 'Unknown', category: p.category || 'other', keywords: p.keywords || [], skillCount: skills.length, skills, sourceDir: path.join(sd, p.source) });
     }
   }
   return all;
@@ -67,6 +71,9 @@ function searchSkills(query, filters) {
   if (query) { const q = query.toLowerCase(); skills = skills.filter(s => s.skillName.toLowerCase().includes(q) || s.pluginName.toLowerCase().includes(q) || s.pluginDescription?.toLowerCase().includes(q) || s.pluginKeywords?.some(kw => kw.toLowerCase().includes(q))); }
   if (filters?.category) skills = skills.filter(s => s.pluginCategory === filters.category);
   if (filters?.plugin) skills = skills.filter(s => s.pluginName === filters.plugin);
+  if (filters?.sortBy === 'name') skills.sort((a, b) => a.skillName.localeCompare(b.skillName));
+  else if (filters?.sortBy === 'plugin') skills.sort((a, b) => a.pluginName.localeCompare(b.pluginName));
+  else if (filters?.sortBy === 'author') skills.sort((a, b) => (a.pluginAuthor || '').localeCompare(b.pluginAuthor || ''));
   return skills;
 }
 
