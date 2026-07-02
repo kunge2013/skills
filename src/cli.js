@@ -12,7 +12,7 @@ const { cmdDoctor } = require('./commands/doctor');
 const { cmdWeb } = require('./commands/web');
 const logger = require('./utils/logger');
 
-const VERSION = '0.1.0';
+const VERSION = require('../package.json').version;
 const USAGE = `
 Usage: kungeskill <command> [options]
 
