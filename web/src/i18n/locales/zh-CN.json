@@ -51,7 +51,8 @@
     "install": "安装",
     "cancel": "取消",
     "installing": "安装中...",
-    "browse": "浏览"
+    "browse": "浏览",
+    "close": "关闭"
   },
   "editor": {
     "back": "返回",
@@ -119,6 +120,21 @@
     "noResults": "未找到技能",
     "browseDirectory": "浏览目录",
     "openFile": "打开文件",
-    "closeFile": "关闭"
+    "closeFile": "关闭",
+    "refreshTree": "刷新目录树",
+    "treeEmpty": "未加载目录",
+    "treeEmptyHint": "点击“浏览目录”加载技能"
+  },
+  "dirPicker": {
+    "drive": "磁盘",
+    "up": "上级",
+    "emptyDir": "空目录",
+    "confirm": "加载技能",
+    "cancel": "取消",
+    "selectDir": "选择",
+    "selectTargetDir": "选择目标目录",
+    "selectSkillDir": "选择技能目录",
+    "loadSkills": "加载技能",
+    "pathPlaceholder": "当前路径"
   }
 }

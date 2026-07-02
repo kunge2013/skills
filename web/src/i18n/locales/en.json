@@ -51,7 +51,8 @@
     "install": "Install",
     "cancel": "Cancel",
     "installing": "Installing...",
-    "browse": "Browse"
+    "browse": "Browse",
+    "close": "Close"
   },
   "editor": {
     "back": "Back",
@@ -119,6 +120,21 @@
     "noResults": "No skills found",
     "browseDirectory": "Browse Directory",
     "openFile": "Open File",
-    "closeFile": "Close"
+    "closeFile": "Close",
+    "refreshTree": "Refresh tree",
+    "treeEmpty": "No directory loaded",
+    "treeEmptyHint": "Click \"Browse Directory\" to load skills"
+  },
+  "dirPicker": {
+    "drive": "Drive",
+    "up": "Up",
+    "emptyDir": "Empty directory",
+    "confirm": "Load Skills",
+    "cancel": "Cancel",
+    "selectDir": "Select",
+    "selectTargetDir": "Select Target Directory",
+    "selectSkillDir": "Select Skill Directory",
+    "loadSkills": "Load Skills",
+    "pathPlaceholder": "Current path"
   }
 }

@@ -16,6 +16,7 @@ declare global {
       checkSkillStatus: (n: string) => Promise<any>
       checkInstallStatus: (n: string, p: string) => Promise<{ success: boolean; data?: InstallStatus | null; error?: string }>
       getDefaultDir: (p: string) => Promise<{ success: boolean; data?: { defaultDir: string }; error?: string }>
+      listDrives: () => Promise<{ success: boolean; data?: { drives: { label: string; value: string; available: boolean }[] }; error?: string }>
       listDirs: (p: string) => Promise<{ success: boolean; data?: { path: string; children: any[]; parent: string }; error?: string }>
       initMarketplace: () => Promise<any>
       updateMarketplace: () => Promise<any>

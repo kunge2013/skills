@@ -245,6 +245,44 @@ function cacheStatus() {
   return { valid: fs.existsSync(path.join(cacheDir, '.git')), cacheDir, hasBundled: fs.existsSync(path.join(pkgRoot, 'plugins')), lastSync: config.marketplace.lastSync, repoUrl: config.marketplace.url };
 }
 
+// [AGC:START] tool=Cc author=fangkun
+/**
+ * List available filesystem drives/volumes.
+ * Windows: returns drive letters (C:\, D:\, etc.) via fsutil fsinfo drives.
+ * Each drive includes `available: true/false` based on stat access.
+ * Unix: returns single root '/' as the sole drive.
+ */
+function listDrives() {
+  try {
+    if (process.platform === 'win32') {
+      const { execSync } = require('child_process');
+      const output = execSync('fsutil fsinfo drives', { encoding: 'utf-8' });
+      // Parse "Drives: C:\ D:\ E:\" -> ["C:\\", "D:\\", "E:\\"]
+      const match = output.match(/([A-Z]:\\)/gi);
+      if (!match || match.length === 0) {
+        return { success: false, error: 'No drives found' };
+      }
+      const drives = match
+        .map(d => d.toUpperCase())
+        .sort()
+        .map(d => {
+          let available = false;
+          try {
+            const s = fs.statSync(d);
+            available = s.isDirectory();
+          } catch { /* inaccessible drive */ }
+          return { label: d, value: d, available };
+        });
+      return { success: true, data: { drives } };
+    }
+    // Unix: single root
+    return { success: true, data: { drives: [{ label: '/', value: '/', available: true }] } };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+// [AGC:END]
+
 /**
  * List directories at a given path for the directory picker.
  * Returns subdirectories with their label, value, and whether they have children.
@@ -495,6 +533,7 @@ function createServer(port) {
             case '/api/skill/uninstall': result = uninstallSkillUnified(body.skillName, body.projectPath); break;
             case '/api/skill/status': result = getInstallStatus(body.skillName, body.projectPath); break;
             case '/api/skill/default-dir': result = { success: true, data: { defaultDir: findProjectSkillsDir(body?.projectPath || undefined) } }; break;
+            case '/api/fs/drives': result = listDrives(); break;
             case '/api/fs/dirs': result = listDirectories(body?.path || '/'); break;
             case '/api/skill/dir': result = listSkillDirectory(body?.path || '/'); break;
             case '/api/skill/files': result = listSkillFiles(body?.path || '/'); break;
@@ -551,6 +590,7 @@ window.api = {
   checkSkillStatus: function(n) { return this._post('/symlink/status', { skillName: n }); },
   checkInstallStatus: function(n, p) { return this._post('/skill/status', { skillName: n, projectPath: p }); },
   getDefaultDir: function(p) { return this._post('/skill/default-dir', { projectPath: p }); },
+  listDrives: function() { return this._post('/fs/drives', {}); },
   listDirs: function(p) { return this._post('/fs/dirs', { path: p }); },
   initMarketplace: function() { return this._post('/git/init'); },
   updateMarketplace: function() { return this._post('/git/update'); },

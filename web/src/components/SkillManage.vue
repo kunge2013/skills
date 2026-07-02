@@ -1,48 +1,47 @@
 <!-- [AGC:FILE] tool=Cc author=fangkun date=2026-06-29 -->
 <template>
   <div class="skill-manage">
-    <!-- Left panel: Search -->
-    <div class="panel search-panel">
-      <h3>{{ $t('manage.title') }}</h3>
-      <div class="search-bar">
-        <el-input
-          v-model="searchInput"
-          :placeholder="$t('manage.searchPlaceholder')"
-          clearable
-          @input="handleSearchInput"
-          @keyup.enter="handleSearchEnter"
-          prefix-icon="Search"
-        />
-        <el-button @click="openBrowseDialog" class="browse-btn" size="small">
-          {{ $t('manage.browseDirectory') }}
-        </el-button>
-      </div>
-      <div class="path-bar" v-if="selectedSkillPath">
-        <el-input
-          v-model="selectedSkillPath"
-          size="small"
-          placeholder="Enter skill directory path"
-          clearable
-          @keyup.enter="loadDirFromPath"
-        >
-          <template #append>
-            <el-button @click="loadDirFromPath" size="small">Reload</el-button>
-          </template>
-        </el-input>
-      </div>
-      <div class="search-results">
-        <div
-          v-for="skill in searchResults"
-          :key="skill.skillName"
-          class="search-result-item"
-          :class="{ active: selectedSkillPath === skill.sourcePath }"
-          @click="selectSkillDirectory(skill)"
-        >
-          <div class="skill-name">{{ skill.skillName }}</div>
-          <div class="skill-plugin">{{ skill.pluginName }}</div>
+    <!-- Left panel: Directory tree -->
+    <div class="panel tree-panel">
+      <div class="tree-header">
+        <h3>{{ $t('manage.title') }}</h3>
+        <div class="tree-actions">
+          <el-button @click="openBrowseDialog" size="small" :icon="FolderOpened">
+            {{ $t('manage.browseDirectory') }}
+          </el-button>
+          <el-tooltip :content="$t('manage.refreshTree')" placement="top">
+            <el-button @click="refreshTree" size="small" :icon="Refresh" circle />
+          </el-tooltip>
         </div>
-        <div v-if="searchResults.length === 0 && searchInput" class="no-results">
-          {{ $t('manage.noResults') }}
+      </div>
+      <div class="tree-body" v-loading="treeLoading">
+        <el-tree
+          ref="treeRef"
+          :data="treeData"
+          :props="treeProps"
+          node-key="path"
+          highlight-current
+          lazy
+          :load="loadNode"
+          @node-click="onNodeClick"
+          class="dir-tree"
+        >
+          <template #default="{ node, data }">
+            <span class="tree-node-content">
+              <el-icon class="tree-node-icon">
+                <Folder v-if="data.type === 'directory'" />
+                <Document v-else />
+              </el-icon>
+              <span class="tree-node-label" :title="data.path">{{ node.label }}</span>
+              <el-tag v-if="data.type === 'file' && isMdFile(data.name)" size="small" class="tree-node-tag">MD</el-tag>
+            </span>
+          </template>
+        </el-tree>
+        <div v-if="treeData.length === 0 && !treeLoading" class="tree-empty">
+          {{ $t('manage.treeEmpty') }}
+          <div class="tree-empty-hint">
+            {{ $t('manage.treeEmptyHint') }}
+          </div>
         </div>
       </div>
     </div>
@@ -124,35 +123,14 @@
     />
 
     <!-- Browse directory dialog -->
-    <el-dialog v-model="showBrowseDialog" title="Select Skill Directory" width="500px">
-      <div class="browse-dialog">
-        <div class="current-path">
-          <el-input v-model="browsePath" placeholder="Enter directory path" clearable />
-        </div>
-        <div class="browse-tree" v-loading="treeLoading">
-          <el-tree
-            :data="treeData"
-            :props="browseTreeProps"
-            :load="loadTreeNode"
-            lazy
-            node-key="value"
-            highlight-current
-            @current-change="onBrowsePathSelect"
-          >
-            <template #default="{ node }">
-              <span class="browse-node">
-                <el-icon><Folder /></el-icon>
-                <span>{{ node.label }}</span>
-              </span>
-            </template>
-          </el-tree>
-        </div>
-        <div class="browse-actions">
-          <el-button @click="loadSkillListFromPath" type="primary" :disabled="!browsePath">Load Skills</el-button>
-          <el-button @click="showBrowseDialog = false">Cancel</el-button>
-        </div>
-      </div>
-    </el-dialog>
+    <DirPicker
+      v-model="showBrowseDialog"
+      :initial-path="browseInitialPath"
+      :confirm-text="$t('dirPicker.confirm')"
+      :cancel-text="$t('dirPicker.cancel')"
+      :dialog-title="$t('dirPicker.selectSkillDir')"
+      @confirm="onBrowseConfirm"
+    />
   </div>
 </template>
 
@@ -160,25 +138,29 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
-import { Close, Link } from '@element-plus/icons-vue'
+import { Close, Link, Folder, Document, FolderOpened, Refresh } from '@element-plus/icons-vue'
 import { useSkillsStore } from '../stores/skills'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import type { SkillInfo, LinkedFileReference } from '../types/skill'
 import SaveConflictDialog from './SaveConflictDialog.vue'
+import DirPicker from './DirPicker.vue'
 import { parseReferences } from '../utils/referenceParser'
 
 const store = useSkillsStore()
 const { t } = useI18n()
 
-const searchInput = ref('')
-const searchResults = ref<SkillInfo[]>([])
+// Tree state
+const treeRef = ref()
+const treeData = ref<any[]>([])
+const treeLoading = ref(false)
 const selectedSkillPath = ref('')
-const searchTimer = ref<number | null>(null)
+const currentDirPath = ref('')
 
 const treeProps = {
   children: 'children',
   label: 'name',
+  isLeaf: 'isLeaf',
 }
 
 const toolbars = [
@@ -196,13 +178,7 @@ const pendingConflictPath = ref('')
 
 // Browse directory dialog state
 const showBrowseDialog = ref(false)
-const browsePath = ref('')
-const treeData = ref<any[]>([])
-const treeLoading = ref(false)
-const browseTreeProps = { children: 'children', label: 'label', isLeaf: 'isLeaf' }
-
-// Cached directory tree data to avoid duplicate API calls
-const cachedTreeData = ref<{ path: string; children: any[] } | null>(null)
+const browseInitialPath = ref('')
 
 // Check if current file is a markdown file (supports preview)
 const isMarkdownFile = computed(() => {
@@ -211,94 +187,86 @@ const isMarkdownFile = computed(() => {
   return ['md', 'markdown'].includes(ext)
 })
 
-// Debounced search against installed skills
-function handleSearchInput() {
-  if (searchTimer.value) clearTimeout(searchTimer.value)
-  searchTimer.value = window.setTimeout(async () => {
-    if (!searchInput.value.trim()) {
-      searchResults.value = store.installedSkills
-      return
-    }
-    store.searchQuery = searchInput.value
-    const all = store.installedSkills
-    const q = searchInput.value.toLowerCase()
-    searchResults.value = all.filter(s =>
-      s.skillName.toLowerCase().includes(q) ||
-      s.pluginName.toLowerCase().includes(q) ||
-      s.pluginDescription?.toLowerCase().includes(q) ||
-      s.pluginKeywords?.some(kw => kw.toLowerCase().includes(q))
-    )
-  }, 300)
+function isMdFile(name: string): boolean {
+  if (!name) return false
+  const ext = name.split('.').pop()?.toLowerCase() || ''
+  return ext === 'md' || ext === 'markdown'
 }
 
-// Enter key in search box: if looks like a path, load directory; otherwise search
-function handleSearchEnter() {
-  const val = searchInput.value.trim()
-  if (!val) return
-  // If starts with / or drive letter like C:\, treat as directory path
-  if (val.startsWith('/') || /^[a-zA-Z]:[\\/]/.test(val)) {
-    selectedSkillPath.value = val
-    loadDirFromPath()
+// Lazy load tree nodes
+async function loadNode(node: any, resolve: (data: any[]) => void) {
+  if (node.level === 0) {
+    // Root level: return initial directory
+    resolve(treeData.value)
+    return
+  }
+
+  try {
+    const r = await window.api.listSkillDirectory(node.data.path)
+    if (r.success && r.data && r.data.children) {
+      const children = r.data.children.map((c: any) => ({
+        name: c.name,
+        path: c.path,
+        type: c.type || 'directory',
+        isLeaf: c.type === 'file',
+        children: [],
+      }))
+      resolve(children)
+    } else {
+      resolve([])
+    }
+  } catch {
+    resolve([])
   }
 }
 
-// Load skill directory from the path bar
-async function loadDirFromPath() {
-  const p = selectedSkillPath.value.trim()
-  if (!p) return
-  await loadDirectory(p)
+// Click on a tree node
+async function onNodeClick(data: any, node: any) {
+  if (data.type === 'file') {
+    await openFile(data.path)
+  } else if (data.type === 'directory') {
+    // Expand directory node
+    node.expanded = !node.expanded
+    selectedSkillPath.value = data.path
+  }
 }
 
-// Shared directory loading function
-async function loadDirectory(dirPath: string) {
-  cachedTreeData.value = null
-
-  // Fetch first-level children from the directory
+// Load the directory tree starting from a path
+async function loadDirectoryTree(dirPath: string) {
+  treeLoading.value = true
   try {
     const r = await window.api.listSkillDirectory(dirPath)
-    if (r.success && r.data && r.data.children) {
-      // Cache the data for lazy loading BEFORE setting selectedSkillPath
-      cachedTreeData.value = { path: dirPath, children: r.data.children }
-
-      // Show ALL items (directories and files) as-is, no filtering
-      const items: SkillInfo[] = []
-      for (const child of r.data.children) {
-        items.push({
-          skillName: child.name,
-          pluginName: '',
-          sourcePath: child.path,
-          pluginDescription: child.type === 'file' ? `File (${child.name})` : 'Directory',
-          pluginAuthor: '',
-          pluginLicense: '',
-          pluginCategory: '',
-          pluginKeywords: [],
-        })
-      }
-
-      // Set path AFTER caching to trigger el-tree re-render with cached data
+    if (r.success && r.data) {
+      const rootName = dirPath.split(/[\\/]/).pop() || dirPath
+      treeData.value = [{
+        name: rootName,
+        path: dirPath,
+        type: 'directory',
+        isLeaf: false,
+        children: (r.data.children || []).map((c: any) => ({
+          name: c.name,
+          path: c.path,
+          type: c.type || 'directory',
+          isLeaf: c.type === 'file',
+          children: [],
+        })),
+      }]
+      currentDirPath.value = dirPath
       selectedSkillPath.value = dirPath
-      store.clearManageState()
-      searchResults.value = items
     } else {
-      selectedSkillPath.value = dirPath
-      store.clearManageState()
-      searchResults.value = []
+      ElMessage.error('Failed to load directory')
     }
   } catch {
     ElMessage.error('Failed to load directory')
+  } finally {
+    treeLoading.value = false
   }
 }
 
-// Select a skill and load its directory
-async function selectSkillDirectory(skill: SkillInfo) {
-  const p = skill.sourcePath
-  // Check if it's a file (has extension) or directory
-  const ext = p.split('.').pop() || ''
-  const isFile = ext && !ext.includes('/') && !ext.includes('\\')
-  if (isFile) {
-    await openFile(p)
-  } else {
-    await loadDirectory(p)
+// Refresh tree
+function refreshTree() {
+  if (currentDirPath.value) {
+    loadDirectoryTree(currentDirPath.value)
   }
 }
 
@@ -434,78 +402,39 @@ function handleConflictSkip() {
 
 // Browse directory functions
 async function openBrowseDialog() {
-  showBrowseDialog.value = true
-  // Start from the root of the filesystem or default skills directory
   try {
     const r = await window.api.getDefaultDir('')
     if (r.success && r.data?.defaultDir) {
-      browsePath.value = r.data.defaultDir
-      await loadTreeRoot(browsePath.value)
+      browseInitialPath.value = r.data.defaultDir
     }
   } catch { /* ignore */ }
-  if (!browsePath.value) {
-    browsePath.value = '/'
-    await loadTreeRoot('/')
-  }
+  showBrowseDialog.value = true
 }
 
-async function loadTreeRoot(dirPath: string) {
-  treeLoading.value = true
-  try {
-    const r = await window.api.listDirs(dirPath)
-    if (r.success && r.data) {
-      treeData.value = (r.data.children || []).map((c: any) => ({ ...c, isLeaf: false }))
-    } else {
-      treeData.value = []
-    }
-  } catch {
-    treeData.value = []
-  } finally {
-    treeLoading.value = false
-  }
-}
-
-function loadTreeNode(node: any, resolve: (data: any[]) => void) {
-  if (node.level === 0) {
-    // Root level - data already in treeData
-    resolve([])
-    return
-  }
-  const path = node.data.value
-  treeLoading.value = true
-  window.api.listDirs(path).then(r => {
-    if (r.success && r.data) {
-      resolve(r.data.children || [])
-    } else {
-      resolve([])
-    }
-  }).catch(() => resolve([])).finally(() => { treeLoading.value = false })
-}
-
-function onBrowsePathSelect(_node: any, data: any) {
-  browsePath.value = data.value
-}
-
-async function loadSkillListFromPath() {
-  if (!browsePath.value) return
-  await loadDirectory(browsePath.value)
+async function onBrowseConfirm(dirPath: string) {
   showBrowseDialog.value = false
+  await loadDirectoryTree(dirPath)
 }
 
 onMounted(async () => {
   store.setView('manage')
-  store.clearManageState()
-  await store.loadInstalledSkills()
-  searchResults.value = store.installedSkills
+  // Auto-load the default skills directory
+  try {
+    const r = await window.api.getDefaultDir('')
+    if (r.success && r.data?.defaultDir) {
+      selectedSkillPath.value = r.data.defaultDir
+      await loadDirectoryTree(r.data.defaultDir)
+    }
+  } catch { /* ignore */ }
 })
 </script>
 
 <style scoped>
 .skill-manage {
   display: flex;
-  height: 100%;
-  gap: 1px;
-  background: #e4e7ed;
+  height: 100vh;
+  gap: 0;
+  background: #f5f7fa;
 }
 
 .panel {
@@ -516,81 +445,131 @@ onMounted(async () => {
 }
 
 .panel h3 {
-  padding: 12px 16px;
+  padding: 0;
   margin: 0;
-  font-size: 14px;
-  border-bottom: 1px solid #e4e7ed;
-  background: #fafafa;
-}
-
-/* Search panel */
-.search-panel {
-  width: 250px;
-  min-width: 200px;
-}
-
-.search-panel .search-bar {
-  display: flex;
-  gap: 4px;
-  padding: 8px;
-}
-
-.search-panel .search-bar .el-input {
-  flex: 1;
-  margin: 0;
-}
-
-.browse-btn {
-  flex-shrink: 0;
-}
-
-.path-bar {
-  padding: 0 8px 8px;
-}
-
-.search-results {
-  flex: 1;
-  overflow-y: auto;
-  padding: 4px;
-}
-
-.search-result-item {
-  padding: 8px 12px;
-  cursor: pointer;
-  border-radius: 4px;
-  margin-bottom: 2px;
-}
-
-.search-result-item:hover {
-  background: #f0f5ff;
-}
-
-.search-result-item.active {
-  background: #e6f7ff;
-}
-
-.skill-name {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   color: #303133;
 }
 
-.skill-plugin {
-  font-size: 11px;
-  color: #909399;
+/* Tree panel */
+.tree-panel {
+  width: 300px;
+  min-width: 240px;
+  max-width: 500px;
+  border-right: 1px solid #e4e7ed;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
 }
 
-.no-results {
-  padding: 16px;
-  text-align: center;
+.tree-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #ebeef5;
+  background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tree-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.tree-actions .el-button:first-child {
+  flex: 1;
+}
+
+.tree-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.dir-tree {
+  background: transparent;
+  --el-tree-node-content-height: 32px;
+}
+
+.dir-tree :deep(.el-tree-node__content) {
+  border-radius: 6px;
+  padding: 2px 4px;
+  transition: background-color 0.2s;
+}
+
+.dir-tree :deep(.el-tree-node__content:hover) {
+  background: #f0f5ff;
+}
+
+.dir-tree :deep(.el-tree-node.is-current > .el-tree-node__content) {
+  background: #ecf5ff;
+  color: #409eff;
+}
+
+.dir-tree :deep(.el-tree-node__expand-icon) {
+  color: #909399;
+  font-size: 12px;
+}
+
+.tree-node-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.tree-node-icon {
+  flex-shrink: 0;
+  color: #909399;
+  font-size: 14px;
+}
+
+.tree-node-content .el-icon--Folder {
+  color: #e6a23c;
+}
+
+.tree-node-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: #303133;
+}
+
+.tree-node-tag {
+  flex-shrink: 0;
+  font-size: 10px;
+  height: 16px;
+  line-height: 14px;
+}
+
+.tree-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
   color: #909399;
   font-size: 13px;
+  text-align: center;
+}
+
+.tree-empty-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #c0c4cc;
 }
 
 /* Editor panel */
 .editor-panel {
   flex: 1;
   min-width: 400px;
+  display: flex;
+  flex-direction: column;
 }
 
 .editor-header {
@@ -599,7 +578,7 @@ onMounted(async () => {
   padding: 8px 12px;
   border-bottom: 1px solid #e4e7ed;
   gap: 8px;
-  background: #fafafa;
+  background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
 }
 
 .file-tabs {
@@ -609,26 +588,41 @@ onMounted(async () => {
   flex: 1;
 }
 
+.file-tabs::-webkit-scrollbar {
+  height: 4px;
+}
+
+.file-tabs::-webkit-scrollbar-thumb {
+  background: #dcdfe6;
+  border-radius: 2px;
+}
+
 .file-tab {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 12px;
   white-space: nowrap;
   background: #f5f7fa;
   border: 1px solid #e4e7ed;
+  transition: all 0.15s;
+}
+
+.file-tab:hover {
+  background: #e8edf3;
 }
 
 .file-tab.active {
-  background: #e6f7ff;
+  background: #ecf5ff;
   border-color: #409eff;
+  color: #409eff;
 }
 
 .tab-name {
-  max-width: 120px;
+  max-width: 140px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -641,10 +635,15 @@ onMounted(async () => {
   flex-shrink: 0;
   cursor: pointer;
   color: #909399;
+  font-size: 12px;
+  border-radius: 50%;
+  padding: 1px;
+  transition: all 0.15s;
 }
 
 .tab-close:hover {
   color: #f56c6c;
+  background: #fef0f0;
 }
 
 .editor-body {
@@ -654,26 +653,34 @@ onMounted(async () => {
 
 .no-file {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #909399;
-  font-size: 14px;
+  color: #c0c4cc;
+  font-size: 16px;
+  gap: 8px;
 }
 
 /* Linked files */
 .linked-files {
-  border-top: 1px solid #e4e7ed;
-  max-height: 200px;
+  border-top: 1px solid #ebeef5;
+  max-height: 180px;
   overflow-y: auto;
+  background: #fafbfc;
 }
 
 .linked-files h4 {
-  padding: 8px 12px;
+  padding: 8px 16px;
   margin: 0;
   font-size: 13px;
-  background: #fafafa;
-  border-bottom: 1px solid #e4e7ed;
+  font-weight: 600;
+  color: #606266;
+  background: transparent;
+  border-bottom: 1px solid #ebeef5;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .linked-file-list {
@@ -684,10 +691,11 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 8px;
-  border-radius: 4px;
+  padding: 6px 10px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 12px;
+  transition: background-color 0.15s;
 }
 
 .linked-file-item:hover {
@@ -695,7 +703,7 @@ onMounted(async () => {
 }
 
 .linked-file-item.active {
-  background: #e6f7ff;
+  background: #ecf5ff;
 }
 
 .linked-path {
@@ -706,31 +714,15 @@ onMounted(async () => {
   color: #606266;
 }
 
-/* Browse dialog */
-.browse-dialog .current-path {
-  margin-bottom: 12px;
-}
-
-.browse-dialog .browse-tree {
-  height: 300px;
-  overflow-y: auto;
-  border: 1px solid #e4e7ed;
-  border-radius: 4px;
-  padding: 8px;
-  margin-bottom: 12px;
-}
-
-.browse-dialog .browse-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-}
-
-.browse-node {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 13px;
+/* Responsive */
+@media (max-width: 768px) {
+  .tree-panel {
+    width: 240px;
+    min-width: 200px;
+  }
+  .editor-panel {
+    min-width: 300px;
+  }
 }
 </style>
 // [AGC:END]
