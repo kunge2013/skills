@@ -104,6 +104,15 @@
       "license": "Proprietary",
       "keywords": ["productivity", "grilling", "handoff", "teach", "writing", "workflow", "design"],
       "category": "workflow"
+    },
+    {
+      "name": "kunge-dic",
+      "source": "./plugins/kunge-dic",
+      "description": "分析 cal_acct_record 表数据异常并生成修复SQL — data analysis and SQL fix generation for billing account records",
+      "author": { "name": "kunge2013" },
+      "license": "MIT",
+      "keywords": ["cal_acct_record", "data-fix", "sql", "billing", "database", "analysis"],
+      "category": "documentation"
     }
   ]
 }
