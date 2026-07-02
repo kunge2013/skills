@@ -1,3 +1,11 @@
 {
-  "enabledPlugins": {}
+  "enabledPlugins": {},
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest"
+      ]
+    }
+  }
 }
