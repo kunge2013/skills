@@ -11,7 +11,8 @@
     "langEn": "English",
     "langZh": "中文",
     "skillManagement": "技能管理",
-    "promptOptimizer": "提示词优化器"
+    "promptOptimizer": "提示词优化器",
+    "promptMaintenance": "提示词维护"
   },
   "list": {
     "searchPlaceholder": "搜索技能...",

@@ -11,7 +11,8 @@
     "langEn": "English",
     "langZh": "中文",
     "skillManagement": "Skill Management",
-    "promptOptimizer": "Prompt Optimizer"
+    "promptOptimizer": "Prompt Optimizer",
+    "promptMaintenance": "Prompt Maintenance"
   },
   "list": {
     "searchPlaceholder": "Search skills...",

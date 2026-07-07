@@ -10,9 +10,6 @@
       <el-tab-pane :label="t('prompt.test')" name="test">
         <TestView />
       </el-tab-pane>
-      <el-tab-pane :label="t('prompt.maintenance')" name="maintenance">
-        <PromptMaintenanceView />
-      </el-tab-pane>
       <el-tab-pane :label="t('prompt.models')" name="models">
         <ModelsView />
       </el-tab-pane>
@@ -36,7 +33,6 @@ import TestView from './TestView.vue'
 import ModelsView from './ModelsView.vue'
 import HistoryView from './HistoryView.vue'
 import PromptSettingsView from './PromptSettingsView.vue'
-import PromptMaintenanceView from './PromptMaintenanceView.vue'
 
 const { t } = useI18n()
 const store = usePromptStore()
