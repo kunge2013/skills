@@ -198,6 +198,17 @@
     "edit": "Edit",
     "save": "Save",
     "apiKeyLeaveBlank": "Leave blank to keep existing key",
-    "editModelValidation": "Display name and Model ID are required"
+    "editModelValidation": "Display name and Model ID are required",
+    "maintenance": "Maintenance",
+    "maintenanceTitle": "Prompt Maintenance",
+    "createTemplate": "Create Template",
+    "templateName": "Template Name",
+    "templateType": "Template Type",
+    "systemPrompt": "System Prompt",
+    "userPrompt": "User Prompt",
+    "builtIn": "Built-in",
+    "emptyTemplates": "No templates yet, please create one first",
+    "templateValidation": "Template name and system prompt are required",
+    "confirmDeleteTemplate": "Are you sure you want to delete the template \"{name}\"?"
   }
 }

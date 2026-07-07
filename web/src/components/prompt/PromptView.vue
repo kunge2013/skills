@@ -10,6 +10,9 @@
       <el-tab-pane :label="t('prompt.test')" name="test">
         <TestView />
       </el-tab-pane>
+      <el-tab-pane :label="t('prompt.maintenance')" name="maintenance">
+        <PromptMaintenanceView />
+      </el-tab-pane>
       <el-tab-pane :label="t('prompt.models')" name="models">
         <ModelsView />
       </el-tab-pane>
@@ -24,17 +27,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { usePromptStore } from '../../stores/prompt'
 import OptimizeView from './OptimizeView.vue'
 import IterateView from './IterateView.vue'
 import TestView from './TestView.vue'
 import ModelsView from './ModelsView.vue'
 import HistoryView from './HistoryView.vue'
 import PromptSettingsView from './PromptSettingsView.vue'
+import PromptMaintenanceView from './PromptMaintenanceView.vue'
 
 const { t } = useI18n()
-const activeTab = ref('optimize')
+const store = usePromptStore()
+const activeTab = computed({
+  get: () => store.activePromptTab,
+  set: (val: string) => { store.activePromptTab = val },
+})
 </script>
 
 <style scoped>

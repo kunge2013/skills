@@ -198,6 +198,17 @@
     "edit": "编辑",
     "save": "保存",
     "apiKeyLeaveBlank": "留空表示不修改",
-    "editModelValidation": "显示名称和模型 ID 不能为空"
+    "editModelValidation": "显示名称和模型 ID 不能为空",
+    "maintenance": "维护",
+    "maintenanceTitle": "提示词维护",
+    "createTemplate": "创建模板",
+    "templateName": "模板名称",
+    "templateType": "模板类型",
+    "systemPrompt": "系统提示词",
+    "userPrompt": "用户提示词",
+    "builtIn": "内置",
+    "emptyTemplates": "暂无模板，请先创建一个",
+    "templateValidation": "模板名称和系统提示词不能为空",
+    "confirmDeleteTemplate": "确定要删除模板「{name}」吗？"
   }
 }

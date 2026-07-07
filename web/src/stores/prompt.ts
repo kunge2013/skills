@@ -111,6 +111,10 @@ export const usePromptStore = defineStore('prompt', {
     // Templates
     templates: [] as Template[],
     selectedTemplateId: '',
+    customTemplateIds: [] as string[], // IDs of user-created templates (editable/deletable)
+
+    // Tab navigation
+    activePromptTab: 'optimize',
 
     // History
     history: [] as PromptRecord[],
@@ -263,6 +267,9 @@ export const usePromptStore = defineStore('prompt', {
     async loadTemplates() {
       try {
         this.templates = await apiGet<Template[]>('/templates')
+        // Fetch custom template IDs (those stored on server, not built-in)
+        const custom = await apiGet<Template[]>('/templates')
+        this.customTemplateIds = custom.map((t: Template) => t.id)
         if (this.templates.length > 0 && !this.selectedTemplateId) {
           const optimizeTemplate = this.templates.find(t => t.type === 'optimize')
           if (optimizeTemplate) this.selectedTemplateId = optimizeTemplate.id
@@ -270,6 +277,41 @@ export const usePromptStore = defineStore('prompt', {
       } catch (e) {
         console.error('Failed to load templates:', e)
       }
+    },
+    async createTemplate(template: Omit<Template, 'id'> & { id?: string }) {
+      try {
+        const id = template.id || template.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+        const fullTemplate: Template = { ...template, id } as Template
+        await apiPost('/templates', fullTemplate)
+        await this.loadTemplates()
+      } catch (e: any) {
+        alert(e.message)
+        throw e
+      }
+    },
+    async updateTemplate(id: string, updates: Partial<Template>) {
+      try {
+        await apiPut(`/templates/${id}`, updates)
+        await this.loadTemplates()
+      } catch (e: any) {
+        alert(e.message)
+        throw e
+      }
+    },
+    async deleteTemplate(id: string) {
+      try {
+        await apiDelete(`/templates/${id}`)
+        await this.loadTemplates()
+      } catch (e: any) {
+        alert(e.message)
+      }
+    },
+    isCustomTemplate(id: string): boolean {
+      return this.customTemplateIds.includes(id)
+    },
+    selectAndOptimize(template: Template) {
+      this.optimizeInput = template.content.system
+      this.activePromptTab = 'optimize'
     },
 
     // History
