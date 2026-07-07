@@ -145,6 +145,11 @@ export const usePromptStore = defineStore('prompt', {
     newModel: {
       id: '', name: '', providerId: '', modelId: '', apiKey: '', baseURL: '',
     },
+    // Edit state
+    editingModelId: null as string | null,
+    editForm: {
+      id: '', name: '', providerId: '', modelId: '', apiKey: '', baseURL: '',
+    },
   }),
   getters: {
     enabledModels: (state) => state.allModels.filter((m: TextModelConfig) => m.enabled),
@@ -209,6 +214,49 @@ export const usePromptStore = defineStore('prompt', {
       } catch (e: any) {
         alert(e.message)
       }
+    },
+    async updateModel(key: string, updates: Partial<TextModelConfig>) {
+      try {
+        await apiPut(`/models/${key}`, updates)
+        await this.loadModels()
+      } catch (e: any) {
+        alert(e.message)
+        throw e
+      }
+    },
+    startEditModel(model: TextModelConfig) {
+      this.editingModelId = model.id
+      this.editForm = {
+        id: model.id,
+        name: model.name,
+        providerId: model.providerId || '',
+        modelId: model.modelId || '',
+        apiKey: '',
+        baseURL: model.connectionConfig?.baseURL || '',
+      }
+      this.showAddModel = false
+    },
+    cancelEditModel() {
+      this.editingModelId = null
+      this.editForm = { id: '', name: '', providerId: '', modelId: '', apiKey: '', baseURL: '' }
+    },
+    async saveEditModel() {
+      if (!this.editingModelId) return
+      const updates: TextModelConfig = {
+        id: this.editForm.id,
+        name: this.editForm.name,
+        enabled: true,
+        providerId: this.editForm.providerId,
+        modelId: this.editForm.modelId,
+        providerMeta: { id: this.editForm.providerId, name: this.editForm.providerId, requiresApiKey: true, defaultBaseURL: '', supportsDynamicModels: false },
+        modelMeta: { id: this.editForm.modelId, name: this.editForm.name, providerId: this.editForm.providerId, capabilities: { supportsTools: true, maxContextLength: 128000 }, parameterDefinitions: [] },
+        connectionConfig: {
+          apiKey: this.editForm.apiKey || undefined,
+          baseURL: this.editForm.baseURL || undefined,
+        },
+      }
+      await this.updateModel(this.editingModelId, updates)
+      this.cancelEditModel()
     },
 
     // Templates

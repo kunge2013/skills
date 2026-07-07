@@ -77,8 +77,12 @@
     "enabled": "Enabled",
     "disabled": "Disabled",
     "confirmDelete": "Delete model \"{id}\"?",
+    "cancel": "Cancel",
     "emptyState": "No models configured. Add a model or set API keys in .env.",
-    "corsRestricted": " (CORS Restricted)"
+    "corsRestricted": " (CORS Restricted)",
+    "edit": "Edit",
+    "apiKeyLeaveBlank": "Leave blank to keep existing key",
+    "editModelValidation": "Display name and Model ID are required"
   },
   "history": {
     "title": "Optimization History",

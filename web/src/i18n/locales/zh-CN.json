@@ -193,6 +193,11 @@
     "status": "状态",
     "online": "在线",
     "offline": "离线",
-    "error": "错误"
+    "error": "错误",
+    "cancel": "取消",
+    "edit": "编辑",
+    "save": "保存",
+    "apiKeyLeaveBlank": "留空表示不修改",
+    "editModelValidation": "显示名称和模型 ID 不能为空"
   }
 }

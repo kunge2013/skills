@@ -2,7 +2,7 @@
   <div class="models-view">
     <div class="models-header">
       <h2>{{ t('prompt.modelsTitle') }}</h2>
-      <el-button @click="store.showAddModel = !store.showAddModel">
+      <el-button @click="onAddModelToggle">
         {{ store.showAddModel ? t('prompt.cancel') : t('prompt.addModel') }}
       </el-button>
     </div>
@@ -52,8 +52,44 @@
             :active-text="t('prompt.enabled')"
             :inactive-text="t('prompt.disabled')"
           />
+          <el-button size="small" @click="store.startEditModel(model)">
+            {{ t('prompt.edit') }}
+          </el-button>
           <el-button type="danger" size="small" @click="store.deleteModel(model.id)">{{ t('prompt.delete') }}</el-button>
         </div>
+
+        <el-form v-if="store.editingModelId === model.id" label-position="top" class="edit-form">
+          <el-form-item :label="t('prompt.modelKey')">
+            <el-input :model-value="model.id" disabled />
+          </el-form-item>
+          <el-form-item :label="t('prompt.displayName')">
+            <el-input v-model="store.editForm.name" />
+          </el-form-item>
+          <el-form-item :label="t('prompt.selectProtocol')">
+            <el-select v-model="store.editForm.providerId" @change="onEditProviderChange">
+              <el-option label="" value="" />
+              <el-option
+                v-for="p in store.llmProviders"
+                :key="p.id"
+                :label="p.name"
+                :value="p.id"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item :label="t('prompt.modelId')">
+            <el-input v-model="store.editForm.modelId" />
+          </el-form-item>
+          <el-form-item :label="t('prompt.apiKey')">
+            <el-input v-model="store.editForm.apiKey" type="password" show-password :placeholder="t('prompt.apiKeyLeaveBlank')" />
+          </el-form-item>
+          <el-form-item :label="t('prompt.baseURL')">
+            <el-input v-model="store.editForm.baseURL" />
+          </el-form-item>
+          <div class="edit-actions">
+            <el-button type="primary" @click="onSaveEdit">{{ t('prompt.save') }}</el-button>
+            <el-button @click="store.cancelEditModel()">{{ t('prompt.cancel') }}</el-button>
+          </div>
+        </el-form>
       </el-card>
     </div>
 
@@ -80,6 +116,28 @@ function onProviderChange() {
   store.newModel.baseURL = PROVIDER_DEFAULTS[pId]?.baseURL || ''
   store.newModel.modelId = PROVIDER_DEFAULTS[pId]?.modelId || ''
 }
+
+function onEditProviderChange() {
+  const pId = store.editForm.providerId
+  const defaults = PROVIDER_DEFAULTS[pId]
+  if (defaults) {
+    if (!store.editForm.baseURL) store.editForm.baseURL = defaults.baseURL
+    if (!store.editForm.modelId) store.editForm.modelId = defaults.modelId
+  }
+}
+
+function onAddModelToggle() {
+  store.cancelEditModel()
+  store.showAddModel = !store.showAddModel
+}
+
+async function onSaveEdit() {
+  if (!store.editForm.name || !store.editForm.modelId) {
+    alert(t('prompt.editModelValidation'))
+    return
+  }
+  await store.saveEditModel()
+}
 </script>
 
 <style scoped>
@@ -90,4 +148,6 @@ function onProviderChange() {
 .model-name { font-weight: 600; }
 .model-id { font-size: 12px; color: var(--el-text-color-secondary); }
 .model-actions { display: flex; align-items: center; gap: 12px; }
+.edit-form { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--el-border-color-light); }
+.edit-actions { display: flex; gap: 8px; }
 </style>

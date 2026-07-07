@@ -193,6 +193,11 @@
     "status": "Status",
     "online": "Online",
     "offline": "Offline",
-    "error": "Error"
+    "error": "Error",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "save": "Save",
+    "apiKeyLeaveBlank": "Leave blank to keep existing key",
+    "editModelValidation": "Display name and Model ID are required"
   }
 }
