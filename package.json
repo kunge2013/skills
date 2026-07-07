@@ -20,6 +20,7 @@
     "list": "node src/cli.js list",
     "init": "node src/cli.js init",
     "web": "node src/cli.js web",
+    "build:server": "tsc -p tsconfig.server.json",
     "prepublishOnly": "node src/cli.js --version",
     "test": "vitest run"
   },
@@ -40,7 +41,20 @@
     "url": "https://github.com/kunge2013/skills/issues"
   },
   "homepage": "https://github.com/kunge2013/skills#readme",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@google/genai": "^1.52.0",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^5.2.1",
+    "express-rate-limit": "^7.5.1",
+    "openai": "^4.104.0",
+    "uuid": "^10.0.0"
+  },
   "devDependencies": {
+    "tsup": "^8.3.0",
+    "tsx": "^4.23.0",
+    "typescript": "^5.9.3",
     "vitest": "^4.1.9"
   }
 }

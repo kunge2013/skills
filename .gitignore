@@ -35,3 +35,4 @@ build/
 # baoyu-skills user config (EXTEND.md lives here)
 .baoyu-skills/
 .gstack/
+data/

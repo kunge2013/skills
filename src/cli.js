@@ -25,7 +25,7 @@ Commands:
   remove <skill>     Remove a skill symlink from this project
   view               Show installed skills with health status
   update             Update marketplace cache via git pull
-  web                Launch web UI in browser
+  web                Launch web UI in browser (includes Prompt Optimizer)
   doctor             Check symlink health and cache status
 
 Options:

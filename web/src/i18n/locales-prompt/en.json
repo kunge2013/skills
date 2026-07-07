@@ -1,0 +1,112 @@
+{
+  "common": {
+    "appName": "Prompt Optimizer",
+    "healthCheck": "Health Check",
+    "apiBase": "API Base",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "refresh": "Refresh",
+    "export": "Export",
+    "import": "Import",
+    "settings": "Settings",
+    "loading": "Loading...",
+    "emptyState": "No data",
+    "error": "Error",
+    "success": "Success"
+  },
+  "tabs": {
+    "optimize": "Optimize",
+    "iterate": "Iterate",
+    "test": "Test",
+    "models": "Models",
+    "history": "History",
+    "settings": "Settings"
+  },
+  "optimize": {
+    "title": "Prompt Optimization",
+    "originalPrompt": "Original Prompt",
+    "originalPlaceholder": "Enter your prompt to optimize...",
+    "optimizedResult": "Optimized Result",
+    "resultPlaceholder": "Result will appear here...",
+    "optimize": "Optimize",
+    "optimizing": "Optimizing...",
+    "optimizeStream": "Optimize (Stream)",
+    "streaming": "Streaming...",
+    "mode": "Mode",
+    "system": "System Prompt",
+    "user": "User Prompt"
+  },
+  "iterate": {
+    "title": "Iterate Optimization",
+    "originalPrompt": "Original Prompt",
+    "originalPlaceholder": "The original prompt...",
+    "lastOptimized": "Last Optimized",
+    "lastOptimizedPlaceholder": "The last optimized version...",
+    "feedback": "Feedback / Iteration Input",
+    "feedbackPlaceholder": "What should be improved?",
+    "iterate": "Iterate",
+    "iterating": "Iterating...",
+    "iterateStream": "Iterate (Stream)",
+    "result": "Iterated Result",
+    "resultPlaceholder": "Result will appear here..."
+  },
+  "test": {
+    "title": "Model Test",
+    "systemPrompt": "System Prompt",
+    "systemPlaceholder": "System prompt (optional)...",
+    "userPrompt": "User Prompt",
+    "userPlaceholder": "User prompt...",
+    "test": "Test",
+    "testing": "Testing...",
+    "testStream": "Test (Stream)",
+    "response": "Model Response",
+    "responsePlaceholder": "Response will appear here..."
+  },
+  "models": {
+    "title": "Model Configuration",
+    "addModel": "Add Model",
+    "modelKey": "Model Key (e.g., openai-gpt4)",
+    "displayName": "Display Name",
+    "selectProtocol": "Select Protocol",
+    "modelId": "Model ID (e.g., gpt-4o)",
+    "apiKey": "API Key",
+    "baseURL": "Base URL (optional)",
+    "defaultBaseURL": "default",
+    "saveModel": "Save Model",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "confirmDelete": "Delete model \"{id}\"?",
+    "emptyState": "No models configured. Add a model or set API keys in .env.",
+    "corsRestricted": " (CORS Restricted)"
+  },
+  "history": {
+    "title": "Optimization History",
+    "emptyState": "No history yet. Start optimizing prompts!",
+    "version": "v"
+  },
+  "settings": {
+    "title": "Settings",
+    "apiToken": "API Token (optional)",
+    "apiTokenPlaceholder": "Enter API token if password is set...",
+    "dataManagement": "Data Management",
+    "exportAll": "Export All Data",
+    "importData": "Import Data",
+    "serverInfo": "Server Info",
+    "status": "Status",
+    "online": "Online",
+    "offline": "Offline",
+    "error": "Error"
+  },
+  "providers": {
+    "openai": "OpenAI",
+    "anthropic": "Anthropic",
+    "gemini": "Google Gemini",
+    "deepseek": "DeepSeek"
+  },
+  "languages": {
+    "zh-CN": "简体中文",
+    "zh-TW": "繁體中文",
+    "en": "English"
+  }
+}

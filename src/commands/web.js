@@ -498,6 +498,9 @@ function batchSaveFiles(fileOperations) {
 
 // ---------- HTTP Server ----------
 
+// Internal prompt server
+let promptServerPort = null;
+
 function createServer(port) {
   return http.createServer((req, res) => {
     const parsed = url.parse(req.url, true);
@@ -508,6 +511,36 @@ function createServer(port) {
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     if (req.method === 'OPTIONS') { res.writeHead(200); res.end(); return; }
+
+    // Proxy /api/v1/* and /health to internal prompt server
+    if (pathname.startsWith('/api/v1/') || pathname === '/health') {
+      if (!promptServerPort) {
+        res.writeHead(503, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: 'Prompt server not ready' }));
+        return;
+      }
+      const options = {
+        hostname: '127.0.0.1',
+        port: promptServerPort,
+        path: parsed.path,
+        method: req.method,
+        headers: { ...req.headers, host: '127.0.0.1' },
+      };
+      const proxyReq = http.request(options, (proxyRes) => {
+        res.writeHead(proxyRes.statusCode, proxyRes.headers);
+        proxyRes.pipe(res, { end: true });
+      });
+      proxyReq.on('error', (err) => {
+        res.writeHead(502, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: `Proxy error: ${err.message}` }));
+      });
+      if (req.method === 'POST' || req.method === 'PUT') {
+        req.pipe(proxyReq, { end: true });
+      } else {
+        proxyReq.end();
+      }
+      return;
+    }
 
     // API routes
     if (pathname.startsWith('/api/')) {
@@ -631,6 +664,9 @@ async function cmdWeb() {
     } catch (e) { port++; }
   }
 
+  // Start internal prompt server
+  await startInternalPromptServer();
+
   const server = createServer(port);
 
   await new Promise((resolve, reject) => {
@@ -646,6 +682,85 @@ async function cmdWeb() {
     });
     server.on('error', reject);
   });
+}
+
+/**
+ * Start the prompt Express server internally and proxy /api/v1/* to it.
+ */
+async function startInternalPromptServer() {
+  const { spawn } = require('child_process');
+
+  logger.info('Starting Prompt Optimizer server...');
+
+  const serverDir = path.resolve(__dirname, '../server');
+  const serverEntry = path.join(serverDir, 'prompt-server.ts');
+  const projectRoot = path.resolve(__dirname, '../..');
+
+  // Find tsx
+  const tsxPath = [
+    path.join(projectRoot, 'node_modules', 'tsx', 'dist', 'cli.mjs'),
+  ].find(p => fs.existsSync(p));
+
+  if (!tsxPath) {
+    logger.warn('tsx not found, prompt API will be unavailable');
+    promptServerPort = 0;
+    return;
+  }
+
+  // Find an available port for the internal prompt server
+  let pPort = 0;
+  for (let p = 3020; p < 3030; p++) {
+    try {
+      await new Promise((resolve, reject) => {
+        const srv = http.createServer();
+        srv.listen(p, '127.0.0.1', () => { srv.close(resolve); });
+        srv.on('error', () => reject(new Error('in use')));
+      });
+      pPort = p;
+      break;
+    } catch { /* try next */ }
+  }
+
+  if (!pPort) {
+    logger.warn('No available port for internal prompt server');
+    promptServerPort = 0;
+    return;
+  }
+
+  const child = spawn(process.execPath, [tsxPath, serverEntry], {
+    stdio: ['pipe', 'pipe', 'inherit'],
+    env: {
+      ...process.env,
+      PORT: String(pPort),
+      NODE_ENV: 'production',
+      DATA_DIR: process.env.DATA_DIR || path.join(projectRoot, 'data'),
+    },
+    cwd: projectRoot,
+  });
+
+  // Forward child stdout
+  child.stdout.on('data', (data) => process.stdout.write(data.toString()));
+
+  // Wait for server to be ready by polling
+  const start = Date.now();
+  while (Date.now() - start < 5000) {
+    try {
+      await new Promise((resolve, reject) => {
+        const testReq = http.get(`http://127.0.0.1:${pPort}/health`, (res) => {
+          resolve();
+        });
+        testReq.on('error', () => reject(new Error('not ready')));
+        testReq.setTimeout(500, () => { testReq.destroy(); reject(new Error('timeout')); });
+      });
+      promptServerPort = pPort;
+      logger.success(`Prompt API ready on internal port ${pPort}`);
+      return;
+    } catch { /* not ready yet */ }
+    await new Promise(r => setTimeout(r, 100));
+  }
+
+  logger.warn('Prompt server did not start within 5 seconds');
+  promptServerPort = 0;
 }
 
 module.exports = { cmdWeb, createServer };

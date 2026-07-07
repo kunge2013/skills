@@ -10,7 +10,7 @@ export const useSkillsStore = defineStore('skills', {
     selectedSkill: null as SkillInfo | null, skillContent: null as SkillContent | null,
     searchQuery: '', selectedCategory: '', selectedPlugin: '',
     sortBy: 'name' as 'name' | 'plugin' | 'author',
-    currentView: 'list' as 'list' | 'detail' | 'editor' | 'manage',
+    currentView: 'list' as 'list' | 'detail' | 'editor' | 'manage' | 'prompt',
     cacheStatus: null as CacheStatus | null, loading: false, error: null as string | null,
     // Manage view state
     directoryTree: null as DirectoryNode | null,
@@ -42,7 +42,7 @@ export const useSkillsStore = defineStore('skills', {
     async checkCacheStatus() { try { const r = await window.api.checkCacheStatus(); if (r.success && r.data) this.cacheStatus = r.data } catch(e: any) { this.error = e.message } },
     async initMarketplace() { this.loading = true; try { const r = await window.api.initMarketplace(); if (r.success) { await this.checkCacheStatus(); await this.loadPlugins(); await this.loadSkills() } return r } catch(e: any) { return { success: false, error: e.message } } finally { this.loading = false } },
     async updateMarketplace() { this.loading = true; try { const r = await window.api.updateMarketplace(); if (r.success) { await this.loadPlugins(); await this.loadSkills() } return r } catch(e: any) { return { success: false, error: e.message } } finally { this.loading = false } },
-    setView(v: 'list' | 'detail' | 'editor' | 'manage') { this.currentView = v },
+    setView(v: 'list' | 'detail' | 'editor' | 'manage' | 'prompt') { this.currentView = v },
     clearSelection() { this.selectedSkill = null; this.skillContent = null; this.currentView = 'list' },
     // [AGC:START] tool=Cc author=fangkun
     // Manage view actions

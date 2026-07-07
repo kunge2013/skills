@@ -6,6 +6,7 @@
     </div>
     <el-menu :default-active="activeMenu" class="nav-menu" @select="handleMenuSelect">
       <el-menu-item index="list"><el-icon><Document /></el-icon><span>{{ $t('nav.allSkills') }}</span></el-menu-item>
+      <el-menu-item index="prompt"><el-icon><EditPen /></el-icon><span>{{ $t('nav.promptOptimizer') }}</span></el-menu-item>
       <el-menu-item index="manage"><el-icon><FolderOpened /></el-icon><span>{{ $t('nav.skillManagement') }}</span></el-menu-item>
     </el-menu>
     <div class="nav-footer">
@@ -26,7 +27,7 @@
 </template>
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Document, FolderOpened } from '@element-plus/icons-vue'
+import { Document, FolderOpened, EditPen } from '@element-plus/icons-vue'
 import { useSkillsStore } from '../stores/skills'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
@@ -35,11 +36,17 @@ const store = useSkillsStore()
 const { t } = useI18n()
 const version = __APP_VERSION__
 const currentLocale = ref(i18n.global.locale.value as SupportedLocale)
-const activeMenu = computed(() => store.currentView === 'manage' ? 'manage' : 'list')
+const activeMenu = computed(() => {
+  if (store.currentView === 'manage') return 'manage'
+  if (store.currentView === 'prompt') return 'prompt'
+  return 'list'
+})
 
 function handleMenuSelect(index: string) {
   if (index === 'manage') {
     store.setView('manage')
+  } else if (index === 'prompt') {
+    store.setView('prompt')
   } else {
     store.clearSelection()
   }
