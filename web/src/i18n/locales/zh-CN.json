@@ -210,6 +210,7 @@
     "builtIn": "内置",
     "emptyTemplates": "暂无模板，请先创建一个",
     "templateValidation": "模板名称和系统提示词不能为空",
-    "confirmDeleteTemplate": "确定要删除模板「{name}」吗？"
+    "confirmDeleteTemplate": "确定要删除模板「{name}」吗？",
+    "editTemplate": "编辑模板：{name}"
   }
 }

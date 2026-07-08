@@ -210,6 +210,7 @@
     "builtIn": "Built-in",
     "emptyTemplates": "No templates yet, please create one first",
     "templateValidation": "Template name and system prompt are required",
-    "confirmDeleteTemplate": "Are you sure you want to delete the template \"{name}\"?"
+    "confirmDeleteTemplate": "Are you sure you want to delete the template \"{name}\"?",
+    "editTemplate": "Edit Template: {name}"
   }
 }
