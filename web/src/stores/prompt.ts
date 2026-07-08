@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { TextModelConfig, Template, PromptRecord, LLMProvider } from '../types/prompt'
+import type { TextModelConfig, Template, PromptRecord, LLMProvider, TemplateTestRecord } from '../types/prompt'
 import i18n from '../i18n'
 
 interface ApiResponse<T> { success: boolean; data?: T; error?: string }
@@ -9,10 +9,11 @@ const API_BASE = '/api/v1'
 
 // Static provider definitions (these are fixed and don't need server fetch)
 const LLM_PROVIDERS: LLMProvider[] = [
-  { id: 'openai', name: 'OpenAI', requiresApiKey: true, defaultBaseURL: 'https://api.openai.com/v1', supportsDynamicModels: false },
-  { id: 'anthropic', name: 'Anthropic', requiresApiKey: true, defaultBaseURL: 'https://api.anthropic.com', supportsDynamicModels: false, apiKeyUrl: 'https://console.anthropic.com/settings/keys' },
-  { id: 'gemini', name: 'Google Gemini', requiresApiKey: true, defaultBaseURL: '', supportsDynamicModels: false, apiKeyUrl: 'https://aistudio.google.com/app/apikey' },
-  { id: 'deepseek', name: 'DeepSeek', requiresApiKey: true, defaultBaseURL: 'https://api.deepseek.com/v1', supportsDynamicModels: false, apiKeyUrl: 'https://platform.deepseek.com/api_keys' },
+  { id: 'openai', name: 'OpenAI', requiresApiKey: true, defaultBaseURL: 'https://api.openai.com/v1', supportsDynamicModels: false, defaultProtocol: 'openai' },
+  { id: 'anthropic', name: 'Anthropic', requiresApiKey: true, defaultBaseURL: 'https://api.anthropic.com', supportsDynamicModels: false, apiKeyUrl: 'https://console.anthropic.com/settings/keys', defaultProtocol: 'anthropic' },
+  { id: 'gemini', name: 'Google Gemini', requiresApiKey: true, defaultBaseURL: '', supportsDynamicModels: false, apiKeyUrl: 'https://aistudio.google.com/app/apikey', defaultProtocol: 'openai' },
+  { id: 'deepseek', name: 'DeepSeek', requiresApiKey: true, defaultBaseURL: 'https://api.deepseek.com/v1', supportsDynamicModels: false, apiKeyUrl: 'https://platform.deepseek.com/api_keys', defaultProtocol: 'openai' },
+  { id: 'custom', name: '�Զ���/MaaS', requiresApiKey: true, defaultBaseURL: '', supportsDynamicModels: false, defaultProtocol: 'openai' },
 ]
 
 async function apiGet<T>(path: string): Promise<T> {
@@ -147,13 +148,17 @@ export const usePromptStore = defineStore('prompt', {
     // Models management
     showAddModel: false,
     newModel: {
-      id: '', name: '', providerId: '', modelId: '', apiKey: '', baseURL: '',
+      id: '', name: '', providerId: '', protocol: 'openai' as 'openai' | 'anthropic', modelId: '', apiKey: '', baseURL: '',
     },
     // Edit state
     editingModelId: null as string | null,
     editForm: {
-      id: '', name: '', providerId: '', modelId: '', apiKey: '', baseURL: '',
+      id: '', name: '', providerId: '', protocol: 'openai' as 'openai' | 'anthropic', modelId: '', apiKey: '', baseURL: '',
     },
+
+    // Template test history
+    templateTestHistory: [] as TemplateTestRecord[],
+    selectedHistoryTemplateId: '',
   }),
   getters: {
     enabledModels: (state) => state.allModels.filter((m: TextModelConfig) => m.enabled),
@@ -187,6 +192,7 @@ export const usePromptStore = defineStore('prompt', {
           name: this.newModel.name,
           enabled: true,
           providerId: this.newModel.providerId,
+          protocol: this.newModel.protocol,
           modelId: this.newModel.modelId,
           providerMeta: { id: this.newModel.providerId, name: this.newModel.providerId, requiresApiKey: true, defaultBaseURL: '', supportsDynamicModels: false },
           modelMeta: { id: this.newModel.modelId, name: this.newModel.name, providerId: this.newModel.providerId, capabilities: { supportsTools: true, maxContextLength: 128000 }, parameterDefinitions: [] },
@@ -196,7 +202,7 @@ export const usePromptStore = defineStore('prompt', {
           },
         }
         await apiPost('/models', { key: this.newModel.id, config })
-        this.newModel = { id: '', name: '', providerId: '', modelId: '', apiKey: '', baseURL: '' }
+        this.newModel = { id: '', name: '', providerId: '', protocol: 'openai', modelId: '', apiKey: '', baseURL: '' }
         this.showAddModel = false
         await this.loadModels()
       } catch (e: any) {
@@ -230,10 +236,13 @@ export const usePromptStore = defineStore('prompt', {
     },
     startEditModel(model: TextModelConfig) {
       this.editingModelId = model.id
+      // Derive protocol from config or providerId for legacy configs
+      const derivedProtocol = model.protocol || (model.providerId === 'anthropic' ? 'anthropic' : 'openai')
       this.editForm = {
         id: model.id,
         name: model.name,
         providerId: model.providerId || '',
+        protocol: derivedProtocol as 'openai' | 'anthropic',
         modelId: model.modelId || '',
         apiKey: '',
         baseURL: model.connectionConfig?.baseURL || '',
@@ -242,7 +251,7 @@ export const usePromptStore = defineStore('prompt', {
     },
     cancelEditModel() {
       this.editingModelId = null
-      this.editForm = { id: '', name: '', providerId: '', modelId: '', apiKey: '', baseURL: '' }
+      this.editForm = { id: '', name: '', providerId: '', protocol: 'openai', modelId: '', apiKey: '', baseURL: '' }
     },
     async saveEditModel() {
       if (!this.editingModelId) return
@@ -251,6 +260,7 @@ export const usePromptStore = defineStore('prompt', {
         name: this.editForm.name,
         enabled: true,
         providerId: this.editForm.providerId,
+        protocol: this.editForm.protocol,
         modelId: this.editForm.modelId,
         providerMeta: { id: this.editForm.providerId, name: this.editForm.providerId, requiresApiKey: true, defaultBaseURL: '', supportsDynamicModels: false },
         modelMeta: { id: this.editForm.modelId, name: this.editForm.name, providerId: this.editForm.providerId, capabilities: { supportsTools: true, maxContextLength: 128000 }, parameterDefinitions: [] },
@@ -470,5 +480,29 @@ export const usePromptStore = defineStore('prompt', {
       await this.loadProviders()
       await this.checkServer()
     },
+
+    // [AGC:START] tool=Cc author=fangkun
+    // Template test history
+    async loadTemplateTestHistory(templateId?: string) {
+      try {
+        const path = templateId
+          ? `/template-test-history?templateId=${templateId}`
+          : '/template-test-history'
+        this.templateTestHistory = await apiGet<TemplateTestRecord[]>(path)
+        this.selectedHistoryTemplateId = templateId || ''
+      } catch (e: any) {
+        console.error('Failed to load template test history:', e)
+      }
+    },
+
+    async clearTemplateTestHistory(templateId: string) {
+      try {
+        await apiDelete(`/template-test-history/template/${templateId}`)
+        await this.loadTemplateTestHistory(this.selectedHistoryTemplateId)
+      } catch (e: any) {
+        alert(e.message)
+      }
+    },
+    // [AGC:END]
   },
 })
