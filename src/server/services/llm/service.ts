@@ -16,6 +16,16 @@ export interface IModelManager {
   getEnabledModels(): Promise<TextModelConfig[]>;
 }
 
+// [AGC:START] tool=Cc author=fangkun
+function resolveProtocol(config: TextModelConfig): string {
+  if (config.protocol) return config.protocol;
+  // Legacy configs without protocol: derive from providerId
+  if (config.providerId === 'anthropic') return 'anthropic';
+  // All others (openai/gemini/deepseek/maas/custom) -> openai-compatible
+  return 'openai';
+}
+// [AGC:END]
+
 export class LLMService implements ILLMService {
   constructor(
     private registry: ITextAdapterRegistry,
@@ -32,20 +42,23 @@ export class LLMService implements ILLMService {
 
   async sendMessage(messages: Message[], provider: string): Promise<string> {
     const config = await this.getModelConfig(provider);
-    const adapter = this.registry.getAdapter(config.providerId || provider);
+    const protocol = resolveProtocol(config);
+    const adapter = this.registry.getAdapter(protocol);
     const response = await adapter.sendMessage(messages, config);
     return response.content;
   }
 
   async sendMessageStructured(messages: Message[], provider: string): Promise<LLMResponse> {
     const config = await this.getModelConfig(provider);
-    const adapter = this.registry.getAdapter(config.providerId || provider);
+    const protocol = resolveProtocol(config);
+    const adapter = this.registry.getAdapter(protocol);
     return adapter.sendMessage(messages, config);
   }
 
   async sendMessageStream(messages: Message[], provider: string, callbacks: StreamHandlers): Promise<void> {
     const config = await this.getModelConfig(provider);
-    const adapter = this.registry.getAdapter(config.providerId || provider);
+    const protocol = resolveProtocol(config);
+    const adapter = this.registry.getAdapter(protocol);
     await adapter.sendMessageStream(messages, config, callbacks);
   }
 
@@ -56,13 +69,15 @@ export class LLMService implements ILLMService {
     callbacks: StreamHandlers
   ): Promise<void> {
     const config = await this.getModelConfig(provider);
-    const adapter = this.registry.getAdapter(config.providerId || provider);
+    const protocol = resolveProtocol(config);
+    const adapter = this.registry.getAdapter(protocol);
     await adapter.sendMessageStreamWithTools(messages, config, tools, callbacks);
   }
 
   async testConnection(provider: string): Promise<void> {
     const config = await this.getModelConfig(provider);
-    const adapter = this.registry.getAdapter(config.providerId || provider);
+    const protocol = resolveProtocol(config);
+    const adapter = this.registry.getAdapter(protocol);
 
     await adapter.sendMessage(
       [{ role: 'user', content: 'Hello, this is a connection test.' }],
