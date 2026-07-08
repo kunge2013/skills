@@ -60,9 +60,7 @@ export function createAnthropicAdapter(): ITextProviderAdapter {
   function getClient(config: TextModelConfig): Anthropic {
     return new Anthropic({
       apiKey: config.connectionConfig.apiKey,
-      baseURL: config.connectionConfig.baseURL
-        ? `${config.connectionConfig.baseURL}/v1`
-        : undefined,
+      baseURL: config.connectionConfig.baseURL || undefined,
     });
   }
 
@@ -144,12 +142,21 @@ export function createAnthropicAdapter(): ITextProviderAdapter {
         } as any);
 
         let fullContent = '';
-        for await (const text of stream.textStream) {
-          fullContent += text;
-          callbacks.onToken(text);
+        if (stream.textStream) {
+          for await (const text of stream.textStream) {
+            fullContent += text;
+            callbacks.onToken(text);
+          }
         }
 
         const finalMessage = await stream.finalMessage();
+        if (!stream.textStream) {
+          fullContent = finalMessage.content
+            .filter((block: any) => block.type === 'text')
+            .map((block: any) => block.text)
+            .join('');
+          callbacks.onToken(fullContent);
+        }
         callbacks.onComplete({
           content: fullContent,
           metadata: { model: finalMessage.model, finishReason: finalMessage.stop_reason || undefined },
@@ -177,12 +184,21 @@ export function createAnthropicAdapter(): ITextProviderAdapter {
         } as any);
 
         let fullContent = '';
-        for await (const text of stream.textStream) {
-          fullContent += text;
-          callbacks.onToken(text);
+        if (stream.textStream) {
+          for await (const text of stream.textStream) {
+            fullContent += text;
+            callbacks.onToken(text);
+          }
         }
 
         const finalMessage = await stream.finalMessage();
+        if (!stream.textStream) {
+          fullContent = finalMessage.content
+            .filter((block: any) => block.type === 'text')
+            .map((block: any) => block.text)
+            .join('');
+        }
+
         const toolUseBlocks = finalMessage.content.filter((block: any) => block.type === 'tool_use');
 
         if (toolUseBlocks.length > 0) {
@@ -270,9 +286,19 @@ export function createAnthropicAdapter(): ITextProviderAdapter {
         } as any);
 
         let fullContent = '';
-        for await (const text of stream.textStream) {
-          fullContent += text;
-          callbacks.onToken(text);
+        if (stream.textStream) {
+          for await (const text of stream.textStream) {
+            fullContent += text;
+            callbacks.onToken(text);
+          }
+        }
+        const finalMessage = await stream.finalMessage();
+        if (!stream.textStream) {
+          fullContent = finalMessage.content
+            .filter((block: any) => block.type === 'text')
+            .map((block: any) => block.text)
+            .join('');
+          callbacks.onToken(fullContent);
         }
         callbacks.onComplete({ content: fullContent, metadata: { model: params.model } });
       } catch (error) {
