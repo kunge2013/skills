@@ -23,6 +23,9 @@ import { registerFavoriteRoutes } from './routes/favorites';
 import { registerPreferenceRoutes } from './routes/preferences';
 import { registerDataRoutes } from './routes/data';
 import { registerContextRoutes } from './routes/contexts';
+import { registerTemplateTestHistoryRoutes } from './routes/template-test-history';
+import { registerImageRoutes } from './routes/images';
+import { registerImageModelRoutes } from './routes/image-models';
 import { FileStorageProvider } from './storage/file-provider';
 import { ModelManager } from './services/model/manager';
 import { TemplateManager, createDefaultTemplates } from './services/template/manager';
@@ -31,6 +34,8 @@ import { FavoriteManager } from './services/favorite/manager';
 import { PreferenceService } from './services/preference/service';
 import { DataManager } from './services/data/manager';
 import { ContextManager } from './services/context/manager';
+import { TemplateTestHistoryManager } from './services/template-test/manager';
+import { ImageService, ImageModelManager } from './services/image/service';
 import { TextAdapterRegistry } from './services/llm/adapters/registry';
 import { LLMService } from './services/llm/service';
 import { PromptService } from './services/prompt/service';
@@ -67,6 +72,9 @@ export async function createApp(): Promise<express.Express> {
   const preferenceService = new PreferenceService(storage);
   const dataManager = new DataManager(storage);
   const contextManager = new ContextManager(storage);
+  const templateTestHistoryManager = new TemplateTestHistoryManager(storage);
+  const imageService = new ImageService(storage);
+  const imageModelManager = new ImageModelManager(storage);
 
   // LLM adapters
   const registry = new TextAdapterRegistry();
@@ -79,7 +87,7 @@ export async function createApp(): Promise<express.Express> {
   const llmService = new LLMService(registry, modelManager);
 
   // Prompt Service
-  const promptService = new PromptService(llmService, templateManager, historyManager);
+  const promptService = new PromptService(llmService, templateManager, historyManager, templateTestHistoryManager);
 
   // Register routes
   const router = express.Router();
@@ -94,6 +102,9 @@ export async function createApp(): Promise<express.Express> {
   registerPreferenceRoutes(router, preferenceService);
   registerDataRoutes(router, dataManager);
   registerContextRoutes(router, contextManager);
+  registerTemplateTestHistoryRoutes(router, templateTestHistoryManager);
+  registerImageRoutes(router, imageService);
+  registerImageModelRoutes(router, imageModelManager);
 
   app.use('/api/v1', authMiddleware, router);
 

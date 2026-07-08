@@ -16,6 +16,11 @@
       <el-tab-pane :label="t('prompt.history')" name="history">
         <HistoryView />
       </el-tab-pane>
+      <!-- [AGC:START] tool=Cc author=fangkun -->
+      <el-tab-pane :label="t('prompt.templateTestHistory')" name="template-tests">
+        <TemplateTestHistoryView />
+      </el-tab-pane>
+      <!-- [AGC:END] -->
       <el-tab-pane :label="t('prompt.settings')" name="settings">
         <PromptSettingsView />
       </el-tab-pane>
@@ -32,6 +37,9 @@ import IterateView from './IterateView.vue'
 import TestView from './TestView.vue'
 import ModelsView from './ModelsView.vue'
 import HistoryView from './HistoryView.vue'
+// [AGC:START] tool=Cc author=fangkun
+import TemplateTestHistoryView from './TemplateTestHistoryView.vue'
+// [AGC:END]
 import PromptSettingsView from './PromptSettingsView.vue'
 
 const { t } = useI18n()

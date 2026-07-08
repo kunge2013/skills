@@ -6,13 +6,13 @@
 
 # Test info
 
-- Name: e2e/prompt-maintenance.spec.ts >> Prompt Maintenance Feature E2E Tests >> 6.4 - All other PromptOptimizer tabs still work
-- Location: e2e/prompt-maintenance.spec.ts:113:3
+- Name: e2e\prompt-maintenance.spec.ts >> Prompt Maintenance Feature E2E Tests >> 6.4 - All other PromptOptimizer tabs still work
+- Location: e2e\prompt-maintenance.spec.ts:113:3
 
 # Error details
 
 ```
-Error: browserType.launch: Executable doesn't exist at /home/fk/.cache/ms-playwright/chromium_headless_shell-1228/chrome-headless-shell-linux64/chrome-headless-shell
+Error: browserType.launch: Executable doesn't exist at C:\Users\ThinkPad\AppData\Local\ms-playwright\chromium_headless_shell-1228\chrome-headless-shell-win64\chrome-headless-shell.exe
 ╔════════════════════════════════════════════════════════════╗
 ║ Looks like Playwright was just installed or updated.       ║
 ║ Please run the following command to download new browsers: ║

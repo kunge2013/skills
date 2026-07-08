@@ -175,4 +175,36 @@ export function registerPromptRoutes(router: Router, promptService: PromptServic
       },
     });
   });
+
+  // [AGC:START] tool=Cc author=fangkun
+  // POST /prompts/test-template-stream (SSE)
+  router.post('/prompts/test-template-stream', async (req, res) => {
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    });
+
+    await promptService.testTemplateStream(req.body, {
+      onToken: (token) => {
+        res.write(`data: ${JSON.stringify({ token })}\n\n`);
+      },
+      onReasoningToken: (token) => {
+        res.write(`data: ${JSON.stringify({ reasoning: token })}\n\n`);
+      },
+      onComplete: (response) => {
+        res.write(`data: ${JSON.stringify({
+          done: true,
+          fullText: response?.content || '',
+          reasoning: response?.reasoning,
+        })}\n\n`);
+        res.end();
+      },
+      onError: (error) => {
+        res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+        res.end();
+      },
+    });
+  });
+  // [AGC:END]
 }

@@ -2,6 +2,8 @@ import { StreamHandlers, Message } from '../llm/types';
 import { LLMService } from '../llm/service';
 import { TemplateManager, TemplateProcessor } from '../template/manager';
 import { HistoryManager, PromptRecord } from '../history/manager';
+import { TemplateTestHistoryManager } from '../template-test/manager';
+import { TemplateTestRecord } from '../template-test/types';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface OptimizationRequest {
@@ -32,19 +34,33 @@ export interface TestRequest {
   modelKey: string;
 }
 
+export interface TestTemplateRequest {
+  templateId: string;
+  templateName: string;
+  variables: Record<string, string>;
+  processedSystemPrompt: string;
+  processedUserPrompt: string;
+  modelKey: string;
+  modelInfo: { id: string; name: string; providerId: string };
+  saveHistory: boolean;
+}
+
 export class PromptService {
   private llmService: LLMService;
   private templateManager: TemplateManager;
   private historyManager: HistoryManager;
+  private templateTestHistoryManager: TemplateTestHistoryManager;
 
   constructor(
     llmService: LLMService,
     templateManager: TemplateManager,
     historyManager: HistoryManager,
+    templateTestHistoryManager: TemplateTestHistoryManager,
   ) {
     this.llmService = llmService;
     this.templateManager = templateManager;
     this.historyManager = historyManager;
+    this.templateTestHistoryManager = templateTestHistoryManager;
   }
 
   async optimizePrompt(request: OptimizationRequest): Promise<string> {
@@ -302,4 +318,57 @@ export class PromptService {
     }
     callbacks.onComplete();
   }
+
+  // [AGC:START] tool=Cc author=fangkun
+  async testTemplateStream(
+    request: TestTemplateRequest,
+    callbacks: StreamHandlers
+  ): Promise<void> {
+    const startTime = Date.now();
+    let fullContent = '';
+
+    const messages: Message[] = [
+      { role: 'system', content: request.processedSystemPrompt },
+      { role: 'user', content: request.processedUserPrompt },
+    ];
+
+    await this.llmService.sendMessageStream(messages, request.modelKey, {
+      onToken: (token) => {
+        fullContent += token;
+        callbacks.onToken(token);
+      },
+      onReasoningToken: callbacks.onReasoningToken,
+      onComplete: async (response) => {
+        const finalContent = response?.content || fullContent;
+        const duration = Date.now() - startTime;
+
+        // Save test history
+        if (request.saveHistory) {
+          const record: TemplateTestRecord = {
+            id: uuidv4(),
+            templateId: request.templateId,
+            templateName: request.templateName,
+            variables: request.variables,
+            processedSystemPrompt: request.processedSystemPrompt,
+            processedUserPrompt: request.processedUserPrompt,
+            modelKey: request.modelKey,
+            modelInfo: request.modelInfo,
+            output: finalContent,
+            timestamp: Date.now(),
+            duration,
+          };
+
+          try {
+            await this.templateTestHistoryManager.addRecord(record);
+          } catch (e) {
+            console.error('Failed to save test history:', e);
+          }
+        }
+
+        callbacks.onComplete(response);
+      },
+      onError: callbacks.onError,
+    });
+  }
+  // [AGC:END]
 }

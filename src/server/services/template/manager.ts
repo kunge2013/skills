@@ -71,8 +71,17 @@ export class TemplateManager {
     const raw = await this.storage.getItem(this.storageKey);
     const custom = raw ? JSON.parse(raw) : [];
     const index = custom.findIndex((t: Template) => t.id === id);
-    if (index < 0) throw new Error(`Template "${id}" not found`);
-    custom[index] = { ...custom[index], ...updates };
+    if (index < 0) {
+      // 内置模板不在自定义列表中，查找内置模板并添加到自定义列表
+      const builtin = this.builtinTemplates.find(t => t.id === id);
+      if (builtin) {
+        custom.push({ ...builtin, ...updates });
+      } else {
+        throw new Error(`Template "${id}" not found`);
+      }
+    } else {
+      custom[index] = { ...custom[index], ...updates };
+    }
     await this.storage.setItem(this.storageKey, JSON.stringify(custom));
   }
 
