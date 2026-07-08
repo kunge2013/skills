@@ -27,6 +27,7 @@ export interface PromptRecord {
   parentIds: string[];
 }
 
+// [AGC:START] tool=Cc author=fangkun
 export interface Template {
   id: string;
   name: string;
@@ -35,7 +36,11 @@ export interface Template {
   templateType: 'simple' | 'advanced';
   content: { system: string; user?: string };
   category?: string;
+
+  // 系统变量列表,测试时自动填充或隐藏
+  systemVariables?: string[];
 }
+// [AGC:END]
 
 export interface LLMProvider {
   id: string;
@@ -46,3 +51,31 @@ export interface LLMProvider {
   supportsDynamicModels?: boolean;
   apiKeyUrl?: string;
 }
+
+// [AGC:START] tool=Cc author=fangkun
+export interface TemplateTestRecord {
+  id: string;
+  templateId: string;
+  templateName: string;
+
+  // 用户输入的变量值
+  variables: Record<string, string>;
+
+  // 替换后的提示词
+  processedSystemPrompt: string;
+  processedUserPrompt: string;
+
+  // 模型信息
+  modelKey: string;
+  modelInfo: {
+    id: string;
+    name: string;
+    providerId: string;
+  };
+
+  // 测试结果
+  output: string;
+  timestamp: number;
+  duration?: number;  // 毫秒
+}
+// [AGC:END]
