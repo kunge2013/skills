@@ -743,7 +743,8 @@ async function startInternalPromptServer() {
 
   // Wait for server to be ready by polling
   const start = Date.now();
-  while (Date.now() - start < 5000) {
+  logger.info(`Waiting for Prompt API to be ready on port ${pPort}...`);
+  while (Date.now() - start < 50000) {
     try {
       await new Promise((resolve, reject) => {
         const testReq = http.get(`http://127.0.0.1:${pPort}/health`, (res) => {
