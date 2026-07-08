@@ -62,11 +62,21 @@
     <!-- Edit Dialog -->
     <el-dialog
       v-model="showEditDialog"
-      :title="t('prompt.editTemplate', { name: editForm.name })"
-      width="800px"
+      :fullscreen="isFullscreen"
       :close-on-click-modal="false"
       @close="cancelEdit"
     >
+      <template #header>
+        <div class="dialog-header">
+          <span class="dialog-title">{{ t('prompt.editTemplate', { name: editForm.name }) }}</span>
+          <el-button
+            :icon="isFullscreen ? Rank : FullScreen"
+            circle
+            size="small"
+            @click="toggleFullscreen"
+          />
+        </div>
+      </template>
       <TemplateForm
         :template="editForm"
         :providers="templateTypes"
@@ -84,6 +94,7 @@
 import { ref, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessageBox } from 'element-plus'
+import { FullScreen, Rank } from '@element-plus/icons-vue'
 import { usePromptStore } from '../../stores/prompt'
 import TemplateForm from './TemplateForm.vue'
 import type { Template } from '../../types/prompt'
@@ -93,6 +104,7 @@ const store = usePromptStore()
 
 const showCreateForm = ref(false)
 const showEditDialog = ref(false)
+const isFullscreen = ref(false)
 
 const templateTypes = [
   { value: 'optimize', label: 'Optimize' },
@@ -127,11 +139,17 @@ function startEdit(template: Template) {
   editForm.content = { system: template.content.system, user: template.content.user || '' }
   editForm.description = template.description || ''
   editForm.category = template.category || ''
+  isFullscreen.value = false
   showEditDialog.value = true
 }
 
 function cancelEdit() {
   showEditDialog.value = false
+  isFullscreen.value = false
+}
+
+function toggleFullscreen() {
+  isFullscreen.value = !isFullscreen.value
 }
 
 function truncate(text: string, maxLen = 150) {
@@ -196,4 +214,6 @@ async function onDelete(template: Template) {
 .template-name { font-weight: 600; font-size: 14px; }
 .template-actions { display: flex; align-items: center; gap: 8px; }
 .template-preview { margin-top: 8px; font-size: 13px; color: var(--el-text-color-secondary); white-space: pre-wrap; }
+.dialog-header { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+.dialog-title { font-size: 18px; font-weight: 500; }
 </style>
