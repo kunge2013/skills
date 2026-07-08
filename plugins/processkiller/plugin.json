@@ -1,0 +1,8 @@
+{
+  "name": "processkiller",
+  "description": "Identify and terminate processes by port number, process name, or PID. Cross-platform (Windows, macOS, Linux).",
+  "author": { "name": "kunge2013" },
+  "license": "MIT",
+  "keywords": ["process", "kill", "port", "PID", "taskkill", "terminate"],
+  "category": "utility"
+}
