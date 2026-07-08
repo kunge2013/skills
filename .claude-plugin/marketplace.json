@@ -122,6 +122,15 @@
       "license": "MIT",
       "keywords": ["process", "kill", "port", "PID", "taskkill", "terminate"],
       "category": "utility"
+    },
+    {
+      "name": "ocr",
+      "source": "./plugins/ocr",
+      "description": "Unified Xfei OCR skill supporting both image OCR (AI-powered LLM OCR) and PDF document recognition. Multi-language text extraction, document layout understanding, and various output formats.",
+      "author": { "name": "kunge2013" },
+      "license": "MIT",
+      "keywords": ["ocr", "pdf", "image", "text-extraction", "xfei", "llm-ocr", "document"],
+      "category": "utility"
     }
   ]
 }
