@@ -2,20 +2,10 @@
   <div class="prompt-maintenance-view">
     <div class="maintenance-header">
       <h2>{{ t('prompt.maintenanceTitle') }}</h2>
-      <el-button @click="showCreateForm = !showCreateForm">
-        {{ showCreateForm ? t('prompt.cancel') : t('prompt.createTemplate') }}
+      <el-button @click="openCreateDialog">
+        {{ t('prompt.createTemplate') }}
       </el-button>
     </div>
-
-    <!-- Create Form -->
-    <el-card v-if="showCreateForm" shadow="never" class="template-form">
-      <TemplateForm
-        :template="createForm"
-        :providers="templateTypes"
-        @save="onCreate"
-        @cancel="showCreateForm = false"
-      />
-    </el-card>
 
     <!-- Template List -->
     <div class="template-list">
@@ -62,7 +52,7 @@
     <!-- Edit Dialog -->
     <el-dialog
       v-model="showEditDialog"
-      :fullscreen="isFullscreen"
+      :fullscreen="editFullscreen"
       :close-on-click-modal="false"
       @close="cancelEdit"
     >
@@ -70,10 +60,10 @@
         <div class="dialog-header">
           <span class="dialog-title">{{ t('prompt.editTemplate', { name: editForm.name }) }}</span>
           <el-button
-            :icon="isFullscreen ? Rank : FullScreen"
+            :icon="editFullscreen ? Rank : FullScreen"
             circle
             size="small"
-            @click="toggleFullscreen"
+            @click="editFullscreen = !editFullscreen"
           />
         </div>
       </template>
@@ -83,6 +73,32 @@
         :is-edit="true"
         @save="onUpdate"
         @cancel="cancelEdit"
+      />
+    </el-dialog>
+
+    <!-- Create Dialog -->
+    <el-dialog
+      v-model="showCreateDialog"
+      :fullscreen="createFullscreen"
+      :close-on-click-modal="false"
+      @close="cancelCreate"
+    >
+      <template #header>
+        <div class="dialog-header">
+          <span class="dialog-title">{{ t('prompt.createTemplate') }}</span>
+          <el-button
+            :icon="createFullscreen ? Rank : FullScreen"
+            circle
+            size="small"
+            @click="createFullscreen = !createFullscreen"
+          />
+        </div>
+      </template>
+      <TemplateForm
+        :template="createForm"
+        :providers="templateTypes"
+        @save="onCreate"
+        @cancel="cancelCreate"
       />
     </el-dialog>
 
@@ -102,9 +118,10 @@ import type { Template } from '../../types/prompt'
 const { t } = useI18n()
 const store = usePromptStore()
 
-const showCreateForm = ref(false)
+const showCreateDialog = ref(false)
 const showEditDialog = ref(false)
-const isFullscreen = ref(false)
+const createFullscreen = ref(false)
+const editFullscreen = ref(false)
 
 const templateTypes = [
   { value: 'optimize', label: 'Optimize' },
@@ -132,6 +149,17 @@ const editForm = reactive({
   category: '',
 })
 
+function openCreateDialog() {
+  Object.assign(createForm, { name: '', type: 'optimize', content: { system: '', user: '' }, description: '', category: '' })
+  createFullscreen.value = false
+  showCreateDialog.value = true
+}
+
+function cancelCreate() {
+  showCreateDialog.value = false
+  createFullscreen.value = false
+}
+
 function startEdit(template: Template) {
   editForm.id = template.id
   editForm.name = template.name
@@ -139,17 +167,13 @@ function startEdit(template: Template) {
   editForm.content = { system: template.content.system, user: template.content.user || '' }
   editForm.description = template.description || ''
   editForm.category = template.category || ''
-  isFullscreen.value = false
+  editFullscreen.value = false
   showEditDialog.value = true
 }
 
 function cancelEdit() {
   showEditDialog.value = false
-  isFullscreen.value = false
-}
-
-function toggleFullscreen() {
-  isFullscreen.value = !isFullscreen.value
+  editFullscreen.value = false
 }
 
 function truncate(text: string, maxLen = 150) {
@@ -170,8 +194,7 @@ async function onCreate() {
     description: createForm.description || undefined,
     category: createForm.category || undefined,
   })
-  showCreateForm.value = false
-  Object.assign(createForm, { name: '', type: 'optimize', content: { system: '', user: '' }, description: '', category: '' })
+  cancelCreate()
 }
 
 async function onUpdate() {
@@ -206,7 +229,6 @@ async function onDelete(template: Template) {
 <style scoped>
 .prompt-maintenance-view { display: flex; flex-direction: column; gap: 16px; }
 .maintenance-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.template-form { margin-bottom: 8px; }
 .template-list { display: flex; flex-direction: column; gap: 8px; }
 .template-card { padding: 12px; }
 .template-header { display: flex; justify-content: space-between; align-items: center; }
