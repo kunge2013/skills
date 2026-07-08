@@ -17,7 +17,7 @@ export interface IModelManager {
 }
 
 // [AGC:START] tool=Cc author=fangkun
-function resolveProtocol(config: TextModelConfig): string {
+function resolveProtocol(config: TextModelConfig): 'openai' | 'anthropic' {
   if (config.protocol) return config.protocol;
   // Legacy configs without protocol: derive from providerId
   if (config.providerId === 'anthropic') return 'anthropic';
@@ -93,10 +93,4 @@ export class LLMService implements ILLMService {
     );
     return models.map(m => ({ value: m.id, label: m.name }));
   }
-}
-
-export interface IModelManager {
-  getModel(key: string): Promise<TextModelConfig | undefined>;
-  getAllModels(): Promise<TextModelConfig[]>;
-  getEnabledModels(): Promise<TextModelConfig[]>;
 }

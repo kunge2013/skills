@@ -125,8 +125,8 @@ const { t } = useI18n()
 const store = usePromptStore()
 
 const PROTOCOL_OPTIONS = [
-  { value: 'openai', label: 'OpenAI 兼容协议' },
-  { value: 'anthropic', label: 'Anthropic 兼容协议' },
+  { value: 'openai', label: t('prompt.protocolOpenai') },
+  { value: 'anthropic', label: t('prompt.protocolAnthropic') },
 ]
 
 const PROVIDER_DEFAULTS: Record<string, { protocol: 'openai' | 'anthropic'; baseURL: string; modelId: string }> = {

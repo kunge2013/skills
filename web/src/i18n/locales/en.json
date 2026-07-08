@@ -172,6 +172,8 @@
     "displayName": "Display Name",
     "selectProvider": "Select Provider",
     "selectProtocol": "Select Protocol",
+    "protocolOpenai": "OpenAI Compatible",
+    "protocolAnthropic": "Anthropic Compatible",
     "modelId": "Model ID",
     "apiKey": "API Key",
     "baseURL": "Base URL",

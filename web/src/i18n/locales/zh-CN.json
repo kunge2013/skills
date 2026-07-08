@@ -172,6 +172,8 @@
     "displayName": "显示名称",
     "selectProvider": "选择供应商",
     "selectProtocol": "选择协议",
+    "protocolOpenai": "OpenAI 兼容协议",
+    "protocolAnthropic": "Anthropic 兼容协议",
     "modelId": "模型 ID",
     "apiKey": "API 密钥",
     "baseURL": "基础 URL",
