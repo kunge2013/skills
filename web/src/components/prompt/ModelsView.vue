@@ -15,7 +15,7 @@
         <el-form-item :label="t('prompt.displayName')">
           <el-input v-model="store.newModel.name" />
         </el-form-item>
-        <el-form-item :label="t('prompt.selectProtocol')">
+        <el-form-item :label="t('prompt.selectProvider')">
           <el-select v-model="store.newModel.providerId" @change="onProviderChange">
             <el-option label="" value="" />
             <el-option
@@ -23,6 +23,16 @@
               :key="p.id"
               :label="p.name"
               :value="p.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item :label="t('prompt.selectProtocol')">
+          <el-select v-model="store.newModel.protocol">
+            <el-option
+              v-for="opt in PROTOCOL_OPTIONS"
+              :key="opt.value"
+              :label="opt.label"
+              :value="opt.value"
             />
           </el-select>
         </el-form-item>
@@ -65,7 +75,7 @@
           <el-form-item :label="t('prompt.displayName')">
             <el-input v-model="store.editForm.name" />
           </el-form-item>
-          <el-form-item :label="t('prompt.selectProtocol')">
+          <el-form-item :label="t('prompt.selectProvider')">
             <el-select v-model="store.editForm.providerId" @change="onEditProviderChange">
               <el-option label="" value="" />
               <el-option
@@ -73,6 +83,16 @@
                 :key="p.id"
                 :label="p.name"
                 :value="p.id"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item :label="t('prompt.selectProtocol')">
+            <el-select v-model="store.editForm.protocol">
+              <el-option
+                v-for="opt in PROTOCOL_OPTIONS"
+                :key="opt.value"
+                :label="opt.label"
+                :value="opt.value"
               />
             </el-select>
           </el-form-item>
@@ -104,23 +124,34 @@ import { usePromptStore } from '../../stores/prompt'
 const { t } = useI18n()
 const store = usePromptStore()
 
-const PROVIDER_DEFAULTS: Record<string, { baseURL: string; modelId: string }> = {
-  openai: { baseURL: 'https://api.openai.com/v1', modelId: 'gpt-4o' },
-  anthropic: { baseURL: 'https://api.anthropic.com', modelId: 'claude-sonnet-4-20250514' },
-  gemini: { baseURL: '', modelId: 'gemini-2.0-flash' },
-  deepseek: { baseURL: 'https://api.deepseek.com/v1', modelId: 'deepseek-chat' },
+const PROTOCOL_OPTIONS = [
+  { value: 'openai', label: 'OpenAI 兼容协议' },
+  { value: 'anthropic', label: 'Anthropic 兼容协议' },
+]
+
+const PROVIDER_DEFAULTS: Record<string, { protocol: 'openai' | 'anthropic'; baseURL: string; modelId: string }> = {
+  openai: { protocol: 'openai', baseURL: 'https://api.openai.com/v1', modelId: 'gpt-4o' },
+  anthropic: { protocol: 'anthropic', baseURL: 'https://api.anthropic.com', modelId: 'claude-sonnet-4-20250514' },
+  gemini: { protocol: 'openai', baseURL: '', modelId: 'gemini-2.0-flash' },
+  deepseek: { protocol: 'openai', baseURL: 'https://api.deepseek.com/v1', modelId: 'deepseek-chat' },
+  custom: { protocol: 'openai', baseURL: '', modelId: '' },
 }
 
 function onProviderChange() {
   const pId = store.newModel.providerId
-  store.newModel.baseURL = PROVIDER_DEFAULTS[pId]?.baseURL || ''
-  store.newModel.modelId = PROVIDER_DEFAULTS[pId]?.modelId || ''
+  const defaults = PROVIDER_DEFAULTS[pId]
+  if (defaults) {
+    store.newModel.protocol = defaults.protocol
+    store.newModel.baseURL = defaults.baseURL
+    store.newModel.modelId = defaults.modelId
+  }
 }
 
 function onEditProviderChange() {
   const pId = store.editForm.providerId
   const defaults = PROVIDER_DEFAULTS[pId]
   if (defaults) {
+    store.editForm.protocol = defaults.protocol
     if (!store.editForm.baseURL) store.editForm.baseURL = defaults.baseURL
     if (!store.editForm.modelId) store.editForm.modelId = defaults.modelId
   }
