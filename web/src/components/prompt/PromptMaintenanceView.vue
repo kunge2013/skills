@@ -56,18 +56,25 @@
         </div>
 
         <div class="template-preview">{{ truncate(template.content.system) }}</div>
-
-        <!-- Edit Form -->
-        <TemplateForm
-          v-if="editingTemplateId === template.id"
-          :template="editForm"
-          :providers="templateTypes"
-          :is-edit="true"
-          @save="onUpdate"
-          @cancel="cancelEdit"
-        />
       </el-card>
     </div>
+
+    <!-- Edit Dialog -->
+    <el-dialog
+      v-model="showEditDialog"
+      :title="t('prompt.editTemplate', { name: editForm.name })"
+      width="800px"
+      :close-on-click-modal="false"
+      @close="cancelEdit"
+    >
+      <TemplateForm
+        :template="editForm"
+        :providers="templateTypes"
+        :is-edit="true"
+        @save="onUpdate"
+        @cancel="cancelEdit"
+      />
+    </el-dialog>
 
     <el-empty v-if="store.templates.length === 0" :description="t('prompt.emptyTemplates')" />
   </div>
@@ -85,7 +92,7 @@ const { t } = useI18n()
 const store = usePromptStore()
 
 const showCreateForm = ref(false)
-const editingTemplateId = ref<string | null>(null)
+const showEditDialog = ref(false)
 
 const templateTypes = [
   { value: 'optimize', label: 'Optimize' },
@@ -114,17 +121,17 @@ const editForm = reactive({
 })
 
 function startEdit(template: Template) {
-  editingTemplateId.value = template.id
   editForm.id = template.id
   editForm.name = template.name
   editForm.type = template.type
   editForm.content = { system: template.content.system, user: template.content.user || '' }
   editForm.description = template.description || ''
   editForm.category = template.category || ''
+  showEditDialog.value = true
 }
 
 function cancelEdit() {
-  editingTemplateId.value = null
+  showEditDialog.value = false
 }
 
 function truncate(text: string, maxLen = 150) {
