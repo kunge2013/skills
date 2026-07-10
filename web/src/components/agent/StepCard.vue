@@ -23,21 +23,23 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { Step } from '../../types/agent'
 import StepOutput from './StepOutput.vue'
 
+const { t } = useI18n()
 const props = defineProps<{ step: Step; output?: string }>()
 defineEmits<{ run: [] }>()
 
 const statusLabel = computed(() => {
   const labels: Record<string, string> = {
-    pending: 'Pending',
-    running: 'Running...',
-    done: 'Done',
-    failed: 'Failed',
-    waiting_user: 'Waiting for you',
-  };
-  return labels[props.step.status] || props.step.status;
+    pending: t('agent.pending'),
+    running: t('agent.running'),
+    done: t('agent.done'),
+    failed: t('agent.failed'),
+    waiting_user: t('agent.waitingUser'),
+  }
+  return labels[props.step.status] || props.step.status
 })
 </script>
 

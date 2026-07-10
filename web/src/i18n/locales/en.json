@@ -237,11 +237,13 @@
     "confirmDelete": "Are you sure you want to delete this record?"
   },
   "agent": {
+    "title": "Agent",
     "inputPlaceholder": "Describe what you want to do...",
     "selectProvider": "Select Provider",
     "modelKey": "Model Key",
     "generatePlan": "Generate Plan",
     "planTitle": "Execution Plan",
+    "pending": "Pending",
     "running": "Running...",
     "done": "Done",
     "failed": "Failed",
