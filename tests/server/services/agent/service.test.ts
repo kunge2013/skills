@@ -3,6 +3,7 @@ import { AgentService } from '../../../../src/server/services/agent/service';
 import { SkillRegistry } from '../../../../src/server/services/agent/registry';
 import type { ITextAdapterRegistry, TextModelConfig } from '../../../../src/server/services/llm/types';
 import type { IModelManager } from '../../../../src/server/services/llm/service';
+import type { AgentSSEEvent } from '../../../../src/server/services/agent/types';
 
 function makeMockModelManager(): IModelManager {
   return {
@@ -81,6 +82,64 @@ describe('AgentService', () => {
   });
 
   it('runStep fails for non-existent step', async () => {
-    await expect(service.runStep('nonexistent-step')).rejects.toThrow();
+    await expect(service.runStep('nonexistent-step')).rejects.toThrow('Step not found');
+  });
+
+  it('runStep executes a pending step successfully', async () => {
+    const plan = await service.createPlan(
+      { userMessage: 'test run', providerId: 'anthropic', modelKey: 'test' },
+      () => {}
+    );
+
+    const stepId = plan.steps[0].id;
+    const events: AgentSSEEvent[] = [];
+    const result = await service.runStep(stepId, undefined, (e) => events.push(e));
+
+    expect(result.status).toBe('done');
+    expect(result.output).toContain('executed');
+    expect(result.runAt).toBeDefined();
+    expect(events.length).toBe(2);
+    expect(events[0].type).toBe('step_start');
+    expect(events[1].type).toBe('step_complete');
+  });
+
+  it('runStep rejects non-pending steps', async () => {
+    const plan = await service.createPlan(
+      { userMessage: 'reject test', providerId: 'anthropic', modelKey: 'test' },
+      () => {}
+    );
+
+    const stepId = plan.steps[0].id;
+    // First call should succeed (step is pending)
+    await service.runStep(stepId);
+
+    // Second call should fail (step is now done)
+    await expect(service.runStep(stepId)).rejects.toThrow('is not pending');
+  });
+
+  it('createPlan emits plan_token and plan_complete events', async () => {
+    const events: AgentSSEEvent[] = [];
+    await service.createPlan(
+      { userMessage: 'event test', providerId: 'anthropic', modelKey: 'test' },
+      (e) => events.push(e)
+    );
+
+    expect(events.length).toBeGreaterThanOrEqual(2);
+    const types = events.map(e => e.type);
+    expect(types).toContain('plan_token');
+    expect(types).toContain('plan_complete');
+  });
+
+  it('createPlan throws when model not found', async () => {
+    const failingModelManager = makeMockModelManager();
+    vi.mocked(failingModelManager.getModel).mockResolvedValue(undefined);
+    const failingService = new AgentService(failingModelManager, adapterRegistry, skillRegistry);
+
+    await expect(
+      failingService.createPlan(
+        { userMessage: 'no model', providerId: 'anthropic', modelKey: 'missing' },
+        () => {}
+      )
+    ).rejects.toThrow('Model config not found for key: missing');
   });
 });
