@@ -3,6 +3,7 @@ import express from 'express';
 import request from 'supertest';
 import { registerAgentRoutes } from '../../../src/server/routes/agent';
 import type { AgentService } from '../../../src/server/services/agent/service';
+import type { SkillRegistry } from '../../../src/server/services/agent/registry';
 
 function makeMockAgentService(): AgentService {
   return {
@@ -39,16 +40,26 @@ function makeMockAgentService(): AgentService {
   } as unknown as AgentService;
 }
 
+function makeMockSkillRegistry(): SkillRegistry {
+  return {
+    discover: vi.fn().mockResolvedValue(undefined),
+    get: vi.fn().mockReturnValue(undefined),
+    getAll: vi.fn().mockReturnValue([]),
+  } as unknown as SkillRegistry;
+}
+
 describe('Agent Routes', () => {
   let app: express.Express;
   let mockService: AgentService;
+  let mockRegistry: SkillRegistry;
 
   beforeEach(() => {
     app = express();
     app.use(express.json());
     mockService = makeMockAgentService();
+    mockRegistry = makeMockSkillRegistry();
     const router = express.Router();
-    registerAgentRoutes(router, mockService);
+    registerAgentRoutes(router, mockService, mockRegistry);
     app.use('/api/v1', router);
   });
 
@@ -79,5 +90,12 @@ describe('Agent Routes', () => {
   it('GET /agent/plan/:id returns 404 for missing plan', async () => {
     const res = await request(app).get('/api/v1/agent/plan/nonexistent');
     expect(res.status).toBe(404);
+  });
+
+  it('GET /agent/skills returns empty array when no skills registered', async () => {
+    const res = await request(app).get('/api/v1/agent/skills');
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data).toEqual([]);
   });
 });

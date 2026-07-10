@@ -1,7 +1,8 @@
 import { Router, Request, Response } from 'express';
 import type { AgentService } from '../services/agent/service';
+import type { SkillRegistry } from '../services/agent/registry';
 
-export function registerAgentRoutes(router: Router, agentService: AgentService) {
+export function registerAgentRoutes(router: Router, agentService: AgentService, skillRegistry: SkillRegistry) {
   // POST /agent/plan — SSE streaming plan generation
   router.post('/agent/plan', async (req: Request, res: Response) => {
     try {
@@ -79,7 +80,11 @@ export function registerAgentRoutes(router: Router, agentService: AgentService) 
 
   // GET /agent/skills — List registered skills
   router.get('/agent/skills', (_req: Request, res: Response) => {
-    // Task 6 will wire up SkillRegistry properly
-    res.json({ success: true, data: [] });
+    const skills = skillRegistry.getAll().map((s) => ({
+      name: s.name,
+      description: s.description,
+      filePath: s.filePath,
+    }));
+    res.json({ success: true, data: skills });
   });
 }

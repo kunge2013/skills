@@ -29,6 +29,7 @@ import { registerContextRoutes } from './routes/contexts';
 import { registerTemplateTestHistoryRoutes } from './routes/template-test-history';
 import { registerAgentRoutes } from './routes/agent';
 import { AgentService } from './services/agent/service';
+import { SkillRegistry } from './services/agent/registry';
 import { FileStorageProvider } from './storage/file-provider';
 import { ModelManager } from './services/model/manager';
 import { TemplateManager, createDefaultTemplates } from './services/template/manager';
@@ -88,6 +89,10 @@ export async function createApp(): Promise<{ app: express.Express; viteServer?: 
   // Agent Service
   const agentService = new AgentService(modelManager, registry);
 
+  // Skill Registry
+  const skillRegistry = new SkillRegistry();
+  await skillRegistry.discover(path.join(__dirname, '..', '..', 'skills'));
+
   // Register routes
   const router = express.Router();
   registerHealthRoute(router);
@@ -104,7 +109,7 @@ export async function createApp(): Promise<{ app: express.Express; viteServer?: 
   registerDataRoutes(router, dataManager);
   registerContextRoutes(router, contextManager);
   registerTemplateTestHistoryRoutes(router, templateTestHistoryManager);
-  registerAgentRoutes(router, agentService);
+  registerAgentRoutes(router, agentService, skillRegistry);
 
   app.use('/api/v1', authMiddleware, router);
 
