@@ -24,9 +24,7 @@ export class LangChainChatModel extends BaseChatModel {
   }
 
   _llmType(): string {
-    // Called by BaseChatModel constructor before our fields are initialized
-    if (!this.config) return 'custom';
-    return this.config.providerId || 'custom';
+    return this.config?.providerId || 'custom';
   }
 
   async _generate(
