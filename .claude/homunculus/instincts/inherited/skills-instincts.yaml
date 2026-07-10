@@ -1,0 +1,627 @@
+# Instincts generated from https://github.com/kunge2013/skills
+# Generated: 2026-07-10T18:55:09.007Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: skills-commit-conventional
+trigger: "when writing a commit message"
+confidence: 0.85
+domain: git
+source: repo-analysis
+source_repo: https://github.com/kunge2013/skills
+---
+
+# Skills Commit Conventional
+
+## Action
+
+Use conventional commit format with prefixes: feat, fix, test
+
+## Evidence
+
+- 15 commits analyzed
+- Detected conventional commit pattern
+- Examples: feat: add agent types and LangChain dependencies, fix: address Task 1 review findings
+
+---
+id: skills-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/kunge2013/skills
+---
+
+# Skills Commit Length
+
+## Action
+
+Write moderate-length commit messages (~66 characters)
+
+## Evidence
+
+- Average commit message length: 66 chars
+- Based on 15 commits
+
+---
+id: skills-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/kunge2013/skills
+---
+
+# Skills Naming Files
+
+## Action
+
+Use camelCase naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: camelCase
+
+---
+id: skills-import-relative
+trigger: "when importing modules"
+confidence: 0.75
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/kunge2013/skills
+---
+
+# Skills Import Relative
+
+## Action
+
+Use relative imports for project files
+
+## Evidence
+
+- Import analysis shows relative import pattern
+- Example: import { x } from '../lib/x'
+
+---
+id: skills-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/kunge2013/skills
+---
+
+# Skills Export Style
+
+## Action
+
+Prefer named exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: named
+
+---
+id: skills-arch-type-based
+trigger: "when adding new code"
+confidence: 0.8
+domain: architecture
+source: repo-analysis
+source_repo: https://github.com/kunge2013/skills
+---
+
+# Skills Arch Type Based
+
+## Action
+
+Place code in the appropriate type folder (components/, services/, utils/, etc.)
+
+## Evidence
+
+- Type-based module organization detected
+- Folders: server
+
+---
+id: skills-test-separate
+trigger: "when writing tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/kunge2013/skills
+---
+
+# Skills Test Separate
+
+## Action
+
+Place tests in the tests/ or __tests__/ directory, mirroring src structure
+
+## Evidence
+
+- Separate test directory pattern detected
+- Tests live in dedicated test folders
+
+---
+id: skills-test-framework
+trigger: "when writing tests"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/kunge2013/skills
+---
+
+# Skills Test Framework
+
+## Action
+
+Use vitest as the test framework
+
+## Evidence
+
+- Test framework detected: vitest
+- File pattern: *.test.ts
+
+---
+id: skills-test-naming
+trigger: "when creating a test file"
+confidence: 0.85
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/kunge2013/skills
+---
+
+# Skills Test Naming
+
+## Action
+
+Name test files using the pattern: *.test.ts
+
+## Evidence
+
+- File pattern: *.test.ts
+- Consistent across test files
+
+---
+id: skills-test-types
+trigger: "when planning tests for a feature"
+confidence: 0.7
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/kunge2013/skills
+---
+
+# Skills Test Types
+
+## Action
+
+Write unit, integration tests to match project standards
+
+## Evidence
+
+- Test types detected: unit, integration
+- Coverage config: no
+
+---
+id: skills-workflow-feature-development
+trigger: "when implementing a new feature"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/kunge2013/skills
+---
+
+# Skills Workflow Feature Development
+
+## Action
+
+Follow the feature-development workflow:
+1. Add feature implementation
+2. Add tests for feature
+3. Update documentation
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~26x per month
+- Files: src/server/services/agent/*, tests/server/services/agent/*, web/src/types/*
+
+---
+id: skills-workflow-feature-implementation-with-tests
+trigger: "when doing feature implementation with tests"
+confidence: 0.7
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/kunge2013/skills
+---
+
+# Skills Workflow Feature Implementation With Tests
+
+## Action
+
+Follow the feature-implementation-with-tests workflow:
+1. Create or update implementation file(s) in src/server/services/agent/ or src/server/routes/
+2. Create or update corresponding test file(s) in tests/server/services/agent/ or tests/server/routes/
+3. Update or add type definitions if needed
+4. Update package.json if new dependencies are required
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~4x per month
+- Files: src/server/services/agent/*.ts, src/server/routes/*.ts, tests/server/services/agent/*.test.ts
+
+---
+id: skills-workflow-test-coverage-and-bugfix-cycle
+trigger: "when doing test coverage and bugfix cycle"
+confidence: 0.65
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/kunge2013/skills
+---
+
+# Skills Workflow Test Coverage And Bugfix Cycle
+
+## Action
+
+Follow the test-coverage-and-bugfix-cycle workflow:
+1. Add or update test files to cover missing scenarios or edge cases
+2. Fix bugs or refactor code in implementation files based on findings
+3. Update related type definitions or configuration if necessary
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~3x per month
+- Files: tests/server/services/agent/*.test.ts, src/server/services/agent/*.ts, web/src/components/agent/*.vue
+
+---
+id: skills-workflow-api-endpoint-addition-with-wiring-and-tests
+trigger: "when doing api endpoint addition with wiring and tests"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/kunge2013/skills
+---
+
+# Skills Workflow Api Endpoint Addition With Wiring And Tests
+
+## Action
+
+Follow the api-endpoint-addition-with-wiring-and-tests workflow:
+1. Create or update route handler file in src/server/routes/
+2. Wire new route into server entry point (src/server/index.ts)
+3. Add or update corresponding test file in tests/server/routes/
+4. Update package.json if dependencies change
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: src/server/routes/*.ts, src/server/index.ts, tests/server/routes/*.test.ts
+
+---
+id: skills-workflow-frontend-component-feature-with-i18n
+trigger: "when doing frontend component feature with i18n"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/kunge2013/skills
+---
+
+# Skills Workflow Frontend Component Feature With I18n
+
+## Action
+
+Follow the frontend-component-feature-with-i18n workflow:
+1. Create or update Vue component(s) in web/src/components/agent/
+2. Update or add i18n strings in web/src/i18n/locales/en.json and zh-CN.json
+3. Wire components into parent views (e.g., App.vue, NavSidebar.vue)
+4. Update related composables or stores if needed
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: web/src/components/agent/*.vue, web/src/i18n/locales/en.json, web/src/i18n/locales/zh-CN.json
+
+---
+id: skills-instinct-file-naming-camelCase
+trigger: "When creating or renaming files in the codebase"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: kunge2013/skills
+---
+
+# Skills Instinct File Naming CamelCase
+
+## Action
+
+Use camelCase for file names
+
+## Evidence
+
+- Pattern in namingConventions.files
+- Observed in src/server/services/agent/types.ts
+
+---
+id: skills-instinct-function-naming-camelCase
+trigger: "When defining new functions"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: kunge2013/skills
+---
+
+# Skills Instinct Function Naming CamelCase
+
+## Action
+
+Name functions using camelCase
+
+## Evidence
+
+- Pattern in namingConventions.functions
+- Consistent with TypeScript code style
+
+---
+id: skills-instinct-class-naming-PascalCase
+trigger: "When declaring new classes"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: kunge2013/skills
+---
+
+# Skills Instinct Class Naming PascalCase
+
+## Action
+
+Use PascalCase for class names
+
+## Evidence
+
+- Pattern in namingConventions.classes
+
+---
+id: skills-instinct-constant-naming-SCREAMING_SNAKE_CASE
+trigger: "When defining constants"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: kunge2013/skills
+---
+
+# Skills Instinct Constant Naming SCREAMING_SNAKE_CASE
+
+## Action
+
+Use SCREAMING_SNAKE_CASE for constant names
+
+## Evidence
+
+- Pattern in namingConventions.constants
+
+---
+id: skills-instinct-import-relative
+trigger: "When importing modules within the project"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: kunge2013/skills
+---
+
+# Skills Instinct Import Relative
+
+## Action
+
+Use relative import paths
+
+## Evidence
+
+- Pattern in importStyle
+- Observed in src/server/services/agent/types.ts
+
+---
+id: skills-instinct-export-named
+trigger: "When exporting modules or functions"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: kunge2013/skills
+---
+
+# Skills Instinct Export Named
+
+## Action
+
+Use named exports
+
+## Evidence
+
+- Pattern in exportStyle
+
+---
+id: skills-instinct-test-file-pattern
+trigger: "When creating test files"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: kunge2013/skills
+---
+
+# Skills Instinct Test File Pattern
+
+## Action
+
+Name test files with the .test.ts suffix
+
+## Evidence
+
+- Pattern in testing.filePattern
+- Observed in tests/server/services/agent/types.test.ts
+
+---
+id: skills-instinct-test-framework-vitest
+trigger: "When writing or configuring tests"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: kunge2013/skills
+---
+
+# Skills Instinct Test Framework Vitest
+
+## Action
+
+Use vitest as the testing framework
+
+## Evidence
+
+- Pattern in testing.framework
+- Presence of vitest.config.js
+
+---
+id: skills-instinct-test-types-unit-integration
+trigger: "When designing tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: kunge2013/skills
+---
+
+# Skills Instinct Test Types Unit Integration
+
+## Action
+
+Write both unit and integration tests as appropriate
+
+## Evidence
+
+- Pattern in testing.testTypes
+- Examples in tests/server/services/agent/
+
+---
+id: skills-instinct-commit-conventional-format
+trigger: "When writing commit messages"
+confidence: 0.9
+domain: git
+source: repo-analysis
+source_repo: kunge2013/skills
+---
+
+# Skills Instinct Commit Conventional Format
+
+## Action
+
+Use conventional commit prefixes: feat, fix, test
+
+## Evidence
+
+- Pattern in commits.prefixes
+- Seen in commit: 'feat: add agent types and LangChain dependencies'
+
+---
+id: skills-instinct-commit-length-60-70
+trigger: "When composing commit messages"
+confidence: 0.7
+domain: git
+source: repo-analysis
+source_repo: kunge2013/skills
+---
+
+# Skills Instinct Commit Length 60 70
+
+## Action
+
+Keep commit messages concise, around 60-70 characters
+
+## Evidence
+
+- Pattern in commits.averageLength
+- Examples in commit history
+
+---
+id: skills-instinct-feature-implementation-with-tests
+trigger: "When adding a new service, registry, or core feature that requires both implementation and tests"
+confidence: 0.95
+domain: workflow
+source: repo-analysis
+source_repo: kunge2013/skills
+---
+
+# Skills Instinct Feature Implementation With Tests
+
+## Action
+
+Create or update implementation files in src/server/services/agent/ or src/server/routes/, add corresponding test files in tests/server/services/agent/ or tests/server/routes/, update type definitions if needed, and update package.json if new dependencies are required
+
+## Evidence
+
+- Workflow: feature-implementation-with-tests
+- Commit and file patterns in example
+
+---
+id: skills-instinct-test-coverage-and-bugfix-cycle
+trigger: "When needing to improve reliability by adding tests or fixing issues found in review"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: kunge2013/skills
+---
+
+# Skills Instinct Test Coverage And Bugfix Cycle
+
+## Action
+
+Add or update test files to cover missing scenarios or edge cases, fix bugs or refactor code in implementation files based on findings, update related type definitions or configuration if necessary
+
+## Evidence
+
+- Workflow: test-coverage-and-bugfix-cycle
+- Commit and file patterns in example
+
+---
+id: skills-instinct-api-endpoint-addition
+trigger: "When exposing new backend functionality via HTTP routes"
+confidence: 0.88
+domain: workflow
+source: repo-analysis
+source_repo: kunge2013/skills
+---
+
+# Skills Instinct Api Endpoint Addition
+
+## Action
+
+Create or update route handler file in src/server/routes/, wire new route into src/server/index.ts, add or update corresponding test file in tests/server/routes/, update package.json if dependencies change
+
+## Evidence
+
+- Workflow: api-endpoint-addition-with-wiring-and-tests
+- Commit and file patterns in example
+
+---
+id: skills-instinct-frontend-component-feature-i18n
+trigger: "When adding or modifying frontend features that require new components and i18n support"
+confidence: 0.87
+domain: workflow
+source: repo-analysis
+source_repo: kunge2013/skills
+---
+
+# Skills Instinct Frontend Component Feature I18n
+
+## Action
+
+Create or update Vue component(s) in web/src/components/agent/, update or add i18n strings in web/src/i18n/locales/en.json and zh-CN.json, wire components into parent views, update related composables or stores if needed
+
+## Evidence
+
+- Workflow: frontend-component-feature-with-i18n
+- Commit and file patterns in example
+
