@@ -205,7 +205,7 @@ Execute the step: ${step.title}. ${step.description}`;
         updatedAt: new Date().toISOString(),
       };
       this.plans.set(updatedPlan.id, updatedPlan);
-      throw new Error(message);
+      throw error instanceof Error ? error : new Error(message);
     }
   }
 
