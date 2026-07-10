@@ -108,21 +108,45 @@ interface RunStepRequest {
 }
 ```
 
+## LangChainChatModel Bridge (key implementation detail)
+
+```typescript
+class LangChainChatModel extends BaseChatModel {
+  // LangChain 调用入口
+  async _generate(messages: BaseMessage[], options): Promise<ChatGeneration> {
+    const langChainMessages = this._convertToLangChainFormat(messages);
+    const response = await this.adapter.sendMessage(langChainMessages, this.config);
+    return this._convertFromLangChainFormat(response);
+  }
+
+  // DeepAgents 流式调用（AsyncGenerator）
+  async *_streamResponseChunks(messages, options): AsyncGenerator<ChatGenerationChunk> {
+    const stream = new ReadableStream({
+      start: (controller) => {
+        this.adapter.sendMessageStream(messages, this.config, {
+          onToken: (token) => controller.enqueue(token),
+          onComplete: () => controller.close(),
+          onError: (err) => controller.error(err),
+        });
+      }
+    });
+    for await (const chunk of stream) {
+      yield ChatGenerationChunk.from({ text: chunk });
+    }
+  }
+}
+```
+
+## Step Execution: User Question Flow
+
+1. 子代理执行中需要向用户提问 → SSE 发送 `step_ask_user { stepId, question }`
+2. 前端弹出 `UserQuestionDialog`，step 状态变为 `waiting_user`
+3. 用户输入回复 → 调用 `POST /agent/step/:id/run` 带上 `{ userAnswers: [{ question, answer }] }`
+4. 子代理收到用户回答，继续执行
+
 ## SSE Event Format
 
-| Event | Payload | 用途 |
-|-------|---------|------|
-| `plan_token` | `{ token }` | 流式计划文本 |
-| `plan_complete` | `{ plan: Plan }` | 完整计划 JSON |
-| `plan_error` | `{ error }` | 计划生成失败 |
-| `step_start` | `{ stepId, skillName, title }` | 步骤开始 |
-| `step_token` | `{ stepId, token }` | 流式输出文本 |
-| `step_reasoning` | `{ stepId, reasoning }` | 推理过程 |
-| `step_tool_use` | `{ stepId, toolName, args }` | 工具调用 |
-| `step_tool_result` | `{ stepId, toolName, result }` | 工具结果 |
-| `step_ask_user` | `{ stepId, question }` | 暂停等回复 |
-| `step_complete` | `{ stepId, output }` | 步骤完成 |
-| `step_error` | `{ stepId, error }` | 步骤失败 |
+（SSE 事件类型见上方表格）
 
 ## Frontend Component Structure
 
