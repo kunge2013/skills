@@ -23,12 +23,14 @@ export function registerAgentRoutes(router: Router, agentService: AgentService) 
 
       res.end();
     } catch (error: unknown) {
-      res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      });
       const message = error instanceof Error ? error.message : String(error);
+      if (!res.headersSent) {
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        });
+      }
       res.write(`data: ${JSON.stringify({ type: 'plan_error', payload: { error: message } })}\n\n`);
       res.end();
     }
@@ -62,12 +64,14 @@ export function registerAgentRoutes(router: Router, agentService: AgentService) 
 
       res.end();
     } catch (error: unknown) {
-      res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      });
       const message = error instanceof Error ? error.message : String(error);
+      if (!res.headersSent) {
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        });
+      }
       res.write(`data: ${JSON.stringify({ type: 'step_error', stepId: req.params.id, payload: { error: message } })}\n\n`);
       res.end();
     }
