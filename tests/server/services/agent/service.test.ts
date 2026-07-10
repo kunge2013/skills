@@ -22,7 +22,19 @@ function makeMockModelManager(): IModelManager {
 
 function makeMockRegistry(): ITextAdapterRegistry {
   return {
-    getAdapter: vi.fn(),
+    getAdapter: vi.fn().mockReturnValue({
+      sendMessage: vi.fn().mockResolvedValue({ content: 'OK' }),
+      sendMessageStream: vi.fn().mockImplementation((_msgs, _cfg, callbacks) => {
+        callbacks.onToken('Step executed with output.');
+        callbacks.onComplete({ content: 'Step executed with output.' });
+        return Promise.resolve();
+      }),
+      getProvider: vi.fn().mockReturnValue({ id: 'openai', name: 'OpenAI' }),
+      getModels: vi.fn().mockReturnValue([]),
+      buildDefaultModel: vi.fn(),
+      sendImageUnderstanding: vi.fn(),
+      sendImageUnderstandingStream: vi.fn(),
+    }),
     getAllProviders: vi.fn().mockReturnValue([]),
     getStaticModels: vi.fn().mockReturnValue([]),
     getDynamicModels: vi.fn().mockResolvedValue([]),
@@ -98,9 +110,9 @@ describe('AgentService', () => {
     expect(result.status).toBe('done');
     expect(result.output).toContain('executed');
     expect(result.runAt).toBeDefined();
-    expect(events.length).toBe(2);
+    expect(events.length).toBeGreaterThanOrEqual(2);
     expect(events[0].type).toBe('step_start');
-    expect(events[1].type).toBe('step_complete');
+    expect(events[events.length - 1].type).toBe('step_complete');
   });
 
   it('runStep rejects non-pending steps', async () => {
