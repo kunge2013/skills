@@ -24,6 +24,7 @@ export interface Step {
   error?: string;
   userQuestions?: UserQuestion[];
   runAt?: string;
+  updatedAt?: string;
 }
 
 export type StepStatus = 'pending' | 'running' | 'done' | 'failed' | 'waiting_user';
