@@ -27,6 +27,8 @@ import { registerImageModelRoutes } from './routes/image-models';
 import { registerDataRoutes } from './routes/data';
 import { registerContextRoutes } from './routes/contexts';
 import { registerTemplateTestHistoryRoutes } from './routes/template-test-history';
+import { registerAgentRoutes } from './routes/agent';
+import { AgentService } from './services/agent/service';
 import { FileStorageProvider } from './storage/file-provider';
 import { ModelManager } from './services/model/manager';
 import { TemplateManager, createDefaultTemplates } from './services/template/manager';
@@ -83,6 +85,9 @@ export async function createApp(): Promise<{ app: express.Express; viteServer?: 
   // Prompt Service
   const promptService = new PromptService(llmService, templateManager, historyManager, templateTestHistoryManager);
 
+  // Agent Service
+  const agentService = new AgentService(modelManager, registry);
+
   // Register routes
   const router = express.Router();
   registerHealthRoute(router);
@@ -99,6 +104,7 @@ export async function createApp(): Promise<{ app: express.Express; viteServer?: 
   registerDataRoutes(router, dataManager);
   registerContextRoutes(router, contextManager);
   registerTemplateTestHistoryRoutes(router, templateTestHistoryManager);
+  registerAgentRoutes(router, agentService);
 
   app.use('/api/v1', authMiddleware, router);
 
