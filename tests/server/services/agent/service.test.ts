@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AgentService } from '../../../../src/server/services/agent/service';
 import { SkillRegistry } from '../../../../src/server/services/agent/registry';
-import type { ITextAdapterRegistry, TextModelConfig } from '../../../../src/server/services/llm/types';
+import type { ITextAdapterRegistry, TextModelConfig, TextProvider, TextModel } from '../../../../src/server/services/llm/types';
 import type { IModelManager } from '../../../../src/server/services/llm/service';
 import type { AgentSSEEvent } from '../../../../src/server/services/agent/types';
 
@@ -11,8 +11,8 @@ function makeMockModelManager(): IModelManager {
       id: 'test',
       name: 'Test',
       enabled: true,
-      providerMeta: {},
-      modelMeta: {},
+      providerMeta: { id: 'anthropic', name: 'Anthropic' } as Partial<TextProvider> as TextProvider,
+      modelMeta: { id: 'test', name: 'Test', providerId: 'anthropic', capabilities: { supportsTools: true }, parameterDefinitions: [] } as Partial<TextModel> as TextModel,
       connectionConfig: { apiKey: 'test' },
     } as TextModelConfig),
     getAllModels: vi.fn().mockResolvedValue([]),

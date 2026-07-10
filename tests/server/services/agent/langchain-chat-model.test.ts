@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { LangChainChatModel } from '../../../../src/server/services/agent/langchain-chat-model';
-import type { ITextProviderAdapter, TextModelConfig, LLMResponse, StreamHandlers, Message } from '../../../../src/server/services/llm/types';
+import type { ITextProviderAdapter, TextModelConfig, LLMResponse, StreamHandlers, Message, TextProvider, TextModel } from '../../../../src/server/services/llm/types';
 import { HumanMessage, AIMessage } from '@langchain/core/messages';
 
 describe('LangChainChatModel', () => {
@@ -24,8 +24,8 @@ describe('LangChainChatModel', () => {
       name: 'Test Model',
       enabled: true,
       providerId: 'anthropic',
-      providerMeta: { id: 'anthropic', name: 'Anthropic' } as any,
-      modelMeta: {} as any,
+      providerMeta: { id: 'anthropic', name: 'Anthropic' } as Partial<TextProvider> as TextProvider,
+      modelMeta: { id: 'test-model', name: 'Test Model', providerId: 'anthropic', capabilities: { supportsTools: true }, parameterDefinitions: [] } as Partial<TextModel> as TextModel,
       connectionConfig: { apiKey: 'test-key' },
     };
 
