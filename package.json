@@ -44,10 +44,10 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
     "@google/genai": "^1.52.0",
-    "@langchain/anthropic": "^0.3.16",
+    "@langchain/anthropic": "^0.1.0",
     "@langchain/core": "^0.3.58",
     "@langchain/langgraph": "^0.2.74",
-    "@langchain/openai": "^0.4.4",
+    "@langchain/openai": "^0.3.0",
     "cors": "^2.8.6",
     "dotenv": "^16.6.1",
     "express": "^5.2.1",

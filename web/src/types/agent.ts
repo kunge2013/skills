@@ -40,7 +40,7 @@ export interface AgentSSEHandlers {
   onStepStart: (data: { stepId: string; skillName: string; title: string }) => void;
   onStepToken: (data: { stepId: string; token: string }) => void;
   onStepReasoning: (data: { stepId: string; reasoning: string }) => void;
-  onStepToolUse: (data: { stepId: string; toolName: string; args: object }) => void;
+  onStepToolUse: (data: { stepId: string; toolName: string; args: Record<string, unknown> }) => void;
   onStepToolResult: (data: { stepId: string; toolName: string; result: string }) => void;
   onStepAskUser: (data: { stepId: string; question: string }) => void;
   onStepComplete: (data: { stepId: string; output: string }) => void;
