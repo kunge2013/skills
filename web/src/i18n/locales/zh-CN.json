@@ -12,7 +12,8 @@
     "langZh": "中文",
     "skillManagement": "技能管理",
     "promptOptimizer": "提示词优化器",
-    "promptMaintenance": "提示词维护"
+    "promptMaintenance": "提示词维护",
+    "agent": "Agent"
   },
   "list": {
     "searchPlaceholder": "搜索技能...",
@@ -234,5 +235,20 @@
     "variables": "变量",
     "output": "输出",
     "confirmDelete": "确定删除该记录?"
+  },
+  "agent": {
+    "inputPlaceholder": "描述您想做什么...",
+    "selectProvider": "选择供应商",
+    "modelKey": "模型标识",
+    "generatePlan": "生成计划",
+    "planTitle": "执行计划",
+    "running": "运行中...",
+    "done": "完成",
+    "failed": "失败",
+    "waitingUser": "等待您",
+    "questionTitle": "Agent 问题",
+    "answerPlaceholder": "您的回答...",
+    "cancel": "取消",
+    "submit": "提交"
   }
 }

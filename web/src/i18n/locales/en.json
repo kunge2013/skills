@@ -12,7 +12,8 @@
     "langZh": "中文",
     "skillManagement": "Skill Management",
     "promptOptimizer": "Prompt Optimizer",
-    "promptMaintenance": "Prompt Maintenance"
+    "promptMaintenance": "Prompt Maintenance",
+    "agent": "Agent"
   },
   "list": {
     "searchPlaceholder": "Search skills...",
@@ -234,5 +235,20 @@
     "variables": "Variables",
     "output": "Output",
     "confirmDelete": "Are you sure you want to delete this record?"
+  },
+  "agent": {
+    "inputPlaceholder": "Describe what you want to do...",
+    "selectProvider": "Select Provider",
+    "modelKey": "Model Key",
+    "generatePlan": "Generate Plan",
+    "planTitle": "Execution Plan",
+    "running": "Running...",
+    "done": "Done",
+    "failed": "Failed",
+    "waitingUser": "Waiting for you",
+    "questionTitle": "Agent Question",
+    "answerPlaceholder": "Your answer...",
+    "cancel": "Cancel",
+    "submit": "Submit"
   }
 }

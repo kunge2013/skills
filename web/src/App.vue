@@ -8,6 +8,7 @@
       <template v-else-if="store.currentView === 'manage'"><SkillManage /></template>
       <template v-else-if="store.currentView === 'prompt'"><PromptView /></template>
       <template v-else-if="store.currentView === 'promptMaintenance'"><PromptMaintenanceView /></template>
+      <template v-else-if="store.currentView === 'agent'"><AgentPanel /></template>
       <template v-else><StatusBar /></template>
     </div>
   </div>
@@ -21,6 +22,7 @@ import SkillEditor from './components/SkillEditor.vue'
 import SkillManage from './components/SkillManage.vue'
 import PromptView from './components/prompt/PromptView.vue'
 import PromptMaintenanceView from './components/prompt/PromptMaintenanceView.vue'
+import AgentPanel from './components/agent/AgentPanel.vue'
 import { useSkillsStore } from './stores/skills'
 import { usePromptStore } from './stores/prompt'
 const store = useSkillsStore()
