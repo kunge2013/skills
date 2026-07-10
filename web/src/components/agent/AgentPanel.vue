@@ -1,6 +1,6 @@
 <template>
   <div class="agent-panel">
-    <h2 class="panel-title">Agent</h2>
+    <h2 class="panel-title">{{ $t('agent.title') }}</h2>
     <AgentInput
       :skills="skills"
       :loading="loading"

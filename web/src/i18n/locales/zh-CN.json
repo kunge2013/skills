@@ -237,11 +237,13 @@
     "confirmDelete": "确定删除该记录?"
   },
   "agent": {
+    "title": "Agent",
     "inputPlaceholder": "描述您想做什么...",
     "selectProvider": "选择供应商",
     "modelKey": "模型标识",
     "generatePlan": "生成计划",
     "planTitle": "执行计划",
+    "pending": "待执行",
     "running": "运行中...",
     "done": "完成",
     "failed": "失败",
