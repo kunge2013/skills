@@ -1,3 +1,5 @@
+import type { TextModelConfig } from '../llm/types';
+
 export interface Plan {
   id: string;
   userMessage: string;
