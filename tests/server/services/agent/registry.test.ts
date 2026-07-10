@@ -18,24 +18,50 @@ describe('SkillRegistry', () => {
   });
 
   it('discovers SKILL.md files in a directory', async () => {
-    const testDir = path.join(process.cwd(), 'plugins');
-    await registry.discover(testDir);
+    const subdir = path.join(tempDir, 'test-skill');
+    fs.mkdirSync(subdir);
+    fs.writeFileSync(path.join(subdir, 'SKILL.md'), [
+      '---',
+      'name: test-skill',
+      'description: A test skill',
+      '---',
+      'Some content',
+    ].join('\n'));
+
+    await registry.discover(tempDir);
     const skills = registry.getAll();
     expect(skills.length).toBeGreaterThan(0);
   });
 
   it('parses frontmatter name and description', async () => {
-    const testDir = path.join(process.cwd(), 'plugins');
-    await registry.discover(testDir);
+    const subdir = path.join(tempDir, 'named-skill');
+    fs.mkdirSync(subdir);
+    fs.writeFileSync(path.join(subdir, 'SKILL.md'), [
+      '---',
+      'name: named-skill',
+      'description: A named skill',
+      '---',
+      'Some content',
+    ].join('\n'));
+
+    await registry.discover(tempDir);
     const skills = registry.getAll();
-    // At least one skill should have a name from frontmatter
     const named = skills.filter(s => s.name.length > 0);
     expect(named.length).toBeGreaterThan(0);
   });
 
   it('excludes YAML frontmatter from content', async () => {
-    const testDir = path.join(process.cwd(), 'plugins');
-    await registry.discover(testDir);
+    const subdir = path.join(tempDir, 'frontmatter-skill');
+    fs.mkdirSync(subdir);
+    fs.writeFileSync(path.join(subdir, 'SKILL.md'), [
+      '---',
+      'name: frontmatter-skill',
+      'description: A skill with frontmatter',
+      '---',
+      'Some content',
+    ].join('\n'));
+
+    await registry.discover(tempDir);
     const skills = registry.getAll();
     for (const skill of skills) {
       expect(skill.content).not.toMatch(/^---\n/);
@@ -43,14 +69,25 @@ describe('SkillRegistry', () => {
   });
 
   it('get returns undefined for unknown skill', async () => {
-    const testDir = path.join(process.cwd(), 'plugins');
-    await registry.discover(testDir);
+    const subdir = path.join(tempDir, 'empty-dir');
+    fs.mkdirSync(subdir);
+
+    await registry.discover(tempDir);
     expect(registry.get('nonexistent-skill')).toBeUndefined();
   });
 
   it('get returns skill by name', async () => {
-    const testDir = path.join(process.cwd(), 'plugins');
-    await registry.discover(testDir);
+    const subdir = path.join(tempDir, 'lookup-skill');
+    fs.mkdirSync(subdir);
+    fs.writeFileSync(path.join(subdir, 'SKILL.md'), [
+      '---',
+      'name: lookup-skill',
+      'description: A skill for lookup',
+      '---',
+      'Some content',
+    ].join('\n'));
+
+    await registry.discover(tempDir);
     const skills = registry.getAll();
     expect(skills.length).toBeGreaterThan(0);
     const found = registry.get(skills[0].name);

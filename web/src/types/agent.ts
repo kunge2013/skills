@@ -20,6 +20,7 @@ export interface Step {
   error?: string;
   userQuestions?: UserQuestion[];
   runAt?: string;
+  updatedAt?: string;
 }
 
 export interface UserQuestion {

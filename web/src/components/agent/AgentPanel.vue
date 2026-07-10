@@ -2,7 +2,6 @@
   <div class="agent-panel">
     <h2 class="panel-title">{{ $t('agent.title') }}</h2>
     <AgentInput
-      :skills="skills"
       :loading="loading"
       @create-plan="handleCreatePlan"
     />
@@ -25,7 +24,7 @@ import PlanView from './PlanView.vue'
 import type { Step } from '../../types/agent'
 
 const {
-  currentPlan, planTextBuffer, skills, loading, error, stepOutputs,
+  currentPlan, planTextBuffer, loading, error, stepOutputs,
   loadSkills, createPlan, runStep,
 } = useAgent()
 

@@ -9,7 +9,7 @@
     />
     <div class="input-controls">
       <el-select v-model="providerId" :placeholder="$t('agent.selectProvider')" size="small" class="provider-select">
-        <el-option v-for="skill in skills" :key="skill.name" :label="skill.name" :value="skill.name" />
+        <el-option v-for="p in PROVIDERS" :key="p.id" :label="$t(p.nameKey)" :value="p.id" />
       </el-select>
       <el-input v-model="modelKey" :placeholder="$t('agent.modelKey')" size="small" class="model-input" />
       <el-button type="primary" :loading="loading" @click="submit">{{ $t('agent.generatePlan') }}</el-button>
@@ -19,10 +19,16 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import type { SkillInfo } from '../../types/agent'
 
-defineProps<{ skills: SkillInfo[]; loading: boolean }>()
+defineProps<{ loading: boolean }>()
 const emit = defineEmits<{ 'create-plan': [data: { message: string; providerId: string; modelKey: string }] }>()
+
+const PROVIDERS = [
+  { id: 'anthropic', nameKey: 'agent.providerAnthropic' },
+  { id: 'openai', nameKey: 'agent.providerOpenai' },
+  { id: 'gemini', nameKey: 'agent.providerGemini' },
+  { id: 'deepseek', nameKey: 'agent.providerDeepseek' },
+] as const
 
 const message = ref('')
 const providerId = ref('anthropic')
