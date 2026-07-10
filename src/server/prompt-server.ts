@@ -26,6 +26,9 @@ import { registerContextRoutes } from './routes/contexts';
 import { registerTemplateTestHistoryRoutes } from './routes/template-test-history';
 import { registerImageRoutes } from './routes/images';
 import { registerImageModelRoutes } from './routes/image-models';
+import { registerAgentRoutes } from './routes/agent';
+import { SkillRegistry } from './services/agent/registry';
+import { AgentService } from './services/agent/service';
 import { FileStorageProvider } from './storage/file-provider';
 import { ModelManager } from './services/model/manager';
 import { TemplateManager, createDefaultTemplates } from './services/template/manager';
@@ -63,6 +66,7 @@ export async function createApp(): Promise<express.Express> {
   // Initialize storage
   const dataDir = getEnvVar('DATA_DIR') || path.join(process.cwd(), 'data');
   const storage = new FileStorageProvider(dataDir);
+  const projectRoot = path.join(__dirname, '..', '..');
 
   // Initialize services
   const modelManager = new ModelManager(storage);
@@ -89,6 +93,11 @@ export async function createApp(): Promise<express.Express> {
   // Prompt Service
   const promptService = new PromptService(llmService, templateManager, historyManager, templateTestHistoryManager);
 
+  // Agent Service
+  const skillRegistry = new SkillRegistry();
+  await skillRegistry.discover(path.join(projectRoot, '.claude', 'skills'));
+  const agentService = new AgentService(modelManager, registry, skillRegistry);
+
   // Register routes
   const router = express.Router();
   registerHealthRoute(router);
@@ -105,11 +114,20 @@ export async function createApp(): Promise<express.Express> {
   registerTemplateTestHistoryRoutes(router, templateTestHistoryManager);
   registerImageRoutes(router, imageService);
   registerImageModelRoutes(router, imageModelManager);
+  registerAgentRoutes(router, agentService, skillRegistry);
 
   app.use('/api/v1', authMiddleware, router);
 
+  // Root-level health check (for proxy from web.js)
+  app.get('/health', (_req, res) => {
+    res.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+    });
+  });
+
   // Serve frontend static files (production mode only)
-  const projectRoot = path.join(__dirname, '..', '..');
   const webDist = path.join(projectRoot, 'web', 'dist');
   if (fs.existsSync(path.join(webDist, 'index.html'))) {
     app.use(express.static(webDist));

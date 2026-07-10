@@ -519,20 +519,33 @@ function createServer(port) {
         res.end(JSON.stringify({ success: false, error: 'Prompt server not ready' }));
         return;
       }
+      const targetPath = parsed.path;
       const options = {
         hostname: '127.0.0.1',
         port: promptServerPort,
-        path: parsed.path,
+        path: targetPath,
         method: req.method,
         headers: { ...req.headers, host: '127.0.0.1' },
       };
-      const proxyReq = http.request(options, (proxyRes) => {
-        res.writeHead(proxyRes.statusCode, proxyRes.headers);
+      const proxyReq = http.request(options);
+      proxyReq.on('response', (proxyRes) => {
+        const headers = { ...proxyRes.headers };
+        delete headers['transfer-encoding'];
+        if (headers['content-type']?.includes('text/event-stream')) {
+          headers['Content-Type'] = 'text/event-stream';
+          headers['Cache-Control'] = 'no-cache';
+          headers['Connection'] = 'keep-alive';
+        }
+        res.writeHead(proxyRes.statusCode, headers);
         proxyRes.pipe(res, { end: true });
       });
       proxyReq.on('error', (err) => {
-        res.writeHead(502, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: false, error: `Proxy error: ${err.message}` }));
+        if (!res.headersSent) {
+          res.writeHead(502, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: `Proxy error: ${err.message}` }));
+        } else {
+          res.end();
+        }
       });
       if (req.method === 'POST' || req.method === 'PUT') {
         req.pipe(proxyReq, { end: true });
@@ -595,7 +608,15 @@ function createServer(port) {
 
     // Serve static files from renderer/dist
     let filePath = path.join(rendererDist, pathname === '/' ? 'index.html' : pathname);
-    if (!fs.existsSync(filePath)) { res.writeHead(404); res.end('Not found'); return; }
+    if (!fs.existsSync(filePath)) {
+      // SPA fallback: serve index.html for client-side routes (no file extension)
+      const ext = path.extname(pathname);
+      if (!ext) {
+        filePath = path.join(rendererDist, 'index.html');
+      } else {
+        res.writeHead(404); res.end('Not found'); return;
+      }
+    }
 
     const mimeTypes = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };
     const ext = path.extname(filePath);
