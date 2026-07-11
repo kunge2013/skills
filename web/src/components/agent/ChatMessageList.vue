@@ -4,8 +4,11 @@
 
     <!-- Thinking indicator when loading and no messages yet -->
     <div v-if="isLoading && messages.length === 0" class="chat-thinking">
-      <el-icon class="is-loading"><Loading /></el-icon>
-      <span>{{ $t('agent.thinking') }}</span>
+      <div class="thinking-dots">
+        <span class="thinking-dot" />
+        <span class="thinking-dot" />
+        <span class="thinking-dot" />
+      </div>
     </div>
 
     <!-- Anchor for IntersectionObserver to detect bottom -->
@@ -15,7 +18,6 @@
 
 <script setup lang="ts">
 import { ref, nextTick, watch, onMounted, onUnmounted } from 'vue'
-import { Loading } from '@element-plus/icons-vue'
 import ChatMessageBubble from './ChatMessageBubble.vue'
 import type { ChatMessage } from '../../types/chat'
 
@@ -63,5 +65,26 @@ watch(() => [props.messages.length, isUserAtBottom.value], () => {
 .chat-message-list::-webkit-scrollbar-thumb { border-radius: 999px; background: #d1d5db; }
 .chat-message-list::-webkit-scrollbar-track { background: transparent; }
 .chat-thinking { display: flex; align-items: center; gap: 6px; color: #6b7280; padding: 8px 0; }
+.thinking-dots {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  background: #f5f5f5;
+  border-radius: 16px;
+}
+.thinking-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6b7280;
+  animation: thinking-pulse 1.5s ease-in-out infinite;
+}
+.thinking-dot:nth-child(2) { animation-delay: 0.5s; }
+.thinking-dot:nth-child(3) { animation-delay: 1s; }
+@keyframes thinking-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
 .scroll-anchor { height: 1px; }
 </style>
