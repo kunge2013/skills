@@ -1,12 +1,12 @@
 export interface ToolCall {
   id: string;
-  toolName: string;
+  name: string;
   args: Record<string, unknown>;
-  result: string | null;
+  output: string | null;
   status: 'running' | 'complete' | 'error';
 }
 
-export type ChatMessageType = 'user' | 'agent' | 'plan' | 'tool_call' | 'error' | 'user_question';
+export type ChatMessageType = 'user' | 'agent' | 'tool_call' | 'error' | 'user_question';
 
 export interface ChatMessage {
   id: string;
@@ -14,9 +14,7 @@ export interface ChatMessage {
   content: string;
   timestamp: Date;
   reasoning?: string;
-  planId?: string;
   toolCalls?: ToolCall[];
-  stepId?: string;
   question?: string;
-  isStreaming?: boolean;  // true while tokens are still arriving
+  isStreaming?: boolean;
 }

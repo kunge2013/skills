@@ -1,7 +1,7 @@
 <template>
   <div class="tool-call-card">
     <div class="tool-call-header">
-      <span class="tool-call-name">{{ toolCall.toolName }}</span>
+      <span class="tool-call-name">{{ toolCall.name }}</span>
       <code v-if="toolCall.id" class="tool-call-id">{{ toolCall.id }}</code>
       <span class="tool-call-status" :class="toolCall.status">
         <span v-if="toolCall.status === 'running'" class="dot-running" />
@@ -23,9 +23,9 @@
       </table>
     </div>
     <code v-else class="tool-call-empty-args">{}</code>
-    <div v-if="toolCall.result !== null" class="tool-call-result">
+    <div v-if="toolCall.output !== null" class="tool-call-result">
       <div class="result-content" :class="{ truncated: isTruncated && !isExpanded }">
-        <code>{{ toolCall.result }}</code>
+        <code>{{ toolCall.output }}</code>
       </div>
       <button v-if="isTruncated" class="expand-btn" @click="isExpanded = !isExpanded">
         {{ isExpanded ? '▲' : '▼' }}
@@ -40,9 +40,9 @@ import { ref, computed } from 'vue'
 const props = defineProps<{
   toolCall: {
     id: string
-    toolName: string
+    name: string
     args: Record<string, unknown>
-    result: string | null
+    output: string | null
     status: 'running' | 'complete' | 'error'
   }
 }>()
@@ -50,8 +50,8 @@ const props = defineProps<{
 const isExpanded = ref(false)
 const hasArgs = computed(() => Object.keys(props.toolCall.args).length > 0)
 const isTruncated = computed(() =>
-  props.toolCall.result !== null &&
-  (props.toolCall.result!.length > 500 || props.toolCall.result!.split('\n').length > 4)
+  props.toolCall.output !== null &&
+  (props.toolCall.output!.length > 500 || props.toolCall.output!.split('\n').length > 4)
 )
 
 function isComplex(v: unknown): boolean {

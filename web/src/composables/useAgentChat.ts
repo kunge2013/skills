@@ -1,4 +1,4 @@
-import { ref, watch } from 'vue';
+import { ref } from 'vue';
 import { useAgent } from './useAgent';
 import type { ChatMessage } from '../types/chat';
 
@@ -50,10 +50,10 @@ export function useAgentChat() {
         if (msg) {
           msg.toolCalls = msg.toolCalls || [];
           msg.toolCalls.push({
-            id: `${data.stepId || ''}-${data.toolName}`,
-            toolName: data.toolName,
+            id: data.toolCallId,
+            name: data.name,
             args: data.args,
-            result: null,
+            output: null,
             status: 'running',
           });
         }
@@ -61,49 +61,32 @@ export function useAgentChat() {
       onToolResult: (data) => {
         const msg = messages.value.find(m => m.id === streamingMessageId.value);
         if (msg?.toolCalls) {
-          const call = msg.toolCalls.find(c => c.toolName === data.toolName);
+          const call = msg.toolCalls.find(c => c.id === data.toolCallId);
           if (call) {
-            call.result = data.result;
-            call.status = data.result ? 'complete' : 'error';
+            call.output = data.output;
+            call.status = data.output ? 'complete' : 'error';
           }
         }
       },
+      onComplete: () => {
+        const msg = messages.value.find(m => m.id === streamingMessageId.value);
+        if (msg) {
+          msg.isStreaming = false;
+        }
+        streamingMessageId.value = null;
+      },
+      onError: (err) => {
+        const msg = messages.value.find(m => m.id === streamingMessageId.value);
+        if (msg) {
+          msg.type = 'error';
+          msg.content = err;
+          msg.isStreaming = false;
+        }
+        streamingMessageId.value = null;
+      },
+      onAskUser: () => {},
     });
   }
-
-  // Watch plan completion → finalize streaming message
-  watch(() => agent.currentPlan.value, (plan) => {
-    if (plan && plan.status !== 'planning' && streamingMessageId.value) {
-      const msg = messages.value.find(m => m.id === streamingMessageId.value);
-      if (msg) {
-        msg.isStreaming = false;
-        if (!msg.content && plan.responseText) {
-          msg.content = plan.responseText;
-        }
-      }
-      streamingMessageId.value = null;
-    }
-  });
-
-  // Watch errors → finalize or create error message
-  watch(() => agent.error.value, (err) => {
-    if (err && streamingMessageId.value) {
-      const msg = messages.value.find(m => m.id === streamingMessageId.value);
-      if (msg) {
-        msg.type = 'error';
-        msg.content = err;
-        msg.isStreaming = false;
-      }
-      streamingMessageId.value = null;
-    } else if (err) {
-      messages.value.push({
-        id: nextId(),
-        type: 'error',
-        content: err,
-        timestamp: new Date(),
-      });
-    }
-  });
 
   const hideToolCalls = ref(false);
 

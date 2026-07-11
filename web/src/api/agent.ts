@@ -13,9 +13,15 @@ export function createAgentApi() {
       return new Promise((resolve, reject) => {
         const bus = createAgentEventBus();
 
-        bus.handlers.onPlanToken = handlers.onPlanToken;
-        bus.handlers.onPlanComplete = (plan) => { handlers.onPlanComplete(plan); resolve(); };
-        bus.handlers.onPlanError = (error) => { handlers.onPlanError(error); reject(new Error(error)); };
+        bus.handlers.onComplete = (data) => { handlers.onComplete(data); resolve(); };
+        bus.handlers.onError = (error) => { handlers.onError(error); reject(new Error(error)); };
+
+        // Wire pass-through handlers
+        bus.handlers.onContent = handlers.onContent;
+        bus.handlers.onReasoning = handlers.onReasoning;
+        bus.handlers.onToolUse = handlers.onToolUse;
+        bus.handlers.onToolResult = handlers.onToolResult;
+        bus.handlers.onAskUser = handlers.onAskUser;
 
         fetch(`${API_BASE}/agent/plan`, {
           method: 'POST',
@@ -24,14 +30,14 @@ export function createAgentApi() {
         })
           .then(async (res) => {
             if (!res.ok) {
-              handlers.onPlanError(`HTTP ${res.status}`);
+              handlers.onError(`HTTP ${res.status}`);
               reject(new Error(`HTTP ${res.status}`));
               return;
             }
 
             const reader = res.body?.getReader();
             if (!reader) {
-              handlers.onPlanError('No response body');
+              handlers.onError('No response body');
               reject(new Error('No response body'));
               return;
             }
@@ -51,7 +57,7 @@ export function createAgentApi() {
             }
           })
           .catch((err) => {
-            handlers.onPlanError(err.message);
+            handlers.onError(err.message);
             reject(err);
           });
       });
@@ -66,9 +72,21 @@ export function createAgentApi() {
     runStep(
       stepId: string,
       userAnswers?: UserQuestion[],
-      handlers?: Partial<AgentSSEHandlers>,
+      handlers?: {
+        onContent?: (data: { token: string }) => void;
+        onComplete?: (data: { content: string }) => void;
+        onError?: (data: { error: string }) => void;
+        onAskUser?: (data: { question: string }) => void;
+      },
     ): Promise<void> {
       return new Promise((resolve, reject) => {
+        const bus = createAgentEventBus();
+
+        bus.handlers.onComplete = () => { handlers?.onComplete?.({ content: '' }); resolve(); };
+        bus.handlers.onError = (error) => { handlers?.onError?.({ error }); reject(new Error(error)); };
+        bus.handlers.onContent = (token) => { handlers?.onContent?.({ token }); };
+        bus.handlers.onAskUser = (data) => { handlers?.onAskUser?.(data); };
+
         fetch(`${API_BASE}/agent/step/${stepId}/run`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -93,30 +111,7 @@ export function createAgentApi() {
               const lines = buffer.split('\n');
               buffer = lines.pop() || '';
               for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                  try {
-                    const data = JSON.parse(line.slice(6));
-                    if (data.type === 'step_complete') {
-                      handlers?.onStepComplete?.(data.payload);
-                      resolve();
-                      return;
-                    }
-                    if (data.type === 'step_error') {
-                      handlers?.onStepError?.(data.payload);
-                      reject(new Error(data.payload.error));
-                      return;
-                    }
-                    if (data.type === 'step_ask_user') {
-                      handlers?.onStepAskUser?.(data.payload);
-                    }
-                    if (data.type === 'step_token') {
-                      handlers?.onStepToken?.(data.payload);
-                    }
-                    if (data.type === 'step_reasoning') {
-                      handlers?.onStepReasoning?.(data.payload);
-                    }
-                  } catch { /* skip malformed */ }
-                }
+                bus.parseSSELine(line);
               }
             }
           })

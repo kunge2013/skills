@@ -17,8 +17,8 @@ const stepReasoning = shallowRef(new Map<string, string>());
 export interface StreamingCallbacks {
   onToken: (token: string) => void;
   onReasoning: (reasoning: string) => void;
-  onToolUse: (data: { stepId: string; toolName: string; args: Record<string, unknown> }) => void;
-  onToolResult: (data: { toolName: string; result: string }) => void;
+  onToolUse: (data: { toolCallId: string; name: string; args: Record<string, unknown> }) => void;
+  onToolResult: (data: { toolCallId: string; output: string }) => void;
 }
 
 export function useAgent() {
@@ -42,55 +42,49 @@ export function useAgent() {
 
     try {
       await api.createPlan(userMessage, modelKey, {
-        onPlanToken: (token) => {
+        onContent: (token) => {
           planTextBuffer.value += token;
           callbacks?.onToken(token);
         },
-        onPlanReasoning: (reasoning) => {
+        onReasoning: (reasoning) => {
           planReasoningBuffer.value += reasoning;
           callbacks?.onReasoning(reasoning);
         },
-        onPlanComplete: (plan) => {
-          currentPlan.value = plan;
+        onComplete: (data) => {
+          if (data.plan) {
+            currentPlan.value = data.plan;
+          }
           planTextBuffer.value = '';
           loading.value = false;
         },
-        onPlanError: (err) => {
+        onError: (err) => {
           error.value = err;
           loading.value = false;
         },
-        onStepStart: () => {},
-        onStepToken: () => {},
-        onStepReasoning: (data) => {
-          stepReasoning.value.set(data.stepId, data.reasoning);
-          stepReasoning.value = stepReasoning.value;
-        },
-        onStepToolUse: (data) => {
+        onToolUse: (data) => {
           callbacks?.onToolUse(data);
-          const calls = stepToolCalls.value.get(data.stepId) ?? [];
+          const calls = stepToolCalls.value.get(data.toolCallId) ?? [];
           calls.push({
-            id: `${data.stepId}-${data.toolName}`,
-            toolName: data.toolName,
+            id: data.toolCallId,
+            name: data.name,
             args: data.args,
-            result: null,
+            output: null,
             status: 'running',
           });
-          stepToolCalls.value.set(data.stepId, calls);
+          stepToolCalls.value.set(data.toolCallId, calls);
           stepToolCalls.value = stepToolCalls.value;
         },
-        onStepToolResult: (data) => {
-          callbacks?.onToolResult({ toolName: data.toolName, result: data.result });
-          const calls = stepToolCalls.value.get(data.stepId) ?? [];
-          const call = calls.find(c => c.toolName === data.toolName);
-          if (call) {
-            call.result = data.result;
-            call.status = data.result ? 'complete' : 'error';
+        onToolResult: (data) => {
+          callbacks?.onToolResult(data);
+          const calls = stepToolCalls.value.get(data.toolCallId) ?? [];
+          if (calls.length > 0) {
+            const call = calls[calls.length - 1];
+            call.output = data.output;
+            call.status = data.output ? 'complete' : 'error';
           }
           stepToolCalls.value = stepToolCalls.value;
         },
-        onStepAskUser: () => {},
-        onStepComplete: () => {},
-        onStepError: () => {},
+        onAskUser: () => {},
       });
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Plan creation failed';
@@ -105,28 +99,25 @@ export function useAgent() {
 
     try {
       await api.runStep(step.id, undefined, {
-        onStepToken: (data) => {
+        onContent: (data) => {
           const cur = outputs.get(step.id) || '';
           outputs.set(step.id, cur + data.token);
           stepOutputs.value = outputs;
           step.status = 'running';
         },
-        onStepComplete: (data) => {
+        onComplete: (data) => {
           step.output = data.output;
           step.status = 'done';
         },
-        onStepError: (data) => {
+        onError: (data) => {
           step.error = data.error;
           step.status = 'failed';
         },
-        onStepAskUser: (data) => {
+        onAskUser: (data) => {
           step.userQuestions = step.userQuestions || [];
           step.userQuestions.push({ question: data.question, answer: null });
           step.status = 'waiting_user';
         },
-        onStepReasoning: () => {},
-        onStepToolUse: () => {},
-        onStepToolResult: () => {},
       });
     } catch (e: unknown) {
       step.error = e instanceof Error ? e.message : 'Step failed';
