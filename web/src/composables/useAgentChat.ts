@@ -1,7 +1,6 @@
 import { ref, watch } from 'vue';
 import { useAgent } from './useAgent';
 import type { ChatMessage } from '../types/chat';
-import type { Step } from '../types/agent';
 
 let messageCounter = 0;
 
@@ -13,7 +12,7 @@ export function useAgentChat() {
   const agent = useAgent();
   const messages = ref<ChatMessage[]>([]);
 
-  async function sendMessage(text: string, providerId: string, modelKey: string) {
+  async function sendMessage(text: string, modelKey: string) {
     if (!text.trim() || agent.loading.value) return;
     messages.value.push({
       id: nextId(),
@@ -21,7 +20,7 @@ export function useAgentChat() {
       content: text,
       timestamp: new Date(),
     });
-    await agent.createPlan(text, providerId, modelKey);
+    await agent.createPlan(text, modelKey);
   }
 
   // Watch plan completion → append agent message with plan reference
@@ -49,23 +48,9 @@ export function useAgentChat() {
     }
   });
 
-  async function runStep(step: Step) {
-    const outputs = agent.stepOutputs.value;
-    outputs.set(step.id, '');
-    agent.stepOutputs.value = outputs;
-
-    try {
-      await agent.runStep(step);
-    } catch (e: unknown) {
-      step.error = e instanceof Error ? e.message : 'Step failed';
-      step.status = 'failed';
-    }
-  }
-
   return {
     messages,
     sendMessage,
-    runStep,
     isLoading: agent.loading,
     error: agent.error,
     currentPlan: agent.currentPlan,

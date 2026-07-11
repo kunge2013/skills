@@ -7,8 +7,8 @@ export function registerAgentRoutes(router: Router, agentService: AgentService, 
   router.post('/agent/plan', async (req: Request, res: Response) => {
     try {
       const { userMessage, providerId, modelKey } = req.body;
-      if (!userMessage || !providerId || !modelKey) {
-        res.status(400).json({ success: false, error: { message: 'userMessage, providerId, and modelKey are required' } });
+      if (!userMessage || !modelKey) {
+        res.status(400).json({ success: false, error: { message: 'userMessage and modelKey are required' } });
         return;
       }
 

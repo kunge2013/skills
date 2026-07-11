@@ -23,7 +23,7 @@ export function useAgent() {
     }
   }
 
-  async function createPlan(userMessage: string, providerId: string, modelKey: string) {
+  async function createPlan(userMessage: string, modelKey: string) {
     loading.value = true;
     error.value = null;
     planTextBuffer.value = '';
@@ -32,7 +32,7 @@ export function useAgent() {
     stepReasoning.value = new Map();
 
     try {
-      await api.createPlan(userMessage, providerId, modelKey, {
+      await api.createPlan(userMessage, modelKey, {
         onPlanToken: (token) => {
           planTextBuffer.value += token;
         },

@@ -7,7 +7,6 @@ export function createAgentApi() {
   return {
     createPlan(
       userMessage: string,
-      providerId: string,
       modelKey: string,
       handlers: AgentSSEHandlers,
     ): Promise<void> {
@@ -21,7 +20,7 @@ export function createAgentApi() {
         fetch(`${API_BASE}/agent/plan`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userMessage, providerId, modelKey }),
+          body: JSON.stringify({ userMessage, modelKey }),
         })
           .then(async (res) => {
             if (!res.ok) {

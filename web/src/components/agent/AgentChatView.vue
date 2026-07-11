@@ -1,6 +1,6 @@
 <template>
   <div class="agent-chat-view">
-    <ChatMessageList :messages="messages" :is-loading="isLoading" @run-step="handleRunStep" />
+    <ChatMessageList :messages="messages" :is-loading="isLoading" />
     <ChatInputBar :loading="isLoading" @send="handleSend" />
   </div>
 </template>
@@ -9,16 +9,11 @@
 import { useAgentChat } from '../../composables/useAgentChat'
 import ChatMessageList from './ChatMessageList.vue'
 import ChatInputBar from './ChatInputBar.vue'
-import type { Step } from '../../types/agent'
 
-const { messages, sendMessage, isLoading, runStep } = useAgentChat()
+const { messages, sendMessage, isLoading } = useAgentChat()
 
-function handleSend(text: string, providerId: string, modelKey: string) {
-  sendMessage(text, providerId, modelKey)
-}
-
-function handleRunStep(step: Step) {
-  runStep(step)
+function handleSend(text: string, modelKey: string) {
+  sendMessage(text, modelKey)
 }
 </script>
 

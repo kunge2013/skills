@@ -1,6 +1,6 @@
 <template>
   <div ref="container" class="chat-message-list">
-    <ChatMessageBubble v-for="msg in messages" :key="msg.id" :message="msg" @run-step="$emit('run-step', $event)" />
+    <ChatMessageBubble v-for="msg in messages" :key="msg.id" :message="msg" />
     <div v-if="isLoading" class="chat-thinking">
       <el-icon class="is-loading"><Loading /></el-icon>
       <span>{{ $t('agent.thinking') }}</span>
@@ -14,13 +14,13 @@ import { ref, nextTick, watch } from 'vue'
 import { Loading } from '@element-plus/icons-vue'
 import ChatMessageBubble from './ChatMessageBubble.vue'
 import type { ChatMessage } from '../../types/chat'
-import type { Step } from '../../types/agent'
 
-const props = defineProps<{ messages: ChatMessage[]; isLoading: boolean }>()
-defineEmits<{ 'run-step': [step: Step] }>()
+defineProps<{ messages: ChatMessage[]; isLoading: boolean }>()
 
 const container = ref<HTMLElement>()
 const bottomEl = ref<HTMLElement>()
+
+const props = defineProps<{ messages: ChatMessage[]; isLoading: boolean }>()
 
 watch(() => props.messages.length, () => {
   nextTick(() => bottomEl.value?.scrollIntoView({ behavior: 'smooth' }))

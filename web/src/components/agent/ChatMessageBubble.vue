@@ -1,7 +1,7 @@
 <template>
   <div class="chat-message" :class="`chat-message--${message.type}`">
     <div class="chat-bubble" :class="`chat-bubble--${message.type}`">
-      <AgentMessageContent v-if="isAgentType" :message="message" @run-step="$emit('run-step', $event)" />
+      <AgentMessageContent v-if="isAgentType" :message="message" />
       <p v-else class="user-text">{{ message.content }}</p>
     </div>
     <div class="chat-timestamp">{{ formatTime(message.timestamp) }}</div>
@@ -12,10 +12,8 @@
 import { computed } from 'vue'
 import AgentMessageContent from './AgentMessageContent.vue'
 import type { ChatMessage } from '../../types/chat'
-import type { Step } from '../../types/agent'
 
 const props = defineProps<{ message: ChatMessage }>()
-defineEmits<{ 'run-step': [step: Step] }>()
 
 const isAgentType = computed(() =>
   ['agent', 'plan', 'tool_call', 'error', 'user_question'].includes(props.message.type)

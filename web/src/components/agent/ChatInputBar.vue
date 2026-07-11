@@ -8,20 +8,10 @@
       @keydown.ctrl.enter="send"
     />
     <div class="input-actions">
-      <el-popover trigger="click" placement="top-start" width="280">
-        <template #reference>
-          <el-button :icon="Setting" circle />
-        </template>
-        <div class="chat-settings">
-          <label>{{ $t('agent.selectProvider') }}</label>
-          <el-select v-model="providerId" style="width: 100%">
-            <el-option v-for="p in PROVIDERS" :key="p.id" :label="$t(p.nameKey)" :value="p.id" />
-          </el-select>
-          <label>{{ $t('agent.modelKey') }}</label>
-          <el-input v-model="modelKey" :placeholder="$t('agent.modelKey')" />
-        </div>
-      </el-popover>
-      <el-button type="primary" :loading="loading" @click="send">
+      <el-select v-model="modelKey" :placeholder="$t('agent.selectModel')" size="small" class="model-select">
+        <el-option v-for="m in enabledModels" :key="m.id" :label="m.name" :value="m.id" />
+      </el-select>
+      <el-button type="primary" :loading="loading" :disabled="!canSend" @click="send">
         {{ $t('agent.send') }}
       </el-button>
     </div>
@@ -29,35 +19,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Setting } from '@element-plus/icons-vue'
+import { ref, computed } from 'vue'
+import { usePromptStore } from '../../stores/prompt'
+import type { TextModelConfig } from '../../types/prompt'
 
-const emit = defineEmits<{
-  send: [text: string, providerId: string, modelKey: string]
-}>()
+const emit = defineEmits<{ send: [text: string, modelKey: string] }>()
 defineProps<{ loading: boolean }>()
 
-const PROVIDERS = [
-  { id: 'anthropic', nameKey: 'agent.providerAnthropic' },
-  { id: 'openai', nameKey: 'agent.providerOpenai' },
-  { id: 'gemini', nameKey: 'agent.providerGemini' },
-  { id: 'deepseek', nameKey: 'agent.providerDeepseek' },
-] as const
+const promptStore = usePromptStore()
+const enabledModels = computed<TextModelConfig[]>(() => promptStore.enabledModels)
 
 const message = ref('')
-const providerId = ref('anthropic')
 const modelKey = ref('')
 
+if (!modelKey.value && enabledModels.value.length > 0) {
+  modelKey.value = enabledModels.value[0].id
+}
+
+const canSend = computed(() => !!message.value.trim() && !!modelKey.value)
+
 function send() {
-  if (!message.value || !providerId.value || !modelKey.value) return
-  emit('send', message.value, providerId.value, modelKey.value)
+  if (!canSend.value) return
+  emit('send', message.value.trim(), modelKey.value)
   message.value = ''
 }
 </script>
 
 <style scoped>
 .chat-input-bar { padding: 12px 0; border-top: 1px solid var(--el-border-color-light); }
-.input-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
-.chat-settings { display: flex; flex-direction: column; gap: 8px; }
-.chat-settings label { font-size: 12px; color: var(--el-text-color-secondary); }
+.input-actions { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+.model-select { width: 200px; }
 </style>
