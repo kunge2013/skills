@@ -271,6 +271,9 @@
     "toolResult": "Result",
     "toolRunning": "Running...",
     "toolComplete": "Complete",
-    "toolFailed": "Failed"
+    "toolFailed": "Failed",
+    "copy": "Copy",
+    "regenerate": "Regenerate",
+    "edit": "Edit"
   }
 }

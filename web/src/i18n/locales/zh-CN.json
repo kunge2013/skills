@@ -271,6 +271,9 @@
     "toolResult": "结果",
     "toolRunning": "执行中...",
     "toolComplete": "已完成",
-    "toolFailed": "失败"
+    "toolFailed": "失败",
+    "copy": "复制",
+    "regenerate": "重新生成",
+    "edit": "编辑"
   }
 }
