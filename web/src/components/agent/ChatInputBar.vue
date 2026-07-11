@@ -1,19 +1,29 @@
 <template>
   <div class="chat-input-bar">
-    <el-input
-      v-model="message"
-      type="textarea"
-      :rows="2"
-      :placeholder="$t('agent.chatInputPlaceholder')"
-      @keydown.ctrl.enter="send"
-    />
-    <div class="input-actions">
-      <el-select v-model="modelKey" :placeholder="$t('agent.selectModel')" size="small" class="model-select">
-        <el-option v-for="m in enabledModels" :key="m.id" :label="m.name" :value="m.id" />
-      </el-select>
-      <el-button type="primary" :loading="loading" :disabled="!canSend" @click="send">
-        {{ $t('agent.send') }}
-      </el-button>
+    <div class="input-wrapper">
+      <el-input
+        v-model="message"
+        type="textarea"
+        :rows="2"
+        :placeholder="$t('agent.chatInputPlaceholder')"
+        :autosize="{ minRows: 2, maxRows: 6 }"
+        @keydown.ctrl.enter="send"
+        resize="none"
+      />
+      <div class="input-actions">
+        <el-select v-model="modelKey" :placeholder="$t('agent.selectModel')" size="small" class="model-select" clearable>
+          <el-option v-for="m in enabledModels" :key="m.id" :label="m.name" :value="m.id" />
+        </el-select>
+        <el-button
+          type="primary"
+          :loading="loading"
+          :disabled="!canSend"
+          size="default"
+          @click="send"
+        >
+          {{ $t('agent.send') }}
+        </el-button>
+      </div>
     </div>
   </div>
 </template>
@@ -32,7 +42,6 @@ const enabledModels = computed<TextModelConfig[]>(() => promptStore.enabledModel
 const message = ref('')
 const modelKey = ref('')
 
-// Auto-select first enabled model when models become available
 watch(enabledModels, (models) => {
   if (!modelKey.value && models.length > 0) {
     modelKey.value = models[0].id
@@ -49,7 +58,32 @@ function send() {
 </script>
 
 <style scoped>
-.chat-input-bar { padding: 12px 0; border-top: 1px solid var(--el-border-color-light); }
-.input-actions { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
-.model-select { width: 200px; }
+.chat-input-bar {
+  padding: 12px 0;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+.input-wrapper {
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.input-wrapper:focus-within {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.input-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.model-select { width: 180px; }
 </style>
