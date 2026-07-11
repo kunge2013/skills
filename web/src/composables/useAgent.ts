@@ -14,6 +14,13 @@ const stepOutputs = shallowRef(new Map<string, string>());
 const stepToolCalls = shallowRef(new Map<string, ToolCall[]>());
 const stepReasoning = shallowRef(new Map<string, string>());
 
+export interface StreamingCallbacks {
+  onToken: (token: string) => void;
+  onReasoning: (reasoning: string) => void;
+  onToolUse: (data: { stepId: string; toolName: string; args: Record<string, unknown> }) => void;
+  onToolResult: (data: { toolName: string; result: string }) => void;
+}
+
 export function useAgent() {
   async function loadSkills() {
     try {
@@ -24,7 +31,7 @@ export function useAgent() {
     }
   }
 
-  async function createPlan(userMessage: string, modelKey: string) {
+  async function createPlan(userMessage: string, modelKey: string, callbacks?: StreamingCallbacks) {
     loading.value = true;
     error.value = null;
     planTextBuffer.value = '';
@@ -37,9 +44,11 @@ export function useAgent() {
       await api.createPlan(userMessage, modelKey, {
         onPlanToken: (token) => {
           planTextBuffer.value += token;
+          callbacks?.onToken(token);
         },
         onPlanReasoning: (reasoning) => {
           planReasoningBuffer.value += reasoning;
+          callbacks?.onReasoning(reasoning);
         },
         onPlanComplete: (plan) => {
           currentPlan.value = plan;
@@ -57,6 +66,7 @@ export function useAgent() {
           stepReasoning.value = stepReasoning.value;
         },
         onStepToolUse: (data) => {
+          callbacks?.onToolUse(data);
           const calls = stepToolCalls.value.get(data.stepId) ?? [];
           calls.push({
             id: `${data.stepId}-${data.toolName}`,
@@ -69,6 +79,7 @@ export function useAgent() {
           stepToolCalls.value = stepToolCalls.value;
         },
         onStepToolResult: (data) => {
+          callbacks?.onToolResult({ toolName: data.toolName, result: data.result });
           const calls = stepToolCalls.value.get(data.stepId) ?? [];
           const call = calls.find(c => c.toolName === data.toolName);
           if (call) {
