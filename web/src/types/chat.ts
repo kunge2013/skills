@@ -13,7 +13,7 @@ export interface ChatMessage {
   type: ChatMessageType;
   content: string;
   timestamp: Date;
-  // agent-specific fields
+  reasoning?: string;
   planId?: string;
   toolCalls?: ToolCall[];
   stepId?: string;

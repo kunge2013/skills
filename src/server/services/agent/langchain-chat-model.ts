@@ -42,15 +42,22 @@ export class LangChainChatModel extends BaseChatModel {
     messages: BaseMessage[],
     _options?: Record<string, unknown>
   ): AsyncGenerator<ChatGenerationChunk> {
-    const converted = this.convertMessages(messages);
     const chunks: string[] = [];
+    const reasoningChunks: string[] = [];
 
     await new Promise<void>((resolve, reject) => {
-      this.adapter.sendMessageStream(converted, this.config, {
+      this.adapter.sendMessageStream(convertedMessages(messages), this.config, {
         onToken: (token: string) => {
           chunks.push(token);
         },
-        onComplete: (_response?: LLMResponse) => {
+        onReasoningToken: (token: string) => {
+          reasoningChunks.push(token);
+        },
+        onComplete: (response?: LLMResponse) => {
+          // If reasoning wasn't streamed, check for it in the complete response
+          if (reasoningChunks.length === 0 && response?.reasoning) {
+            reasoningChunks.push(response.reasoning);
+          }
           resolve();
         },
         onError: (err: Error) => {
@@ -60,7 +67,14 @@ export class LangChainChatModel extends BaseChatModel {
     });
 
     const fullText = chunks.join('');
-    yield new ChatGenerationChunk({ text: fullText, message: new AIMessageChunk({ content: fullText }) });
+    const fullReasoning = reasoningChunks.join('');
+    const additional: Record<string, unknown> = {};
+    if (fullReasoning) additional.reasoning = fullReasoning;
+
+    yield new ChatGenerationChunk({
+      text: fullText,
+      message: new AIMessageChunk({ content: fullText, additional_kwargs: additional }),
+    });
   }
 
   _combineLLMOutput?(): Record<string, unknown> | undefined {
@@ -94,4 +108,11 @@ export class LangChainChatModel extends BaseChatModel {
     const message = new AIMessage(response.content);
     return { message, text: response.content };
   }
+}
+
+function convertedMessages(messages: BaseMessage[]): Message[] {
+  return messages.map((msg) => ({
+    role: msg._getType() === 'human' ? 'user' : msg._getType() === 'ai' ? 'assistant' : msg._getType() === 'system' ? 'system' : 'user',
+    content: typeof msg.content === 'string' ? msg.content : '',
+  }));
 }

@@ -2,6 +2,7 @@ import type { AgentSSEHandlers, Plan } from '../types/agent';
 
 type EventBusCallbacks = {
   onPlanToken: (token: string) => void;
+  onPlanReasoning: (token: string) => void;
   onPlanComplete: (plan: Plan) => void;
   onPlanError: (error: string) => void;
   onStepStart: (data: { stepId: string; skillName: string; title: string }) => void;
@@ -40,6 +41,9 @@ export function createAgentEventBus(): {
         case 'plan_token':
           handlers.onPlanToken(data.payload.token);
           break;
+        case 'plan_reasoning':
+          handlers.onPlanReasoning(data.reasoning);
+          break;
         case 'plan_complete':
           handlers.onPlanComplete(data.payload.plan);
           break;
@@ -76,6 +80,7 @@ export function createAgentEventBus(): {
 
   const handlers: AgentSSEHandlers = {
     onPlanToken: (t) => emit('onPlanToken', t),
+    onPlanReasoning: (t) => emit('onPlanReasoning', t),
     onPlanComplete: (p) => emit('onPlanComplete', p),
     onPlanError: (e) => emit('onPlanError', e),
     onStepStart: (d) => emit('onStepStart', d),

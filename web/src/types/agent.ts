@@ -2,6 +2,7 @@ export interface Plan {
   id: string;
   userMessage: string;
   responseText: string;
+  reasoning: string;
   providerId: string;
   modelKey: string;
   status: 'planning' | 'pending_review' | 'executing' | 'done' | 'failed';
@@ -45,6 +46,7 @@ export interface ToolCall {
 
 export interface AgentSSEHandlers {
   onPlanToken: (token: string) => void;
+  onPlanReasoning: (token: string) => void;
   onPlanComplete: (plan: Plan) => void;
   onPlanError: (error: string) => void;
   onStepStart: (data: { stepId: string; skillName: string; title: string }) => void;

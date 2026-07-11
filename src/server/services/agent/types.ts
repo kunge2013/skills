@@ -4,6 +4,7 @@ export interface Plan {
   id: string;
   userMessage: string;
   responseText: string;
+  reasoning: string;
   providerId: string;
   modelKey: string;
   status: PlanStatus;
@@ -63,10 +64,12 @@ export interface AgentSSEEvent {
   type: AgentSSEEventType;
   stepId?: string;
   payload: Record<string, unknown>;
+  reasoning?: string;
 }
 
 export type AgentSSEEventType =
   | 'plan_token'
+  | 'plan_reasoning'
   | 'plan_complete'
   | 'plan_error'
   | 'step_start'

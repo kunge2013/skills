@@ -48,11 +48,27 @@ If the user's request matches a skill, use that skill's expertise. Otherwise ans
 
     const messages = [new SystemMessage(systemPrompt), new HumanMessage(req.userMessage)];
     let fullText = '';
+    let reasoningText = '';
     try {
       for await (const chunk of chatModel._streamResponseChunks(messages, {})) {
         const token = chunk.text || '';
         fullText += token;
         onEvent({ type: 'plan_token', payload: { token } });
+        if (chunk.message.additional_kwargs?.reasoning) {
+          const r = chunk.message.additional_kwargs.reasoning as string;
+          reasoningText += r;
+          onEvent({ type: 'plan_reasoning', reasoning: r });
+        }
+      }
+
+      // Check if the complete response included reasoning that wasn't streamed separately
+      // (some adapters include it in the final response)
+      if (!reasoningText && fullText.includes('<thinking>')) {
+        const match = fullText.match(/<thinking>([\s\S]*?)<\/thinking>/);
+        if (match) {
+          reasoningText = match[1].trim();
+          fullText = fullText.replace(/<thinking>[\s\S]*?<\/thinking>\s*/, '').trim();
+        }
       }
 
       let steps: Array<{ skillName: string; title: string; description: string }>;
@@ -79,6 +95,7 @@ If the user's request matches a skill, use that skill's expertise. Otherwise ans
         id: planId,
         userMessage: req.userMessage,
         responseText: fullText,
+        reasoning: reasoningText,
         providerId: req.providerId || '',
         modelKey: req.modelKey,
         status: 'pending_review',

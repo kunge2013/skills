@@ -19,7 +19,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { usePromptStore } from '../../stores/prompt'
 import type { TextModelConfig } from '../../types/prompt'
 
@@ -32,9 +32,12 @@ const enabledModels = computed<TextModelConfig[]>(() => promptStore.enabledModel
 const message = ref('')
 const modelKey = ref('')
 
-if (!modelKey.value && enabledModels.value.length > 0) {
-  modelKey.value = enabledModels.value[0].id
-}
+// Auto-select first enabled model when models become available
+watch(enabledModels, (models) => {
+  if (!modelKey.value && models.length > 0) {
+    modelKey.value = models[0].id
+  }
+}, { immediate: true })
 
 const canSend = computed(() => !!message.value.trim() && !!modelKey.value)
 
