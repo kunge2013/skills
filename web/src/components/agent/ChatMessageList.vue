@@ -33,11 +33,14 @@ import type { ChatMessage } from '../../types/chat'
 
 const props = defineProps<{ messages: ChatMessage[]; isLoading: boolean; hideToolCalls?: boolean }>()
 
-const visibleMessages = computed(() =>
-  (props.hideToolCalls ?? false)
-    ? props.messages.filter(m => m.type !== 'tool_call')
-    : props.messages
-)
+const visibleMessages = computed(() => {
+  const msgs = props.messages
+  if (!props.hideToolCalls) return msgs
+  return msgs.map(m => ({
+    ...m,
+    toolCalls: m.type === 'agent' ? [] : m.toolCalls,
+  }))
+})
 
 const container = ref<HTMLElement>()
 const bottomAnchor = ref<HTMLElement>()
