@@ -30,6 +30,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { ElMessage } from 'element-plus'
 import AgentMessageContent from './AgentMessageContent.vue'
 import type { ChatMessage } from '../../types/chat'
 
@@ -52,8 +53,9 @@ function formatTime(d: Date) {
 async function copyMessage() {
   try {
     await navigator.clipboard.writeText(props.message.content)
+    ElMessage.success('已复制')
   } catch {
-    // Clipboard not available
+    ElMessage.error('复制失败')
   }
 }
 
