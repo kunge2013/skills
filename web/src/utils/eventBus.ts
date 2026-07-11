@@ -38,37 +38,37 @@ export function createAgentEventBus(): {
 
       switch (type) {
         case 'plan_token':
-          emit('onPlanToken', data.payload.token);
+          handlers.onPlanToken(data.payload.token);
           break;
         case 'plan_complete':
-          emit('onPlanComplete', data.payload.plan);
+          handlers.onPlanComplete(data.payload.plan);
           break;
         case 'plan_error':
-          emit('onPlanError', data.payload.error);
+          handlers.onPlanError(data.payload.error);
           break;
         case 'step_start':
-          emit('onStepStart', { stepId: data.stepId, ...data.payload });
+          handlers.onStepStart({ stepId: data.stepId, ...data.payload });
           break;
         case 'step_token':
-          emit('onStepToken', { stepId: data.stepId, token: data.payload.token });
+          handlers.onStepToken({ stepId: data.stepId, token: data.payload.token });
           break;
         case 'step_reasoning':
-          emit('onStepReasoning', { stepId: data.stepId, reasoning: data.payload.reasoning });
+          handlers.onStepReasoning({ stepId: data.stepId, reasoning: data.payload.reasoning });
           break;
         case 'step_tool_use':
-          emit('onStepToolUse', { stepId: data.stepId, ...data.payload });
+          handlers.onStepToolUse({ stepId: data.stepId, ...data.payload });
           break;
         case 'step_tool_result':
-          emit('onStepToolResult', { stepId: data.stepId, ...data.payload });
+          handlers.onStepToolResult({ stepId: data.stepId, ...data.payload });
           break;
         case 'step_ask_user':
-          emit('onStepAskUser', { stepId: data.stepId, question: data.payload.question });
+          handlers.onStepAskUser({ stepId: data.stepId, question: data.payload.question });
           break;
         case 'step_complete':
-          emit('onStepComplete', { stepId: data.stepId, output: data.payload.output });
+          handlers.onStepComplete({ stepId: data.stepId, output: data.payload.output });
           break;
         case 'step_error':
-          emit('onStepError', { stepId: data.stepId, error: data.payload.error });
+          handlers.onStepError({ stepId: data.stepId, error: data.payload.error });
           break;
       }
     } catch { /* skip malformed */ }
