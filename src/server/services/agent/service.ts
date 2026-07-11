@@ -57,7 +57,7 @@ If the user's request matches a skill, use that skill's expertise. Otherwise ans
         if (chunk.message.additional_kwargs?.reasoning) {
           const r = chunk.message.additional_kwargs.reasoning as string;
           reasoningText += r;
-          onEvent({ type: 'plan_reasoning', reasoning: r });
+          onEvent({ type: 'plan_reasoning', reasoning: r, payload: { reasoning: r } });
         }
       }
 
