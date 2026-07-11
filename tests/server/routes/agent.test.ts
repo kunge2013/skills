@@ -18,7 +18,7 @@ function makeMockAgentService(): AgentService {
         createdAt: '2026-07-10T00:00:00Z',
         updatedAt: '2026-07-10T00:00:00Z',
       };
-      onEvent({ type: 'plan_complete', payload: { plan } });
+      onEvent({ event: 'complete', data: { content: 'test response', plan } });
       return Promise.resolve(plan);
     }),
     getPlan: vi.fn().mockImplementation((id: string) => {
@@ -69,8 +69,8 @@ describe('Agent Routes', () => {
       .set('Content-Type', 'application/json')
       .send({ userMessage: 'test', providerId: 'anthropic', modelKey: 'test' });
     expect(res.status).toBe(200);
-    // SSE response is text, not JSON — check raw body contains plan data
-    expect(res.text).toContain('plan-1');
+    // SSE response: event: complete\ndata: {"content":"...","plan":{"id":"plan-1",...}}
+    expect(res.text).toContain('"id":"plan-1"');
   });
 
   it('POST /agent/plan returns 400 without userMessage', async () => {

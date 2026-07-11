@@ -111,8 +111,8 @@ describe('AgentService', () => {
     expect(result.output).toContain('executed');
     expect(result.runAt).toBeDefined();
     expect(events.length).toBeGreaterThanOrEqual(2);
-    expect(events[0].type).toBe('step_start');
-    expect(events[events.length - 1].type).toBe('step_complete');
+    expect(events[0].event).toBe('step_start');
+    expect(events[events.length - 1].event).toBe('complete');
   });
 
   it('runStep rejects non-pending steps', async () => {
@@ -137,9 +137,9 @@ describe('AgentService', () => {
     );
 
     expect(events.length).toBeGreaterThanOrEqual(2);
-    const types = events.map(e => e.type);
-    expect(types).toContain('plan_token');
-    expect(types).toContain('plan_complete');
+    const eventTypes = events.map(e => e.event);
+    expect(eventTypes).toContain('content');
+    expect(eventTypes).toContain('complete');
   });
 
   it('createPlan throws when model not found', async () => {
