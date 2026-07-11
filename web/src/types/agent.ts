@@ -34,6 +34,14 @@ export interface SkillInfo {
   filePath: string;
 }
 
+export interface ToolCall {
+  id: string;
+  toolName: string;
+  args: Record<string, unknown>;
+  result: string | null;
+  status: 'running' | 'complete' | 'error';
+}
+
 export interface AgentSSEHandlers {
   onPlanToken: (token: string) => void;
   onPlanComplete: (plan: Plan) => void;

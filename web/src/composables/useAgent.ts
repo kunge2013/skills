@@ -1,5 +1,5 @@
 import { ref, shallowRef } from 'vue';
-import type { Plan, Step, SkillInfo } from '../types/agent';
+import type { Plan, Step, SkillInfo, ToolCall } from '../types/agent';
 import { createAgentApi } from '../api/agent';
 
 const api = createAgentApi();
@@ -10,6 +10,8 @@ const skills = ref<SkillInfo[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const stepOutputs = shallowRef(new Map<string, string>());
+const stepToolCalls = shallowRef(new Map<string, ToolCall[]>());
+const stepReasoning = shallowRef(new Map<string, string>());
 
 export function useAgent() {
   async function loadSkills() {
@@ -26,6 +28,8 @@ export function useAgent() {
     error.value = null;
     planTextBuffer.value = '';
     currentPlan.value = null;
+    stepToolCalls.value = new Map();
+    stepReasoning.value = new Map();
 
     try {
       await api.createPlan(userMessage, providerId, modelKey, {
@@ -43,9 +47,31 @@ export function useAgent() {
         },
         onStepStart: () => {},
         onStepToken: () => {},
-        onStepReasoning: () => {},
-        onStepToolUse: () => {},
-        onStepToolResult: () => {},
+        onStepReasoning: (data) => {
+          stepReasoning.value.set(data.stepId, data.reasoning);
+          stepReasoning.value = stepReasoning.value;
+        },
+        onStepToolUse: (data) => {
+          const calls = stepToolCalls.value.get(data.stepId) ?? [];
+          calls.push({
+            id: `${data.stepId}-${data.toolName}`,
+            toolName: data.toolName,
+            args: data.args,
+            result: null,
+            status: 'running',
+          });
+          stepToolCalls.value.set(data.stepId, calls);
+          stepToolCalls.value = stepToolCalls.value;
+        },
+        onStepToolResult: (data) => {
+          const calls = stepToolCalls.value.get(data.stepId) ?? [];
+          const call = calls.find(c => c.toolName === data.toolName);
+          if (call) {
+            call.result = data.result;
+            call.status = data.result ? 'complete' : 'error';
+          }
+          stepToolCalls.value = stepToolCalls.value;
+        },
         onStepAskUser: () => {},
         onStepComplete: () => {},
         onStepError: () => {},
@@ -99,6 +125,8 @@ export function useAgent() {
     loading,
     error,
     stepOutputs,
+    stepToolCalls,
+    stepReasoning,
     loadSkills,
     createPlan,
     runStep,
