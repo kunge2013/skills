@@ -27,12 +27,14 @@ export function useAgentChat() {
   watch(() => agent.currentPlan.value, (plan) => {
     if (plan && plan.status !== 'planning') {
       const content = plan.responseText || plan.userMessage;
+      const reasoning = plan.reasoning || agent.planReasoningBuffer.value || undefined;
       messages.value.push({
         id: nextId(),
         type: 'plan',
         content,
         timestamp: new Date(),
         planId: plan.id,
+        reasoning: reasoning || undefined,
       });
     }
   });
@@ -58,5 +60,6 @@ export function useAgentChat() {
     stepOutputs: agent.stepOutputs,
     stepToolCalls: agent.stepToolCalls,
     planTextBuffer: agent.planTextBuffer,
+    planReasoningBuffer: agent.planReasoningBuffer,
   };
 }

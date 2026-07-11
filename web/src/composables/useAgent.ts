@@ -6,6 +6,7 @@ const api = createAgentApi();
 
 const currentPlan = ref<Plan | null>(null);
 const planTextBuffer = ref('');
+const planReasoningBuffer = ref('');
 const skills = ref<SkillInfo[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
@@ -27,6 +28,7 @@ export function useAgent() {
     loading.value = true;
     error.value = null;
     planTextBuffer.value = '';
+    planReasoningBuffer.value = '';
     currentPlan.value = null;
     stepToolCalls.value = new Map();
     stepReasoning.value = new Map();
@@ -35,6 +37,9 @@ export function useAgent() {
       await api.createPlan(userMessage, modelKey, {
         onPlanToken: (token) => {
           planTextBuffer.value += token;
+        },
+        onPlanReasoning: (reasoning) => {
+          planReasoningBuffer.value += reasoning;
         },
         onPlanComplete: (plan) => {
           currentPlan.value = plan;
@@ -121,6 +126,7 @@ export function useAgent() {
   return {
     currentPlan,
     planTextBuffer,
+    planReasoningBuffer,
     skills,
     loading,
     error,
