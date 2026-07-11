@@ -18,4 +18,5 @@ export interface ChatMessage {
   toolCalls?: ToolCall[];
   stepId?: string;
   question?: string;
+  isStreaming?: boolean;  // true while tokens are still arriving
 }
