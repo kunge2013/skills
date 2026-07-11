@@ -43,7 +43,13 @@ export function useAgentChat() {
       },
       onReasoning: (reasoning) => {
         const msg = messages.value.find(m => m.id === streamingMessageId.value);
-        if (msg) msg.reasoning = (msg.reasoning || '') + reasoning;
+        if (msg) {
+          msg.reasoning = (msg.reasoning || '') + reasoning;
+          // Show reasoning in main content if content is empty (model returns reasoning as primary text)
+          if (!msg.content) {
+            msg.content += reasoning;
+          }
+        }
       },
       onToolUse: (data) => {
         const msg = messages.value.find(m => m.id === streamingMessageId.value);
