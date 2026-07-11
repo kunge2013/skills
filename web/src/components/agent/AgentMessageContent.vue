@@ -1,5 +1,6 @@
 <template>
   <div class="agent-message-content">
+    <!-- Collapsible reasoning -->
     <div v-if="message.reasoning" class="reasoning-section">
       <el-collapse v-model="activeReasoning" class="reasoning-collapse">
         <el-collapse-item name="reasoning">
@@ -16,7 +17,14 @@
         </el-collapse-item>
       </el-collapse>
     </div>
-    <p v-if="message.content" class="agent-text">{{ message.content }}</p>
+
+    <!-- Markdown content -->
+    <div v-if="message.content" class="agent-text" v-html="renderedContent" />
+
+    <!-- Streaming cursor -->
+    <span v-if="message.isStreaming" class="streaming-cursor">|</span>
+
+    <!-- Tool calls -->
     <div v-if="message.toolCalls?.length" class="tool-calls">
       <ToolCallCard v-for="tc in message.toolCalls" :key="tc.id" :tool-call="tc" />
     </div>
@@ -24,18 +32,29 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { ref, computed } from 'vue'
+import MarkdownIt from 'markdown-it'
 import ToolCallCard from './ToolCallCard.vue'
 import type { ChatMessage } from '../../types/chat'
 
-useI18n()
-defineProps<{ message: ChatMessage }>()
+const props = defineProps<{ message: ChatMessage }>()
 
 const activeReasoning = ref<string[]>(['reasoning'])
+
+const md = new MarkdownIt({ html: false, linkify: true, breaks: true })
+
+const renderedContent = computed(() => {
+  try {
+    return md.render(props.message.content || '')
+  } catch {
+    return props.message.content || ''
+  }
+})
 </script>
 
 <style scoped>
+.agent-message-content { line-height: 1.6; }
+
 .reasoning-section { margin-bottom: 8px; }
 .reasoning-collapse { border: none; }
 .reasoning-collapse :deep(.el-collapse-item__header) {
@@ -75,7 +94,52 @@ const activeReasoning = ref<string[]>(['reasoning'])
   white-space: pre-wrap;
   word-break: break-word;
 }
-.agent-message-content { line-height: 1.6; }
-.agent-text { margin: 0 0 8px; }
+
+.agent-text {
+  margin: 0 0 8px;
+}
+.agent-text :deep(h1), .agent-text :deep(h2), .agent-text :deep(h3) {
+  margin: 12px 0 6px;
+  font-size: inherit;
+}
+.agent-text :deep(p) {
+  margin: 0 0 8px;
+}
+.agent-text :deep(p:last-child) {
+  margin-bottom: 0;
+}
+.agent-text :deep(code) {
+  background: var(--el-fill-color);
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+.agent-text :deep(pre) {
+  background: var(--el-fill-color);
+  padding: 8px 12px;
+  border-radius: 6px;
+  overflow: auto;
+  font-size: 13px;
+}
+.agent-text :deep(pre code) {
+  background: none;
+  padding: 0;
+}
+.agent-text :deep(ul), .agent-text :deep(ol) {
+  margin: 0 0 8px;
+  padding-left: 20px;
+}
+
+.streaming-cursor {
+  display: inline-block;
+  animation: blink 1s step-end infinite;
+  color: var(--el-text-color-placeholder);
+  font-weight: bold;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
 .tool-calls { display: flex; flex-direction: column; gap: 4px; }
 </style>
