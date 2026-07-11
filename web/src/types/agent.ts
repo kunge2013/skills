@@ -1,6 +1,7 @@
 export interface Plan {
   id: string;
   userMessage: string;
+  responseText: string;
   providerId: string;
   modelKey: string;
   status: 'planning' | 'pending_review' | 'executing' | 'done' | 'failed';

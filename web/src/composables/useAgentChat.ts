@@ -23,13 +23,14 @@ export function useAgentChat() {
     await agent.createPlan(text, modelKey);
   }
 
-  // Watch plan completion → append agent message with plan reference
+  // Watch plan completion → append agent message with LLM response
   watch(() => agent.currentPlan.value, (plan) => {
     if (plan && plan.status !== 'planning') {
+      const content = plan.responseText || plan.userMessage;
       messages.value.push({
         id: nextId(),
         type: 'plan',
-        content: plan.userMessage,
+        content,
         timestamp: new Date(),
         planId: plan.id,
       });

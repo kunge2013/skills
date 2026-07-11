@@ -3,6 +3,7 @@ import type { TextModelConfig } from '../llm/types';
 export interface Plan {
   id: string;
   userMessage: string;
+  responseText: string;
   providerId: string;
   modelKey: string;
   status: PlanStatus;

@@ -39,13 +39,12 @@ export class AgentService implements IAgentService {
     const skills = this.skillRegistry.getAll();
 
     const skillsList = skills.map((s) => `- ${s.name}: ${s.description}`).join('\n');
-    const systemPrompt = `You are a planning agent. Given a user request and a list of available skills, generate a structured execution plan.
+    const systemPrompt = `You are a helpful AI assistant. Answer the user's question directly and helpfully.
 
-Available skills:
+Available skills you can use:
 ${skillsList || 'No skills registered.'}
 
-Respond with a JSON array of steps. Each step has: skillName, title, description.
-Return ONLY valid JSON, no markdown, no explanation.`;
+If the user's request matches a skill, use that skill's expertise. Otherwise answer directly.`;
 
     const messages = [new SystemMessage(systemPrompt), new HumanMessage(req.userMessage)];
     let fullText = '';
@@ -61,7 +60,7 @@ Return ONLY valid JSON, no markdown, no explanation.`;
         const jsonStr = fullText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
         steps = JSON.parse(jsonStr) as Array<{ skillName: string; title: string; description: string }>;
       } catch {
-        steps = [{ skillName: '', title: 'Process request', description: req.userMessage }];
+        steps = [{ skillName: '', title: 'Response', description: req.userMessage }];
       }
 
       const planId = uuidv4();
@@ -79,7 +78,8 @@ Return ONLY valid JSON, no markdown, no explanation.`;
       const plan: Plan = {
         id: planId,
         userMessage: req.userMessage,
-        providerId: req.providerId,
+        responseText: fullText,
+        providerId: req.providerId || '',
         modelKey: req.modelKey,
         status: 'pending_review',
         steps: planSteps,
