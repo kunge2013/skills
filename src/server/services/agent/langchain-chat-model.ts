@@ -40,41 +40,70 @@ export class LangChainChatModel extends BaseChatModel {
 
   async *_streamResponseChunks(
     messages: BaseMessage[],
-    _options?: Record<string, unknown>
+    _options?: Record<string, unknown>,
   ): AsyncGenerator<ChatGenerationChunk> {
-    const chunks: string[] = [];
-    const reasoningChunks: string[] = [];
+    const chunks: ChatGenerationChunk[] = [];
+    let finished = false;
+    let error: Error | null = null;
+    let wake: (() => void) | null = null;
 
-    await new Promise<void>((resolve, reject) => {
-      this.adapter.sendMessageStream(convertedMessages(messages), this.config, {
-        onToken: (token: string) => {
-          chunks.push(token);
-        },
-        onReasoningToken: (token: string) => {
-          reasoningChunks.push(token);
-        },
-        onComplete: (response?: LLMResponse) => {
-          // If reasoning wasn't streamed, check for it in the complete response
-          if (reasoningChunks.length === 0 && response?.reasoning) {
-            reasoningChunks.push(response.reasoning);
+    this.adapter.sendMessageStream(convertedMessages(messages), this.config, {
+      onToken: (token: string) => {
+        chunks.push(new ChatGenerationChunk({
+          text: token,
+          message: new AIMessageChunk({ content: token }),
+        }));
+        wake?.();
+        wake = null;
+      },
+      onReasoningToken: (token: string) => {
+        chunks.push(new ChatGenerationChunk({
+          text: '',
+          message: new AIMessageChunk({
+            content: '',
+            additional_kwargs: { reasoning: token },
+          }),
+        }));
+        wake?.();
+        wake = null;
+      },
+      onComplete: (response?: LLMResponse) => {
+        if (chunks.length === 0 || !chunks.some(c => (c.message.additional_kwargs as Record<string, unknown>)?.reasoning)) {
+          if (response?.reasoning) {
+            chunks.push(new ChatGenerationChunk({
+              text: '',
+              message: new AIMessageChunk({
+                content: '',
+                additional_kwargs: { reasoning: response.reasoning },
+              }),
+            }));
           }
-          resolve();
-        },
-        onError: (err: Error) => {
-          reject(err);
-        },
-      });
+        }
+        finished = true;
+        wake?.();
+        wake = null;
+      },
+      onError: (err: Error) => {
+        error = err;
+        finished = true;
+        wake?.();
+        wake = null;
+      },
     });
 
-    const fullText = chunks.join('');
-    const fullReasoning = reasoningChunks.join('');
-    const additional: Record<string, unknown> = {};
-    if (fullReasoning) additional.reasoning = fullReasoning;
+    while (!finished) {
+      if (chunks.length > 0) {
+        yield chunks.shift()!;
+      } else {
+        await new Promise<void>(r => { wake = r; });
+      }
+    }
 
-    yield new ChatGenerationChunk({
-      text: fullText,
-      message: new AIMessageChunk({ content: fullText, additional_kwargs: additional }),
-    });
+    while (chunks.length > 0) {
+      yield chunks.shift()!;
+    }
+
+    if (error) throw error;
   }
 
   _combineLLMOutput?(): Record<string, unknown> | undefined {
