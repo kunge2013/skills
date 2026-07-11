@@ -19,6 +19,9 @@ export interface StreamingCallbacks {
   onReasoning: (reasoning: string) => void;
   onToolUse: (data: { toolCallId: string; name: string; args: Record<string, unknown> }) => void;
   onToolResult: (data: { toolCallId: string; output: string }) => void;
+  onComplete?: () => void;
+  onError?: (error: string) => void;
+  onAskUser?: (data: { question: string }) => void;
 }
 
 export function useAgent() {
@@ -56,10 +59,12 @@ export function useAgent() {
           }
           planTextBuffer.value = '';
           loading.value = false;
+          callbacks?.onComplete?.();
         },
         onError: (err) => {
           error.value = err;
           loading.value = false;
+          callbacks?.onError?.(err);
         },
         onToolUse: (data) => {
           callbacks?.onToolUse(data);
@@ -84,7 +89,9 @@ export function useAgent() {
           }
           stepToolCalls.value = stepToolCalls.value;
         },
-        onAskUser: () => {},
+        onAskUser: (data) => {
+          callbacks?.onAskUser?.(data);
+        },
       });
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Plan creation failed';
@@ -106,7 +113,7 @@ export function useAgent() {
           step.status = 'running';
         },
         onComplete: (data) => {
-          step.output = data.output;
+          step.output = data.content;
           step.status = 'done';
         },
         onError: (data) => {

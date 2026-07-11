@@ -75,7 +75,7 @@ export function useAgentChat() {
         }
         streamingMessageId.value = null;
       },
-      onError: (err) => {
+      onError: (err: string) => {
         const msg = messages.value.find(m => m.id === streamingMessageId.value);
         if (msg) {
           msg.type = 'error';
