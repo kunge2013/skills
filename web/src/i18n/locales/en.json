@@ -255,6 +255,18 @@
     "questionTitle": "Agent Question",
     "answerPlaceholder": "Your answer...",
     "cancel": "Cancel",
-    "submit": "Submit"
+    "submit": "Submit",
+    "chatTab": "Chat",
+    "planTab": "Plan",
+    "chatInputPlaceholder": "Ask the agent anything...",
+    "send": "Send",
+    "settings": "Settings",
+    "thinking": "Thinking...",
+    "viewSteps": "View steps",
+    "hideSteps": "Hide steps",
+    "toolArgs": "Arguments",
+    "toolResult": "Result",
+    "toolRunning": "Running...",
+    "toolComplete": "Complete"
   }
 }

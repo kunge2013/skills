@@ -1,32 +1,29 @@
 <template>
   <div class="agent-panel">
     <h2 class="panel-title">{{ $t('agent.title') }}</h2>
-    <AgentInput
-      :loading="loading"
-      @create-plan="handleCreatePlan"
-    />
-    <div v-if="error" class="error-banner">{{ error }}</div>
-    <PlanView
-      v-if="currentPlan"
-      :plan="currentPlan"
-      :plan-buffer="planTextBuffer"
-      :step-outputs="stepOutputs"
-      @run-step="handleRunStep"
-    />
+    <el-tabs v-model="activeTab">
+      <el-tab-pane :label="$t('agent.chatTab')" name="chat">
+        <AgentChatView />
+      </el-tab-pane>
+      <el-tab-pane :label="$t('agent.planTab')" name="plan">
+        <AgentInput :loading="loading" @create-plan="handleCreatePlan" />
+        <div v-if="error" class="error-banner">{{ error }}</div>
+        <PlanView v-if="currentPlan" :plan="currentPlan" :plan-buffer="planTextBuffer" :step-outputs="stepOutputs" @run-step="handleRunStep" />
+      </el-tab-pane>
+    </el-tabs>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAgent } from '../../composables/useAgent'
 import AgentInput from './AgentInput.vue'
 import PlanView from './PlanView.vue'
+import AgentChatView from './AgentChatView.vue'
 import type { Step } from '../../types/agent'
 
-const {
-  currentPlan, planTextBuffer, loading, error, stepOutputs,
-  loadSkills, createPlan, runStep,
-} = useAgent()
+const { currentPlan, planTextBuffer, loading, error, stepOutputs, loadSkills, createPlan, runStep } = useAgent()
+const activeTab = ref('chat')
 
 onMounted(() => { loadSkills() })
 

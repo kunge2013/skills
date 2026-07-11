@@ -255,6 +255,18 @@
     "questionTitle": "Agent 问题",
     "answerPlaceholder": "您的回答...",
     "cancel": "取消",
-    "submit": "提交"
+    "submit": "提交",
+    "chatTab": "对话",
+    "planTab": "计划",
+    "chatInputPlaceholder": "向 Agent 提问...",
+    "send": "发送",
+    "settings": "设置",
+    "thinking": "思考中...",
+    "viewSteps": "查看步骤",
+    "hideSteps": "隐藏步骤",
+    "toolArgs": "参数",
+    "toolResult": "结果",
+    "toolRunning": "执行中...",
+    "toolComplete": "完成"
   }
 }

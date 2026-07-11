@@ -25,12 +25,12 @@ export function useAgentChat() {
   }
 
   // Watch plan completion → append agent message with plan reference
-  watch(() => agent.currentPlan, (plan) => {
+  watch(() => agent.currentPlan.value, (plan) => {
     if (plan && plan.status !== 'planning') {
       messages.value.push({
         id: nextId(),
         type: 'plan',
-        content: plan.summary ?? plan.title,
+        content: plan.userMessage,
         timestamp: new Date(),
         planId: plan.id,
       });
@@ -38,7 +38,7 @@ export function useAgentChat() {
   });
 
   // Watch errors → append error message
-  watch(() => agent.error, (err) => {
+  watch(() => agent.error.value, (err) => {
     if (err) {
       messages.value.push({
         id: nextId(),

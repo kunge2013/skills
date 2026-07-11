@@ -16,13 +16,11 @@ import ChatMessageBubble from './ChatMessageBubble.vue'
 import type { ChatMessage } from '../../types/chat'
 import type { Step } from '../../types/agent'
 
-defineProps<{ messages: ChatMessage[]; isLoading: boolean }>()
+const props = defineProps<{ messages: ChatMessage[]; isLoading: boolean }>()
 defineEmits<{ 'run-step': [step: Step] }>()
 
 const container = ref<HTMLElement>()
 const bottomEl = ref<HTMLElement>()
-
-const props = defineProps<{ messages: ChatMessage[]; isLoading: boolean }>()
 
 watch(() => props.messages.length, () => {
   nextTick(() => bottomEl.value?.scrollIntoView({ behavior: 'smooth' }))
