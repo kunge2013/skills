@@ -61,25 +61,20 @@ export interface RunStepRequest {
 }
 
 export interface AgentSSEEvent {
-  type: AgentSSEEventType;
-  stepId?: string;
-  payload: Record<string, unknown>;
-  reasoning?: string;
+  event: AgentSSEEventType;
+  data: Record<string, unknown>;
+  run_id?: string;
 }
 
 export type AgentSSEEventType =
-  | 'plan_token'
-  | 'plan_reasoning'
-  | 'plan_complete'
-  | 'plan_error'
-  | 'step_start'
-  | 'step_token'
-  | 'step_reasoning'
-  | 'step_tool_use'
-  | 'step_tool_result'
-  | 'step_ask_user'
-  | 'step_complete'
-  | 'step_error';
+  | 'content'
+  | 'reasoning'
+  | 'tool_use'
+  | 'tool_result'
+  | 'ask_user'
+  | 'complete'
+  | 'error'
+  | 'step_start';
 
 export interface IAgentService {
   createPlan(req: CreatePlanRequest, onEvent: (e: AgentSSEEvent) => void): Promise<Plan>;

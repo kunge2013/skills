@@ -19,7 +19,7 @@ export function registerAgentRoutes(router: Router, agentService: AgentService, 
       });
 
       await agentService.createPlan({ userMessage, providerId, modelKey }, (event) => {
-        res.write(`data: ${JSON.stringify(event)}\n\n`);
+        res.write(`event: ${event.event}\ndata: ${JSON.stringify(event.data)}\n\n`);
       });
 
       res.end();
@@ -32,7 +32,7 @@ export function registerAgentRoutes(router: Router, agentService: AgentService, 
           'Connection': 'keep-alive',
         });
       }
-      res.write(`data: ${JSON.stringify({ type: 'plan_error', payload: { error: message } })}\n\n`);
+      res.write(`event: error\ndata: ${JSON.stringify({ error: message })}\n\n`);
       res.end();
     }
   });
@@ -60,7 +60,7 @@ export function registerAgentRoutes(router: Router, agentService: AgentService, 
       });
 
       await agentService.runStep(stepId, { userAnswers }, (event) => {
-        res.write(`data: ${JSON.stringify(event)}\n\n`);
+        res.write(`event: ${event.event}\ndata: ${JSON.stringify(event.data)}\n\n`);
       });
 
       res.end();
@@ -73,7 +73,7 @@ export function registerAgentRoutes(router: Router, agentService: AgentService, 
           'Connection': 'keep-alive',
         });
       }
-      res.write(`data: ${JSON.stringify({ type: 'step_error', stepId: req.params.id, payload: { error: message } })}\n\n`);
+      res.write(`event: error\ndata: ${JSON.stringify({ error: message })}\n\n`);
       res.end();
     }
   });

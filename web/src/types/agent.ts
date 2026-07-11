@@ -38,23 +38,18 @@ export interface SkillInfo {
 
 export interface ToolCall {
   id: string;
-  toolName: string;
+  name: string;
   args: Record<string, unknown>;
-  result: string | null;
+  output: string | null;
   status: 'running' | 'complete' | 'error';
 }
 
 export interface AgentSSEHandlers {
-  onPlanToken: (token: string) => void;
-  onPlanReasoning: (token: string) => void;
-  onPlanComplete: (plan: Plan) => void;
-  onPlanError: (error: string) => void;
-  onStepStart: (data: { stepId: string; skillName: string; title: string }) => void;
-  onStepToken: (data: { stepId: string; token: string }) => void;
-  onStepReasoning: (data: { stepId: string; reasoning: string }) => void;
-  onStepToolUse: (data: { stepId: string; toolName: string; args: Record<string, unknown> }) => void;
-  onStepToolResult: (data: { stepId: string; toolName: string; result: string }) => void;
-  onStepAskUser: (data: { stepId: string; question: string }) => void;
-  onStepComplete: (data: { stepId: string; output: string }) => void;
-  onStepError: (data: { stepId: string; error: string }) => void;
+  onContent: (token: string) => void;
+  onReasoning: (token: string) => void;
+  onToolUse: (data: { toolCallId: string; name: string; args: Record<string, unknown> }) => void;
+  onToolResult: (data: { toolCallId: string; output: string }) => void;
+  onAskUser: (data: { question: string }) => void;
+  onComplete: (data: { content: string; reasoning?: string; plan?: Plan }) => void;
+  onError: (error: string) => void;
 }

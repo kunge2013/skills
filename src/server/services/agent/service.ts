@@ -27,8 +27,8 @@ export class AgentService implements IAgentService {
     const modelConfig = await this.modelManager.getModel(req.modelKey);
     if (!modelConfig) {
       const errorEvent: AgentSSEEvent = {
-        type: 'plan_error',
-        payload: { error: `Model config not found for key: ${req.modelKey}` },
+        event: 'error',
+        data: { error: `Model config not found for key: ${req.modelKey}` },
       };
       onEvent(errorEvent);
       throw new Error(`Model config not found for key: ${req.modelKey}`);
@@ -53,11 +53,11 @@ If the user's request matches a skill, use that skill's expertise. Otherwise ans
       for await (const chunk of chatModel._streamResponseChunks(messages, {})) {
         const token = chunk.text || '';
         fullText += token;
-        onEvent({ type: 'plan_token', payload: { token } });
+        onEvent({ event: 'content', data: { token } });
         if (chunk.message.additional_kwargs?.reasoning) {
           const r = chunk.message.additional_kwargs.reasoning as string;
           reasoningText += r;
-          onEvent({ type: 'plan_reasoning', reasoning: r, payload: { reasoning: r } });
+          onEvent({ event: 'reasoning', data: { token: r } });
         }
       }
 
@@ -105,11 +105,11 @@ If the user's request matches a skill, use that skill's expertise. Otherwise ans
       };
 
       this.plans.set(plan.id, plan);
-      onEvent({ type: 'plan_complete', payload: { plan } });
+      onEvent({ event: 'complete', data: { content: fullText, reasoning: reasoningText || undefined, plan } });
       return plan;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      onEvent({ type: 'plan_error', payload: { error: message } });
+      onEvent({ event: 'error', data: { error: message } });
       throw error;
     }
   }
@@ -140,9 +140,8 @@ If the user's request matches a skill, use that skill's expertise. Otherwise ans
 
     if (onEvent) {
       onEvent({
-        type: 'step_start',
-        stepId,
-        payload: { skillName: runningStep.skillName, title: runningStep.title },
+        event: 'step_start',
+        data: { stepId, skillName: runningStep.skillName, title: runningStep.title },
       });
     }
 
@@ -187,7 +186,7 @@ Execute the step: ${step.title}. ${step.description}`;
         const token = chunk.text || '';
         fullOutput += token;
         if (onEvent) {
-          onEvent({ type: 'step_token', stepId, payload: { token } });
+          onEvent({ event: 'content', data: { token } });
         }
       }
 
@@ -199,7 +198,7 @@ Execute the step: ${step.title}. ${step.description}`;
       };
 
       if (onEvent) {
-        onEvent({ type: 'step_complete', stepId, payload: { output: fullOutput } });
+        onEvent({ event: 'complete', data: { content: fullOutput } });
       }
 
       const updatedPlan: Plan = {
@@ -214,7 +213,7 @@ Execute the step: ${step.title}. ${step.description}`;
       const message = error instanceof Error ? error.message : String(error);
       const failedStep: Step = { ...runningStep, error: message, status: 'failed' };
       if (onEvent) {
-        onEvent({ type: 'step_error', stepId, payload: { error: message } });
+        onEvent({ event: 'error', data: { error: message } });
       }
       const updatedPlan: Plan = {
         ...plan,
