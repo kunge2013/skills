@@ -60,20 +60,20 @@ function send() {
 <style scoped>
 .chat-input-bar {
   padding: 12px 0;
-  border-top: 1px solid var(--el-border-color-lighter);
+  border-top: 1px solid #e5e7eb;
 }
 
 .input-wrapper {
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 12px;
+  background: #f5f5f5;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
   padding: 10px 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   transition: border-color 200ms ease, box-shadow 200ms ease;
 }
 
 .input-wrapper:focus-within {
-  border-color: var(--el-color-primary);
+  border-color: #111827;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 

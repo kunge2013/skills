@@ -50,7 +50,7 @@ function formatTime(d: Date) {
 .chat-bubble {
   max-width: 75%;
   padding: 12px 16px;
-  border-radius: 16px;
+  border-radius: 24px;
   transition: box-shadow 200ms ease;
 }
 
@@ -59,32 +59,18 @@ function formatTime(d: Date) {
 }
 
 .chat-bubble--user {
-  background: var(--el-color-primary);
-  color: white;
-  border-bottom-right-radius: 4px;
+  background: #f5f5f5;
+  color: #111827;
 }
 
 .chat-bubble--agent,
 .chat-bubble--plan {
-  background: var(--el-fill-color-light);
-  border: 1px solid var(--el-border-color-lighter);
-  border-bottom-left-radius: 4px;
-}
-
-.chat-bubble--error {
-  background: var(--el-color-danger-light-9);
-  border: 1px solid var(--el-color-danger-light-7);
-  color: var(--el-color-danger);
-  border-bottom-left-radius: 4px;
-}
-
-.chat-bubble--streaming {
-  border-color: var(--el-border-color-light);
+  background: #f5f5f5;
 }
 
 .chat-timestamp {
   font-size: 11px;
-  color: var(--el-text-color-placeholder);
+  color: #9ca3af;
   margin-top: 2px;
   padding: 0 4px;
 }
@@ -92,6 +78,6 @@ function formatTime(d: Date) {
 .user-text {
   margin: 0;
   line-height: 1.5;
-  color: white;
+  color: #111827;
 }
 </style>

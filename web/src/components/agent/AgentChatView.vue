@@ -18,5 +18,5 @@ function handleSend(text: string, modelKey: string) {
 </script>
 
 <style scoped>
-.agent-chat-view { display: flex; flex-direction: column; height: calc(100vh - 160px); }
+.agent-chat-view { display: flex; flex-direction: column; height: calc(100vh - 160px); position: relative; }
 </style>

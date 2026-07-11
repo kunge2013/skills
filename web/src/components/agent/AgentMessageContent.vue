@@ -61,14 +61,14 @@ const renderedContent = computed(() => {
   height: auto;
   padding: 6px 0;
   font-size: 13px;
-  color: var(--el-text-color-secondary);
-  background: var(--el-fill-color-light);
+  color: #6b7280;
+  background: #f9fafb;
   border-radius: 6px;
   border: none;
 }
 .reasoning-collapse :deep(.el-collapse-item__wrap) {
   border: none;
-  background: var(--el-fill-color-lighter);
+  background: #f9fafb;
   border-radius: 0 0 6px 6px;
   margin-top: 2px;
 }
@@ -83,14 +83,14 @@ const renderedContent = computed(() => {
 .reasoning-icon {
   width: 14px;
   height: 14px;
-  color: var(--el-text-color-secondary);
+  color: #6b7280;
 }
 .reasoning-content {
   margin: 0;
   font-family: inherit;
   font-size: 13px;
   line-height: 1.6;
-  color: var(--el-text-color-secondary);
+  color: #6b7280;
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -109,13 +109,13 @@ const renderedContent = computed(() => {
   margin-bottom: 0;
 }
 .agent-text :deep(code) {
-  background: var(--el-fill-color);
+  background: #f3f4f6;
   padding: 2px 4px;
   border-radius: 3px;
   font-size: 0.9em;
 }
 .agent-text :deep(pre) {
-  background: var(--el-fill-color);
+  background: #f3f4f6;
   padding: 8px 12px;
   border-radius: 6px;
   overflow: auto;
@@ -133,7 +133,7 @@ const renderedContent = computed(() => {
 .streaming-cursor {
   display: inline-block;
   animation: blink 1s step-end infinite;
-  color: var(--el-text-color-placeholder);
+  color: #9ca3af;
   font-weight: bold;
 }
 

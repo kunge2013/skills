@@ -11,9 +11,7 @@
         <CircleClose />
       </el-icon>
       <span class="tool-call-name">{{ toolCall.toolName }}</span>
-      <el-tag size="small" :type="statusTagType" round>
-        {{ $t(statusLabelKey) }}
-      </el-tag>
+      <span class="status-label" :class="`status-label--${toolCall.status}`">{{ $t(statusLabel) }}</span>
     </div>
     <el-collapse v-model="activeNames" class="tool-call-details">
       <el-collapse-item :title="$t('agent.toolArgs')" name="args">
@@ -40,21 +38,24 @@ const props = defineProps<{
 }>()
 const activeNames = ref<string[]>([])
 
-const statusTagType = computed(() =>
-  props.toolCall.status === 'complete' ? 'success' : props.toolCall.status === 'error' ? 'danger' : 'warning'
-)
-const statusLabelKey = computed(() =>
-  props.toolCall.status === 'complete' ? 'agent.toolComplete' : props.toolCall.status === 'error' ? 'agent.toolFailed' : 'agent.toolRunning'
-)
+const statusLabel = computed(() => {
+  const keys: Record<string, string> = {
+    running: 'agent.toolRunning',
+    complete: 'agent.toolComplete',
+    error: 'agent.toolFailed',
+  }
+  return props.toolCall.status in keys
+    ? keys[props.toolCall.status]
+    : 'agent.toolRunning'
+})
 </script>
 
 <style scoped>
 .tool-call-card {
-  border: 1px solid var(--el-border-color-light);
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 10px 14px;
   margin: 6px 0;
-  border-left: 3px solid var(--el-color-warning);
   animation: tool-call-in 150ms ease-out;
 }
 
@@ -63,18 +64,15 @@ const statusLabelKey = computed(() =>
   to { opacity: 1; transform: scale(1); }
 }
 
-.tool-call--complete { border-left-color: var(--el-color-success); }
-.tool-call--error { border-left-color: var(--el-color-danger); }
-
 .tool-call-header {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.icon-running { color: var(--el-color-warning); }
-.icon-complete { color: var(--el-color-success); }
-.icon-error { color: var(--el-color-danger); }
+.icon-running { color: #f59e0b; }
+.icon-complete { color: #22c55e; }
+.icon-error { color: #ef4444; }
 
 .tool-call-name {
   font-weight: 600;
@@ -82,10 +80,33 @@ const statusLabelKey = computed(() =>
   font-size: 13px;
 }
 
+.status-label {
+  font-size: 12px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.status-label--running {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-label--complete {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-label--error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
 .tool-call-details { margin-top: 6px; }
 
 .tool-call-json {
-  background: var(--el-fill-color-light);
+  background: #f9fafb;
   padding: 8px;
   border-radius: 4px;
   font-size: 12px;
@@ -96,7 +117,7 @@ const statusLabelKey = computed(() =>
 }
 
 .tool-call-output {
-  background: var(--el-fill-color-light);
+  background: #f9fafb;
   padding: 8px;
   border-radius: 4px;
   font-size: 12px;

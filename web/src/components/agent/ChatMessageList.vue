@@ -59,6 +59,9 @@ watch(() => [props.messages.length, isUserAtBottom.value], () => {
 
 <style scoped>
 .chat-message-list { flex: 1; overflow-y: auto; padding: 12px 0; }
-.chat-thinking { display: flex; align-items: center; gap: 6px; color: var(--el-text-color-secondary); padding: 8px 0; }
+.chat-message-list::-webkit-scrollbar { width: 6px; }
+.chat-message-list::-webkit-scrollbar-thumb { border-radius: 999px; background: #d1d5db; }
+.chat-message-list::-webkit-scrollbar-track { background: transparent; }
+.chat-thinking { display: flex; align-items: center; gap: 6px; color: #6b7280; padding: 8px 0; }
 .scroll-anchor { height: 1px; }
 </style>
