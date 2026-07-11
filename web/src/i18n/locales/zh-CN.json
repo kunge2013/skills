@@ -258,6 +258,7 @@
     "submit": "提交",
     "chatTab": "对话",
     "planTab": "计划",
+    "selectModel": "选择模型",
     "chatInputPlaceholder": "向 Agent 提问...",
     "send": "发送",
     "settings": "设置",

@@ -15,12 +15,10 @@ import { Loading } from '@element-plus/icons-vue'
 import ChatMessageBubble from './ChatMessageBubble.vue'
 import type { ChatMessage } from '../../types/chat'
 
-defineProps<{ messages: ChatMessage[]; isLoading: boolean }>()
+const props = defineProps<{ messages: ChatMessage[]; isLoading: boolean }>()
 
 const container = ref<HTMLElement>()
 const bottomEl = ref<HTMLElement>()
-
-const props = defineProps<{ messages: ChatMessage[]; isLoading: boolean }>()
 
 watch(() => props.messages.length, () => {
   nextTick(() => bottomEl.value?.scrollIntoView({ behavior: 'smooth' }))

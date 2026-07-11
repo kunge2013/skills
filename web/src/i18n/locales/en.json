@@ -258,6 +258,7 @@
     "submit": "Submit",
     "chatTab": "Chat",
     "planTab": "Plan",
+    "selectModel": "Select Model",
     "chatInputPlaceholder": "Ask the agent anything...",
     "send": "Send",
     "settings": "Settings",
