@@ -105,10 +105,18 @@ export function useAgentChat() {
     }
   });
 
+  const hideToolCalls = ref(false);
+
+  function setHideToolCalls(value: boolean) {
+    hideToolCalls.value = value;
+  }
+
   return {
     messages,
     sendMessage,
     isLoading: agent.loading,
     error: agent.error,
+    hideToolCalls,
+    setHideToolCalls,
   };
 }

@@ -261,6 +261,8 @@
     "selectModel": "选择模型",
     "chatInputPlaceholder": "向 Agent 提问...",
     "send": "发送",
+    "hideToolCalls": "隐藏工具调用",
+    "scrollToBottom": "滚动到底部",
     "settings": "设置",
     "thinking": "思考中...",
     "viewSteps": "查看步骤",

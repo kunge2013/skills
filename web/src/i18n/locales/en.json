@@ -261,6 +261,8 @@
     "selectModel": "Select Model",
     "chatInputPlaceholder": "Ask the agent anything...",
     "send": "Send",
+    "hideToolCalls": "Hide Tool Calls",
+    "scrollToBottom": "Scroll to bottom",
     "settings": "Settings",
     "thinking": "Thinking...",
     "viewSteps": "View steps",

@@ -1,10 +1,10 @@
 <template>
   <div ref="container" class="chat-message-list">
     <div class="message-content">
-      <ChatMessageBubble v-for="msg in messages" :key="msg.id" :message="msg" />
+      <ChatMessageBubble v-for="msg in visibleMessages" :key="msg.id" :message="msg" />
 
       <!-- 3-dot thinking indicator -->
-      <div v-if="isLoading && messages.length === 0" class="thinking-dots">
+      <div v-if="isLoading && visibleMessages.length === 0" class="thinking-dots">
         <span class="thinking-dot" /><span class="thinking-dot" /><span class="thinking-dot" />
       </div>
     </div>
@@ -27,11 +27,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, watch, onMounted, onUnmounted } from 'vue'
+import { ref, nextTick, watch, onMounted, onUnmounted, computed } from 'vue'
 import ChatMessageBubble from './ChatMessageBubble.vue'
 import type { ChatMessage } from '../../types/chat'
 
-const props = defineProps<{ messages: ChatMessage[]; isLoading: boolean }>()
+const props = defineProps<{ messages: ChatMessage[]; isLoading: boolean; hideToolCalls?: boolean }>()
+
+const visibleMessages = computed(() =>
+  (props.hideToolCalls ?? false)
+    ? props.messages.filter(m => m.type !== 'tool_call')
+    : props.messages
+)
 
 const container = ref<HTMLElement>()
 const bottomAnchor = ref<HTMLElement>()

@@ -6,21 +6,31 @@
     </div>
     <!-- Chat content -->
     <template v-else>
-      <ChatMessageList :messages="messages" :is-loading="isLoading" />
+      <ChatMessageList :messages="messages" :is-loading="isLoading" :hide-tool-calls="hideToolCalls" />
     </template>
-    <ChatInputBar :loading="isLoading" @send="handleSend" />
+    <ChatInputBar :loading="isLoading" :hide-tool-calls="hideToolCallsModel" @update:hide-tool-calls="hideToolCallsModel = $event" @send="handleSend" @cancel="handleCancel" />
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useAgentChat } from '../../composables/useAgentChat'
 import ChatMessageList from './ChatMessageList.vue'
 import ChatInputBar from './ChatInputBar.vue'
 
-const { messages, sendMessage, isLoading } = useAgentChat()
+const { messages, sendMessage, isLoading, hideToolCalls, setHideToolCalls } = useAgentChat()
+
+const hideToolCallsModel = computed({
+  get: () => hideToolCalls.value,
+  set: (v: boolean) => setHideToolCalls(v),
+})
 
 function handleSend(text: string, modelKey: string) {
   sendMessage(text, modelKey)
+}
+
+function handleCancel() {
+  // No cancel API yet — just a placeholder emit target
 }
 </script>
 
