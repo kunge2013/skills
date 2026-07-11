@@ -1,6 +1,5 @@
 <template>
   <div class="agent-panel">
-    <h2 class="panel-title">{{ $t('agent.title') }}</h2>
     <AgentChatView />
   </div>
 </template>
@@ -10,6 +9,10 @@ import AgentChatView from './AgentChatView.vue'
 </script>
 
 <style scoped>
-.agent-panel { padding: 20px; max-width: 900px; margin: 0 auto; }
-.panel-title { font-size: 20px; margin-bottom: 16px; }
+.agent-panel {
+  padding: 0;
+  max-width: 800px;
+  margin: 0 auto;
+  height: calc(100vh - 120px);
+}
 </style>
