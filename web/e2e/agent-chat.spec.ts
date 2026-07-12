@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test('agent chat sends message and receives streaming response', async ({ page }) => {
-  await page.goto('http://localhost:5173');
+  await page.goto('http://localhost:3010');
   await page.waitForLoadState('networkidle', { timeout: 10000 });
 
   // Click Agent in sidebar
