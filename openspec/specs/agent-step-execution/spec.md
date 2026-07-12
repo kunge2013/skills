@@ -21,27 +21,15 @@ The system SHALL provide an endpoint to manually trigger execution of a single s
 
 ### Requirement: Step execution streams output via SSE
 
-Each step execution SHALL stream tokens, reasoning content, tool calls, and completion/error events via SSE to the client.
+Each step execution SHALL stream tokens, reasoning content, tool calls, and completion/error events via SSE to the client. The frontend SHALL render these events in real-time as they arrive, not just accumulate them for post-completion display.
 
-#### Scenario: Streaming step tokens
-- **WHEN** a step is executing
-- **THEN** SSE events of type "step_token" are sent with incremental text content
+#### Scenario: Streaming step tokens renders in real-time
+- **WHEN** a step is executing and SSE `step_token` events arrive
+- **THEN** each token is immediately appended to the step output display with a streaming cursor animation
 
-#### Scenario: Streaming reasoning tokens
-- **WHEN** the model produces reasoning/thinking output
-- **THEN** SSE events of type "step_reasoning" are sent with incremental reasoning content
-
-#### Scenario: Tool call during step execution
-- **WHEN** the model invokes a tool during step execution
-- **THEN** an SSE event of type "step_tool" is sent with tool name and arguments
-
-#### Scenario: Step completion
-- **WHEN** a step finishes successfully
-- **THEN** an SSE event of type "step_complete" is sent with the full output text, and step status changes to "done"
-
-#### Scenario: Step failure
-- **WHEN** a step encounters an error
-- **THEN** an SSE event of type "step_error" is sent with the error message, and step status changes to "failed"
+#### Scenario: Streaming reasoning tokens renders in real-time
+- **WHEN** the model produces reasoning/thinking output via SSE `step_reasoning` events
+- **THEN** the reasoning content accumulates in real-time in the collapsible section
 
 ### Requirement: Context is passed between sequential steps
 
