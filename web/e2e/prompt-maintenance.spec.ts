@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-const BASE = process.env.TEST_BASE_URL || 'http://localhost:3010'
+const BASE = process.env.TEST_BASE_URL || 'http://localhost:5173'
 
 test.describe('Prompt Maintenance Feature E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
