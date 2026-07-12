@@ -36,3 +36,7 @@ build/
 .baoyu-skills/
 .gstack/
 data/
+
+# Test artifacts
+test-results/
+web/e2e/screens/
