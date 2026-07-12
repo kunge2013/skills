@@ -58,9 +58,7 @@ export function useAgentChat() {
         const msg = getStreamingMsg();
         if (!msg) return;
         const newReasoning = (msg.reasoning || '') + reasoning;
-        // Show reasoning in main content if content is empty
-        const newContent = !msg.content ? newReasoning : msg.content;
-        patchStreaming({ reasoning: newReasoning, content: newContent });
+        patchStreaming({ reasoning: newReasoning });
       },
       onToolUse: (data) => {
         const msg = getStreamingMsg();

@@ -55,6 +55,10 @@ export function createAgentApi() {
                 bus.parseSSELine(line);
               }
             }
+
+            // Fallback: if stream ended without complete event, trigger completion
+            // This handles cases where the backend stream ends before sending the 'complete' SSE event
+            handlers.onComplete?.({ content: '', reasoning: undefined, plan: undefined });
           })
           .catch((err) => {
             handlers.onError(err.message);
@@ -114,6 +118,9 @@ export function createAgentApi() {
                 bus.parseSSELine(line);
               }
             }
+
+            // Fallback: stream ended without complete event
+            handlers?.onComplete?.({ content: '' });
           })
           .catch(reject);
       });
