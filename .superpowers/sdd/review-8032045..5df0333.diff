@@ -1,0 +1,144 @@
+# Review package: 8032045..5df0333
+
+## Commits
+5df0333 feat: add avatar icons to distinguish AI and user messages
+
+## Files changed
+ web/src/components/agent/ChatMessageBubble.vue | 47 ++++++++++++++++++++++++--
+ 1 file changed, 46 insertions(+), 1 deletion(-)
+
+## Diff
+diff --git a/web/src/components/agent/ChatMessageBubble.vue b/web/src/components/agent/ChatMessageBubble.vue
+index c2cf02c..3d2cb06 100644
+--- a/web/src/components/agent/ChatMessageBubble.vue
++++ b/web/src/components/agent/ChatMessageBubble.vue
+@@ -1,12 +1,21 @@
+ <template>
+   <div class="chat-message" :class="`chat-message--${message.type}`">
++    <div v-if="isAgentType" class="chat-avatar chat-avatar--agent">
++      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
++        <rect x="3" y="8" width="18" height="12" rx="2"/>
++        <circle cx="9" cy="14" r="1.5" fill="currentColor" stroke="none"/>
++        <circle cx="15" cy="14" r="1.5" fill="currentColor" stroke="none"/>
++        <path d="M12 8V4"/>
++        <path d="M8 4h8"/>
++      </svg>
++    </div>
+     <div class="chat-bubble" :class="bubbleClasses">
+       <AgentMessageContent v-if="isAgentType" :message="message" />
+       <p v-else class="user-text">{{ message.content }}</p>
+       <div class="message-actions">
+         <button class="action-btn" @click="copyMessage" :title="$t('agent.copy')">
+           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+             <rect x="9" y="9" width="13" height="13" rx="2"/>
+             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+           </svg>
+         </button>
+@@ -17,20 +26,26 @@
+           </svg>
+         </button>
+         <button v-else class="action-btn" @click="startEdit" :title="$t('agent.edit')">
+           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+           </svg>
+         </button>
+       </div>
+     </div>
++    <div v-if="!isAgentType" class="chat-avatar chat-avatar--user">
++      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
++        <circle cx="12" cy="8" r="4"/>
++        <path d="M4 20c0-4 4-7 8-7s8 3 8 7"/>
++      </svg>
++    </div>
+     <div class="chat-timestamp">{{ formatTime(message.timestamp) }}</div>
+   </div>
+ </template>
+ 
+ <script setup lang="ts">
+ import { computed } from 'vue'
+ import { ElMessage } from 'element-plus'
+ import AgentMessageContent from './AgentMessageContent.vue'
+ import type { ChatMessage } from '../../types/chat'
+ 
+@@ -65,36 +80,37 @@ function startEdit() {
+ 
+ function handleRegenerate() {
+   emit('regenerate')
+ }
+ </script>
+ 
+ <style scoped>
+ .chat-message {
+   display: flex;
+   flex-direction: column;
++  width: 100%;
+   margin: 8px 0;
+   animation: fade-in-up 200ms ease-out;
+ }
+ 
+ @keyframes fade-in-up {
+   from { opacity: 0; transform: translateY(8px); }
+   to { opacity: 1; transform: translateY(0); }
+ }
+ 
+ .chat-message--user { align-items: flex-end; }
+ .chat-message--agent,
+ .chat-message--plan,
+ .chat-message--error { align-items: flex-start; }
+ 
+ .chat-bubble {
+-  max-width: 75%;
++  width: 100%;
+   padding: 12px 16px;
+   border-radius: 24px;
+   transition: box-shadow 200ms ease;
+ }
+ 
+ .chat-bubble:hover {
+   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+ }
+ 
+ .chat-bubble--user {
+@@ -133,11 +149,41 @@ function handleRegenerate() {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   border: none;
+   background: transparent;
+   color: #9ca3af;
+   cursor: pointer;
+   border-radius: 4px;
+ }
+ .action-btn:hover { background: #f3f4f6; color: #4b5563; }
++
++.chat-avatar {
++  width: 40px;
++  height: 40px;
++  border-radius: 50%;
++  display: flex;
++  align-items: center;
++  justify-content: center;
++  flex-shrink: 0;
++}
++
++.chat-avatar--agent {
++  background: #e0f2fe;
++  color: #0284c7;
++}
++
++.chat-avatar--user {
++  background: #f3f4f6;
++  color: #6b7280;
++}
++
++.chat-message--agent > .chat-avatar,
++.chat-message--plan > .chat-avatar,
++.chat-message--error > .chat-avatar {
++  margin-right: 8px;
++}
++
++.chat-message--user > .chat-avatar {
++  margin-left: 8px;
++}
+ </style>
