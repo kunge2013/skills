@@ -28,27 +28,33 @@ Inline SVG icons, 40x40px circular containers:
 
 | Role | Icon | Background | Icon Color |
 |------|------|------------|------------|
-| AI (agent, plan, tool_call, user_question) | Robot outline | `#e0f2fe` | `#0284c7` |
+| AI (agent, plan, tool_call, error, user_question) | Robot outline | `#e0f2fe` | `#0284c7` |
 | User | Person outline | `#f3f4f6` | `#6b7280` |
 
 No external dependencies. No image assets. Pure inline SVG + CSS.
+
+SVG icons include `aria-hidden="true"` for accessibility.
 
 ### CSS Classes
 
 New classes added to `ChatMessageBubble.vue` `<style scoped>`:
 
+- `.chat-row` — flex row container with `gap: 8px`
+- `.chat-message--user > .chat-row` — `flex-direction: row-reverse` for right-alignment
 - `.chat-avatar` — base: 40x40 circle, flex center, `flex-shrink: 0`
 - `.chat-avatar--agent` — AI avatar colors
 - `.chat-avatar--user` — user avatar colors
 
-Gap of `8px` between avatar and bubble via `margin` on the avatar element.
+Gap of `8px` between avatar and bubble via `.chat-row` flex container's `gap` property.
 
 ### Implementation Details
 
-1. Use the existing `isAgentType` computed to determine which avatar to show
-2. For agent-type messages: render robot SVG before the bubble
-3. For user messages: render person SVG after the bubble
-4. No changes to data model, props, or other components
+1. Wrap avatar + bubble in a `.chat-row` flex container (row direction)
+2. AI avatar (`v-if="isAgentType"`) renders before the bubble in the row
+3. User avatar (`v-if="!isAgentType"`) renders after the bubble in the row
+4. User message row uses `flex-direction: row-reverse` for right-alignment
+5. Timestamp remains outside `.chat-row`, stacked below via parent column flex
+6. No changes to data model, props, or other components
 
 ### SVG Icons
 
