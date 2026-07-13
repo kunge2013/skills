@@ -79,7 +79,7 @@ watch(() => props.hideToolCalls, (v) => { hideToolCallsLocal.value = v })
 <style scoped>
 .chat-input-bar { padding: 12px 16px 16px; border-top: 1px solid #e5e7eb; }
 .input-wrapper {
-  max-width: 768px;
+  width: 100%;
   margin: 0 auto;
   background: #f5f5f5;
   border: 1px solid #e5e7eb;

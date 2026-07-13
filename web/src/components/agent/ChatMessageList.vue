@@ -90,12 +90,12 @@ watch(() => [props.messages.length, isUserAtBottom.value], () => {
 .chat-message-list::-webkit-scrollbar-track { background: transparent; }
 
 .message-content {
-  max-width: 768px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 16px;
   padding-bottom: 64px;
+  padding: 0 0.5rem 64px;
 }
 
 .thinking-dots {

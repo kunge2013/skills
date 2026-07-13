@@ -10,8 +10,7 @@ import AgentChatView from './AgentChatView.vue'
 
 <style scoped>
 .agent-panel {
-  padding: 0;
-  max-width: 800px;
+  padding: 0 1rem;
   margin: 0 auto;
   height: calc(100vh - 120px);
 }
