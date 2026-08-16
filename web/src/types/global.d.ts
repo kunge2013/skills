@@ -27,6 +27,24 @@ declare global {
       readSkillFile: (p: string) => Promise<{ success: boolean; data?: { content: string; path: string; lastModified: number }; error?: string }>
       saveSkillFile: (p: string, c: string, m?: number) => Promise<{ success: boolean; error?: string; conflict?: boolean; currentContent?: string }>
       batchSaveFiles: (files: { path: string; content: string; expectedMtime?: number }[]) => Promise<{ success: boolean; data?: any; error?: string }>
+      listSkillToggleState: () => Promise<{ success: boolean; data?: any; error?: string }>
+      setSkillEnabled: (n: string, e: boolean) => Promise<any>
+      setOwnerSkillsEnabled: (o: string, e: boolean) => Promise<any>
+      setProjectSkillsEnabled: (o: string, p: string, e: boolean) => Promise<any>
+      listExternalSources: () => Promise<{ success: boolean; data?: any[]; error?: string }>
+      addExternalSource: (s: string, b?: string) => Promise<any>
+      removeExternalSource: (o: string, r: string) => Promise<any>
+      syncExternalSource: (o: string, r: string) => Promise<any>
+      discoverExternalSkills: () => Promise<{ success: boolean; data?: any[]; error?: string }>
+      installExternalSkill: (o: string, r: string, sn: string, sp: string, pp?: string) => Promise<any>
+      getGitProxy: () => Promise<{ success: boolean; data?: { enabled: boolean; url: string }; error?: string }>
+      setGitProxy: (enabled: boolean, url: string) => Promise<{ success: boolean; data?: { enabled: boolean; url: string }; error?: string }>
+      listManagedSkills: () => Promise<{ success: boolean; data?: any[]; error?: string }>
+      toggleManagedSkill: (owner: string, repo: string, category: string, skillName: string, enabled: boolean) => Promise<any>
+      enableCategory: (owner: string, repo: string, category: string) => Promise<any>
+      disableCategory: (owner: string, category: string) => Promise<any>
+      enableAllManagedSkills: (owner: string, repo: string) => Promise<any>
+      disableAllManagedSkills: (owner: string) => Promise<any>
       onFileChanged: (cb: (d: { path: string }) => void) => () => void
     }
   }

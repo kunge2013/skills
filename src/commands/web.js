@@ -14,9 +14,12 @@ const { getAllMarketplaceDirs, getMarketplaceSourceDir } = require('../core/cach
 const { parseMarketplace, findSkillMerged } = require('../core/registry.js');
 const { createSkillSymlink, removeSkillSymlink, getSymlinkStatus, copyDirRecursive } = require('../core/symlink.js');
 const { copyInstallSkill, uninstallCopySkill, getCopyInstallStatus } = require('../core/copy-install.js');
+const { listSkillToggleState, setSkillEnabled, setOwnerSkillsEnabled, setProjectSkillsEnabled } = require('../core/skill-toggle.js');
+const { addExternalSource, removeExternalSource, listExternalSources, syncExternalSource, discoverExternalSkills, installExternalSkill } = require('../core/external-source.js');
+const { getAllManagedSources, toggleSkill, enableCategory, disableCategory, enableAllSkills, disableAllSkills } = require('../core/skill-manager.js');
 const { findProjectSkillsDir } = require('../commands/shared.js');
 const { cloneRepo, pullRepo } = require('../utils/git.js');
-const { getConfig, updateConfig } = require('../core/config.js');
+const { getConfig, updateConfig, getExternalSourceCacheDir } = require('../core/config.js');
 
 const pkgRoot = path.resolve(__dirname, '../..');
 const rendererDist = path.join(pkgRoot, 'web', 'dist');
@@ -586,6 +589,47 @@ function createServer(port) {
             case '/api/skill/read-file': result = readFileContent(body?.path || ''); break;
             case '/api/skill/save-file': result = saveFileContent(body?.path || '', body?.content || '', body?.expectedMtime); break;
             case '/api/skill/batch-save': result = batchSaveFiles(body?.files || []); break;
+            // Skill enable/disable management (owner/project-grouped, user scope only)
+            case '/api/skill-toggle/list': result = { success: true, data: listSkillToggleState() }; break;
+            case '/api/skill-toggle/set': result = setSkillEnabled(body?.skillName, !!body?.enabled); break;
+            case '/api/skill-toggle/owner': result = setOwnerSkillsEnabled(body?.owner, !!body?.enabled); break;
+            case '/api/skill-toggle/project': result = setProjectSkillsEnabled(body?.owner, body?.projectPath, !!body?.enabled); break;
+            // External source management
+            case '/api/external-sources/list': result = { success: true, data: listExternalSources() }; break;
+            case '/api/external-sources/add': result = await addExternalSource(body?.source, body?.branch || 'main'); break;
+            case '/api/external-sources/remove': result = removeExternalSource(body?.owner, body?.repo); break;
+            case '/api/external-sources/sync': result = await syncExternalSource(body?.owner, body?.repo); break;
+            case '/api/external-sources/discover': result = { success: true, data: discoverExternalSkills() }; break;
+            case '/api/external-sources/install': result = installExternalSkill(body?.owner, body?.repo, body?.skillName, body?.sourcePath, body?.projectPath || ''); break;
+            // Skill manager - tree view enable/disable
+            case '/api/skill-manager/list': result = { success: true, data: getAllManagedSources() }; break;
+            case '/api/skill-manager/toggle': {
+              const sourceDir = getExternalSourceCacheDir(body?.owner, body?.repo);
+              result = toggleSkill(body?.owner, body?.category, body?.skillName, sourceDir, !!body?.enabled);
+              break;
+            }
+            case '/api/skill-manager/category-enable': {
+              const sourceDir = getExternalSourceCacheDir(body?.owner, body?.repo);
+              result = enableCategory(body?.owner, body?.category, sourceDir);
+              break;
+            }
+            case '/api/skill-manager/category-disable': result = disableCategory(body?.owner, body?.category); break;
+            case '/api/skill-manager/enable-all': {
+              const sourceDir = getExternalSourceCacheDir(body?.owner, body?.repo);
+              result = enableAllSkills(body?.owner, sourceDir);
+              break;
+            }
+            case '/api/skill-manager/disable-all': result = disableAllSkills(body?.owner); break;
+            // Git proxy configuration
+            case '/api/config/git-proxy': result = { success: true, data: getConfig()?.git?.proxy || { enabled: false, url: '' } }; break;
+            case '/api/config/git-proxy/set': {
+              const cfg = getConfig();
+              cfg.git = cfg.git || {};
+              cfg.git.proxy = { enabled: !!body?.enabled, url: body?.url || '' };
+              updateConfig(cfg);
+              result = { success: true, data: cfg.git.proxy };
+              break;
+            }
             // Deprecated aliases — use /api/skill/* instead
             case '/api/symlink/install': result = installSkill(body.skillName, body.projectPath); break;
             case '/api/symlink/uninstall': result = uninstallSkill(body.skillName, body.projectPath); break;
@@ -655,6 +699,24 @@ window.api = {
   readSkillFile: function(p) { return this._post('/skill/read-file', { path: p }); },
   saveSkillFile: function(p, c, m) { return this._post('/skill/save-file', { path: p, content: c, expectedMtime: m }); },
   batchSaveFiles: function(files) { return this._post('/skill/batch-save', { files }); },
+  listSkillToggleState: function() { return this._post('/skill-toggle/list'); },
+  setSkillEnabled: function(n, e) { return this._post('/skill-toggle/set', { skillName: n, enabled: e }); },
+  setOwnerSkillsEnabled: function(o, e) { return this._post('/skill-toggle/owner', { owner: o, enabled: e }); },
+  setProjectSkillsEnabled: function(o, p, e) { return this._post('/skill-toggle/project', { owner: o, projectPath: p, enabled: e }); },
+  listExternalSources: function() { return this._post('/external-sources/list'); },
+  addExternalSource: function(s, b) { return this._post('/external-sources/add', { source: s, branch: b }); },
+  removeExternalSource: function(o, r) { return this._post('/external-sources/remove', { owner: o, repo: r }); },
+  syncExternalSource: function(o, r) { return this._post('/external-sources/sync', { owner: o, repo: r }); },
+  discoverExternalSkills: function() { return this._post('/external-sources/discover'); },
+  installExternalSkill: function(o, r, sn, sp, pp) { return this._post('/external-sources/install', { owner: o, repo: r, skillName: sn, sourcePath: sp, projectPath: pp }); },
+  getGitProxy: function() { return this._post('/config/git-proxy'); },
+  setGitProxy: function(e, u) { return this._post('/config/git-proxy/set', { enabled: e, url: u }); },
+  listManagedSkills: function() { return this._post('/skill-manager/list'); },
+  toggleManagedSkill: function(o, r, c, sn, e) { return this._post('/skill-manager/toggle', { owner: o, repo: r, category: c, skillName: sn, enabled: e }); },
+  enableCategory: function(o, r, c) { return this._post('/skill-manager/category-enable', { owner: o, repo: r, category: c }); },
+  disableCategory: function(o, c) { return this._post('/skill-manager/category-disable', { owner: o, category: c }); },
+  enableAllManagedSkills: function(o, r) { return this._post('/skill-manager/enable-all', { owner: o, repo: r }); },
+  disableAllManagedSkills: function(o) { return this._post('/skill-manager/disable-all', { owner: o }); },
   onFileChanged: function() { return function() {}; }
 };
 </script></body>`;

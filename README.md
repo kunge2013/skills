@@ -38,6 +38,15 @@ kungeskill web
 | `kungeskill remove <skill>` | Remove a skill from your project |
 | `kungeskill view` | Show installed skills with health status |
 | `kungeskill update` | Update marketplace cache to latest |
+| `kungeskill toggle list` | List installed skills (user scope only) with enable/disable state, grouped by owner/project |
+| `kungeskill toggle on <skill>` | Enable a skill |
+| `kungeskill toggle off <skill>` | Disable a skill (moves dir to `.kungeskill-disabled/`) |
+| `kungeskill toggle owner <name> on\|off` | Enable/disable all skills of an owner |
+| `kungeskill toggle project <owner> <project> on\|off` | Enable/disable all skills in a project |
+| `kungeskill toggle source add <owner/repo> [branch]` | Add external skill source from GitHub |
+| `kungeskill toggle source remove <owner/repo>` | Remove external skill source |
+| `kungeskill toggle source list` | List configured external sources |
+| `kungeskill toggle source sync <owner/repo>` | Sync external source (git pull) |
 | `kungeskill web` | Launch web UI in browser for browsing, editing, and managing skills |
 | `kungeskill doctor` | Check symlink health and detect broken links |
 
@@ -61,6 +70,7 @@ The command automatically opens your default browser at `http://127.0.0.1:3010` 
 | **Preview** | Rendered markdown preview of any skill's SKILL.md content |
 | **Edit** | Full markdown editor with syntax highlighting, live preview, and frontmatter validation |
 | **Install** | Install skills to your current project with one click |
+| **Toggle** | Enable/disable skills in a checkbox tree grouped by author (batch + single), across project and user scopes |
 | **Cache** | Initialize and update marketplace cache directly from the UI |
 
 #### Editor
@@ -71,6 +81,49 @@ The built-in editor (powered by md-editor-v3) supports:
 - YAML frontmatter validation (requires `name` and `description`)
 - Save with conflict detection (warns if file was modified externally)
 - Validate button to check frontmatter before saving
+
+#### Skill Enable/Disable Management
+
+Claude Code has no per-skill on/off configuration. The Skill Toggle view (and the `kungeskill toggle` CLI) provide one:
+
+- Skills are grouped by **owner** (GitHub user/org for external skills, author for local skills)
+- External skills from GitHub (like `mattpocock/skills`) are further grouped by **project** (subdirectory in the repo)
+- The **owner root node** checkbox batch enables/disables all of that owner's skills
+- The **project node** checkbox batch enables/disables all skills in that project
+- Each **leaf node** toggles a single skill
+- Only **user scope** (`~/.claude/skills/`) is managed - project scope is handled by Claude Code directly
+- Disabling moves the skill directory into a hidden sibling folder (`~/.claude/skills/.kungeskill-disabled/<skill>/`) that Claude Code does not scan -- no files are deleted, and symlinks/junctions keep working; enabling moves it back
+
+#### External Skill Sources
+
+You can add skills from any GitHub repository that contains skills:
+
+```bash
+# Add mattpocock/skills as an external source
+kungeskill toggle source add mattpocock/skills
+
+# List available skills from the source
+kungeskill toggle source list
+
+# Skills are installed to ~/.claude/skills/ with naming convention:
+# <owner>__<project>__<skill>  (multi-level: owner/project/skill)
+# <owner>__<skill>             (single-level: owner/skill)
+```
+
+To use a proxy for git operations (disabled by default):
+
+You can configure the proxy in the Web UI (Skill Toggle view → Git Proxy → Configure), or manually edit `~/.kungeskills/config.json`:
+
+```json
+{
+  "git": {
+    "proxy": {
+      "enabled": true,
+      "url": "http://127.0.0.1:7890"
+    }
+  }
+}
+```
 
 ### Uninstall
 

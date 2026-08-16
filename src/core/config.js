@@ -1,5 +1,6 @@
 'use strict';
 
+// [AGC:START] tool=Cc author=fangkun
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -13,7 +14,17 @@ const DEFAULT_CONFIG = {
     branch: 'main',
     cloned: false,
     lastSync: null
-  }
+  },
+  // Git proxy configuration (disabled by default)
+  git: {
+    proxy: {
+      enabled: false,
+      url: '' // e.g., 'http://127.0.0.1:7890'
+    }
+  },
+  // External skill sources (GitHub repos)
+  // Format: [{ owner: 'mattpocock', repo: 'skills', url: '...', branch: 'main', alias: 'mattpocock' }]
+  externalSources: []
 };
 
 function getKungeskillsDir() {
@@ -40,10 +51,38 @@ function getConfig() {
   if (existing) {
     // Merge with defaults to ensure new fields exist
     return {
-      marketplace: { ...DEFAULT_CONFIG.marketplace, ...existing.marketplace }
+      marketplace: { ...DEFAULT_CONFIG.marketplace, ...existing.marketplace },
+      git: {
+        proxy: {
+          ...DEFAULT_CONFIG.git.proxy,
+          ...(existing.git && existing.git.proxy || {})
+        }
+      },
+      externalSources: existing.externalSources || DEFAULT_CONFIG.externalSources
     };
   }
   return { ...DEFAULT_CONFIG };
+}
+
+/**
+ * Update partial config fields (shallow merge at top level).
+ * @param {object} updates
+ */
+function updateConfig(updates) {
+  const current = getConfig();
+  const merged = { ...current, ...updates };
+  saveConfig(merged);
+  return merged;
+}
+
+/**
+ * Get the directory where external skills are cached.
+ * @param {string} owner - GitHub owner/org name
+ * @param {string} repo - Repository name
+ * @returns {string} Absolute path
+ */
+function getExternalSourceCacheDir(owner, repo) {
+  return path.join(KUNGESKILLS_DIR, 'cache', 'external', owner, repo);
 }
 
 module.exports = {
@@ -51,6 +90,9 @@ module.exports = {
   loadConfig,
   saveConfig,
   getConfig,
+  updateConfig,
+  getExternalSourceCacheDir,
   CONFIG_PATH,
   KUNGESKILLS_DIR
 };
+// [AGC:END]

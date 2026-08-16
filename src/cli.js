@@ -10,6 +10,7 @@ const { cmdView } = require('./commands/view');
 const { cmdUpdate } = require('./commands/update');
 const { cmdDoctor } = require('./commands/doctor');
 const { cmdWeb } = require('./commands/web');
+const { cmdToggle } = require('./commands/toggle');
 const logger = require('./utils/logger');
 
 const VERSION = require('../package.json').version;
@@ -24,6 +25,16 @@ Commands:
     --force            Reinstall even if already installed
   remove <skill>     Remove a skill symlink from this project
   view               Show installed skills with health status
+  toggle             Manage skill enable/disable state (user scope only)
+    list [--json]      List skills with enabled/disabled state (grouped by owner/project)
+    on <skill>         Enable a skill
+    off <skill>        Disable a skill (moves dir to .kungeskill-disabled)
+    owner <name> on|off  Enable/disable all skills of an owner
+    project <owner> <project> on|off  Enable/disable all skills in a project
+    source add <owner/repo> [branch]   Add external skill source from GitHub
+    source remove <owner/repo>         Remove external skill source
+    source list [--json]               List configured external sources
+    source sync <owner/repo>           Sync external source (git pull)
   update             Update marketplace cache via git pull
   web                Launch web UI in browser (includes Prompt Optimizer)
   doctor             Check symlink health and cache status
@@ -114,6 +125,10 @@ async function main() {
 
       case 'doctor':
         cmdDoctor();
+        break;
+
+      case 'toggle':
+        await cmdToggle(process.argv.slice(3));
         break;
 
       case 'web':

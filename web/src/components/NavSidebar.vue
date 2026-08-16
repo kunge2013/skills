@@ -9,6 +9,8 @@
       <el-menu-item index="prompt"><el-icon><EditPen /></el-icon><span>{{ $t('nav.promptOptimizer') }}</span></el-menu-item>
       <el-menu-item index="promptMaintenance"><el-icon><Setting /></el-icon><span>{{ $t('nav.promptMaintenance') }}</span></el-menu-item>
       <el-menu-item index="manage"><el-icon><FolderOpened /></el-icon><span>{{ $t('nav.skillManagement') }}</span></el-menu-item>
+      <el-menu-item index="toggle"><el-icon><Switch /></el-icon><span>{{ $t('nav.skillToggle') }}</span></el-menu-item>
+      <el-menu-item index="manager"><el-icon><Grid /></el-icon><span>{{ $t('nav.externalManager') }}</span></el-menu-item>
       <el-menu-item index="agent"><el-icon><Monitor /></el-icon><span>{{ $t('nav.agent') }}</span></el-menu-item>
     </el-menu>
     <div class="nav-footer">
@@ -29,7 +31,7 @@
 </template>
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Document, FolderOpened, EditPen, Setting, Monitor } from '@element-plus/icons-vue'
+import { Document, FolderOpened, EditPen, Setting, Monitor, Switch, Grid } from '@element-plus/icons-vue'
 import { useSkillsStore } from '../stores/skills'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
@@ -42,6 +44,8 @@ const activeMenu = computed(() => {
   if (store.currentView === 'agent') return 'agent'
   if (store.currentView === 'promptMaintenance') return 'promptMaintenance'
   if (store.currentView === 'manage') return 'manage'
+  if (store.currentView === 'toggle') return 'toggle'
+  if (store.currentView === 'manager') return 'manager'
   if (store.currentView === 'prompt') return 'prompt'
   return 'list'
 })
@@ -53,6 +57,10 @@ function handleMenuSelect(index: string) {
     store.setView('promptMaintenance')
   } else if (index === 'manage') {
     store.setView('manage')
+  } else if (index === 'toggle') {
+    store.setView('toggle')
+  } else if (index === 'manager') {
+    store.setView('manager')
   } else if (index === 'prompt') {
     store.setView('prompt')
   } else {
