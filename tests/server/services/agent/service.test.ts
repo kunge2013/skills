@@ -1,4 +1,83 @@
+// [AGC:FILE] tool=Cc author=fangkun date=2026-08-26
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import type { AgentSession, AgentSessionEvent } from '@earendil-works/pi-coding-agent';
+
+// Mock pi-coding-agent before importing AgentService
+function createMockSession(responseText: string): AgentSession {
+  const listeners: Array<(event: AgentSessionEvent) => void> = [];
+  return {
+    prompt: vi.fn().mockImplementation(async () => {
+      // Simulate streaming text_delta events
+      for (const listener of listeners) {
+        listener({
+          type: 'message_update',
+          assistantMessageEvent: { type: 'text_delta', delta: responseText },
+        } as unknown as AgentSessionEvent);
+      }
+    }),
+    subscribe: vi.fn().mockImplementation((listener: (event: AgentSessionEvent) => void) => {
+      listeners.push(listener);
+      return () => {};
+    }),
+    dispose: vi.fn(),
+    sessionId: 'mock-session-id',
+    sessionFile: undefined,
+    agent: {
+      state: { messages: [], tools: [], systemPrompt: '' },
+      waitForIdle: vi.fn().mockResolvedValue(undefined),
+    },
+    model: undefined,
+    thinkingLevel: 'off',
+    messages: [],
+    isStreaming: false,
+    steer: vi.fn(),
+    followUp: vi.fn(),
+    setModel: vi.fn(),
+    setThinkingLevel: vi.fn(),
+    cycleModel: vi.fn(),
+    cycleThinkingLevel: vi.fn(),
+    navigateTree: vi.fn(),
+    compact: vi.fn(),
+    abortCompaction: vi.fn(),
+    abort: vi.fn(),
+  } as unknown as AgentSession;
+}
+
+vi.mock('@earendil-works/pi-coding-agent', () => {
+  let lastMockSession: AgentSession | null = null;
+  return {
+    AuthStorage: {
+      create: vi.fn().mockReturnValue({
+        setRuntimeApiKey: vi.fn(),
+      }),
+    },
+    ModelRegistry: {
+      create: vi.fn().mockReturnValue({
+        find: vi.fn().mockReturnValue(undefined),
+        getAvailable: vi.fn().mockReturnValue([
+          { id: 'claude-sonnet-4-20250514', provider: 'anthropic' },
+        ]),
+      }),
+    },
+    SessionManager: {
+      inMemory: vi.fn().mockReturnValue({}),
+    },
+    DefaultResourceLoader: class {
+      reload = vi.fn().mockResolvedValue(undefined);
+      constructor() {}
+    },
+    getAgentDir: vi.fn().mockReturnValue('/mock/agent/dir'),
+    createAgentSession: vi.fn().mockImplementation(() => {
+      lastMockSession = createMockSession('Step executed with output.');
+      return Promise.resolve({
+        session: lastMockSession,
+        extensionsResult: { extensions: [], errors: [], runtime: {} },
+      });
+    }),
+    __getLastMockSession: () => lastMockSession,
+  };
+});
+
 import { AgentService } from '../../../../src/server/services/agent/service';
 import { SkillRegistry } from '../../../../src/server/services/agent/registry';
 import type { ITextAdapterRegistry, TextModelConfig, TextProvider, TextModel } from '../../../../src/server/services/llm/types';
@@ -11,9 +90,11 @@ function makeMockModelManager(): IModelManager {
       id: 'test',
       name: 'Test',
       enabled: true,
+      providerId: 'anthropic',
+      modelId: 'claude-sonnet-4-20250514',
       providerMeta: { id: 'anthropic', name: 'Anthropic' } as Partial<TextProvider> as TextProvider,
-      modelMeta: { id: 'test', name: 'Test', providerId: 'anthropic', capabilities: { supportsTools: true }, parameterDefinitions: [] } as Partial<TextModel> as TextModel,
-      connectionConfig: { apiKey: 'test' },
+      modelMeta: { id: 'claude-sonnet-4-20250514', name: 'Test', providerId: 'anthropic', capabilities: { supportsTools: true }, parameterDefinitions: [] } as Partial<TextModel> as TextModel,
+      connectionConfig: { apiKey: 'test-key' },
     } as TextModelConfig),
     getAllModels: vi.fn().mockResolvedValue([]),
     getEnabledModels: vi.fn().mockResolvedValue([]),
@@ -22,19 +103,7 @@ function makeMockModelManager(): IModelManager {
 
 function makeMockRegistry(): ITextAdapterRegistry {
   return {
-    getAdapter: vi.fn().mockReturnValue({
-      sendMessage: vi.fn().mockResolvedValue({ content: 'OK' }),
-      sendMessageStream: vi.fn().mockImplementation((_msgs, _cfg, callbacks) => {
-        callbacks.onToken('Step executed with output.');
-        callbacks.onComplete({ content: 'Step executed with output.' });
-        return Promise.resolve();
-      }),
-      getProvider: vi.fn().mockReturnValue({ id: 'openai', name: 'OpenAI' }),
-      getModels: vi.fn().mockReturnValue([]),
-      buildDefaultModel: vi.fn(),
-      sendImageUnderstanding: vi.fn(),
-      sendImageUnderstandingStream: vi.fn(),
-    }),
+    getAdapter: vi.fn(),
     getAllProviders: vi.fn().mockReturnValue([]),
     getStaticModels: vi.fn().mockReturnValue([]),
     getDynamicModels: vi.fn().mockResolvedValue([]),
@@ -129,7 +198,7 @@ describe('AgentService', () => {
     await expect(service.runStep(stepId)).rejects.toThrow('is not pending');
   });
 
-  it('createPlan emits plan_token and plan_complete events', async () => {
+  it('createPlan emits content and complete events', async () => {
     const events: AgentSSEEvent[] = [];
     await service.createPlan(
       { userMessage: 'event test', providerId: 'anthropic', modelKey: 'test' },

@@ -2,6 +2,9 @@
 'use strict';
 
 // [AGC:START] tool=Cc author=fangkun
+// Load .env file before anything else
+require('dotenv').config();
+
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
