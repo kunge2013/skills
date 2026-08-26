@@ -21,11 +21,12 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { getConfig, updateConfig, getExternalSourceCacheDir } = require('./config');
+const { getConfig, updateConfig, getExternalSourceCacheDir, getProviderByName, ALL_PROVIDERS } = require('./config');
 const { cloneRepo, pullRepo } = require('../utils/git');
 const { createSkillSymlink } = require('./symlink');
 
 const EXTERNAL_SOURCE_MARKER = '.external-source.json';
+const DEFAULT_PROVIDER = 'claude-code';
 
 /**
  * Parse a GitHub source string.
@@ -212,78 +213,118 @@ function parseSymlinkName(symlinkName) {
 }
 
 /**
- * Get the user-level skills directory.
+ * Get the user-level skills directory for a provider.
+ * @param {string} [providerName='claude-code'] - Provider name
  * @returns {string}
  */
-function getUserSkillsDir() {
+function getUserSkillsDir(providerName = DEFAULT_PROVIDER) {
+  const provider = getProviderByName(providerName);
+  if (provider) {
+    return provider.skillsDir;
+  }
+  // Fallback for backward compatibility
   return path.join(os.homedir(), '.claude', 'skills');
 }
 
 /**
- * Install an external skill to user scope via symlink.
+ * Get the disabled skills directory for a provider.
+ * @param {string} [providerName='claude-code'] - Provider name
+ * @returns {string}
+ */
+function getDisabledSkillsDir(providerName = DEFAULT_PROVIDER) {
+  const provider = getProviderByName(providerName);
+  if (provider) {
+    return provider.disabledDir;
+  }
+  // Fallback for backward compatibility
+  return path.join(os.homedir(), '.claude', 'skills', '.kungeskill-disabled');
+}
+
+/**
+ * Install an external skill to one or more providers via symlink.
  * @param {string} owner
  * @param {string} repo
  * @param {string} skillName
  * @param {string} sourcePath - Absolute path to skill in cache
  * @param {string} projectPath - Project path (for multi-level)
- * @returns {{success: boolean, linkPath: string, error?: string}}
+ * @param {string[]} [providers=ALL_PROVIDERS] - Provider names to install to
+ * @returns {{success: boolean, results: Array<{provider: string, linkPath: string, error?: string}>, error?: string}}
  */
-function installExternalSkill(owner, repo, skillName, sourcePath, projectPath = '') {
-  const userSkillsDir = getUserSkillsDir();
+function installExternalSkill(owner, repo, skillName, sourcePath, projectPath = '', providers = ALL_PROVIDERS) {
   const symlinkName = generateSymlinkName(owner, projectPath, skillName);
-  const linkPath = path.join(userSkillsDir, symlinkName);
+  const results = [];
 
-  try {
-    if (!fs.existsSync(userSkillsDir)) {
-      fs.mkdirSync(userSkillsDir, { recursive: true });
-    }
-
-    if (fs.existsSync(linkPath)) {
-      // Check if already linked to same source
-      try {
-        const stat = fs.lstatSync(linkPath);
-        if (stat.isSymbolicLink()) {
-          const target = fs.realpathSync(linkPath);
-          if (target === fs.realpathSync(sourcePath)) {
-            return { success: true, linkPath, alreadyInstalled: true };
-          }
-        }
-      } catch { /* ignore */ }
-
-      // Remove existing
-      fs.rmSync(linkPath, { recursive: true, force: true });
-    }
-
-    createSkillSymlink(sourcePath, linkPath);
-
-    // Write marker file for tracking
-    const marker = {
-      owner,
-      repo,
-      skillName,
-      projectPath,
-      sourcePath,
-      installedAt: new Date().toISOString()
+  // Validate providers array is not empty
+  if (!providers || providers.length === 0) {
+    return {
+      success: false,
+      results: [],
+      error: 'At least one provider is required'
     };
-    fs.writeFileSync(
-      path.join(linkPath, EXTERNAL_SOURCE_MARKER),
-      JSON.stringify(marker, null, 2),
-      'utf-8'
-    );
-
-    return { success: true, linkPath };
-  } catch (err) {
-    return { success: false, linkPath: '', error: err.message };
   }
+
+  for (const providerName of providers) {
+    const userSkillsDir = getUserSkillsDir(providerName);
+    const linkPath = path.join(userSkillsDir, symlinkName);
+
+    try {
+      if (!fs.existsSync(userSkillsDir)) {
+        fs.mkdirSync(userSkillsDir, { recursive: true });
+      }
+
+      if (fs.existsSync(linkPath)) {
+        // Check if already linked to same source
+        try {
+          const stat = fs.lstatSync(linkPath);
+          if (stat.isSymbolicLink()) {
+            const target = fs.realpathSync(linkPath);
+            if (target === fs.realpathSync(sourcePath)) {
+              results.push({ provider: providerName, linkPath, alreadyInstalled: true });
+              continue;
+            }
+          }
+        } catch { /* ignore */ }
+
+        // Remove existing
+        fs.rmSync(linkPath, { recursive: true, force: true });
+      }
+
+      createSkillSymlink(sourcePath, linkPath);
+
+      // Write marker file for tracking
+      const marker = {
+        owner,
+        repo,
+        skillName,
+        projectPath,
+        sourcePath,
+        providers,
+        installedAt: new Date().toISOString()
+      };
+      fs.writeFileSync(
+        path.join(linkPath, EXTERNAL_SOURCE_MARKER),
+        JSON.stringify(marker, null, 2),
+        'utf-8'
+      );
+
+      results.push({ provider: providerName, linkPath });
+    } catch (err) {
+      results.push({ provider: providerName, linkPath: '', error: err.message });
+    }
+  }
+
+  const allSuccess = results.every(r => !r.error);
+  return { success: allSuccess, results, error: allSuccess ? undefined : 'Some providers failed' };
 }
 
 /**
- * Uninstall an external skill.
+ * Uninstall an external skill from a specific provider.
  * @param {string} symlinkName
+ * @param {string} [providerName='claude-code'] - Provider name
  * @returns {{success: boolean, error?: string}}
  */
-function uninstallExternalSkill(symlinkName) {
-  const userSkillsDir = getUserSkillsDir();
+function uninstallExternalSkill(symlinkName, providerName = DEFAULT_PROVIDER) {
+  const userSkillsDir = getUserSkillsDir(providerName);
   const linkPath = path.join(userSkillsDir, symlinkName);
 
   try {
@@ -305,12 +346,13 @@ function uninstallExternalSkill(symlinkName) {
 }
 
 /**
- * List all external skills installed in user scope.
- * @returns {{owner: string, repo: string, projectPath: string, skillName: string, symlinkName: string, enabled: boolean, path: string}[]}
+ * List all external skills installed in a provider's user scope.
+ * @param {string} [providerName='claude-code'] - Provider name
+ * @returns {{owner: string, repo: string, projectPath: string, skillName: string, symlinkName: string, enabled: boolean, path: string, providers: string[]}[]}
  */
-function listExternalSkills() {
-  const userSkillsDir = getUserSkillsDir();
-  const disabledDir = path.join(userSkillsDir, '.kungeskill-disabled');
+function listExternalSkills(providerName = DEFAULT_PROVIDER) {
+  const userSkillsDir = getUserSkillsDir(providerName);
+  const disabledDir = getDisabledSkillsDir(providerName);
   const results = [];
 
   function scanDir(dir, enabled) {
@@ -349,7 +391,8 @@ function listExternalSkills() {
           skillName: marker.skillName,
           symlinkName: entry.name,
           enabled,
-          path: entryPath
+          path: entryPath,
+          providers: marker.providers || ALL_PROVIDERS
         });
       } catch {
         // Skip invalid markers
@@ -367,11 +410,17 @@ function listExternalSkills() {
  * Add an external source to config and sync it.
  * @param {string} sourceStr - "owner/repo" or "owner/repo/subdir"
  * @param {string} [branch='main']
+ * @param {string[]} [providers=ALL_PROVIDERS] - Provider names to install skills to
  * @returns {Promise<{success: boolean, source: object, error?: string}>}
  */
-async function addExternalSource(sourceStr, branch = 'main') {
+async function addExternalSource(sourceStr, branch = 'main', providers = ALL_PROVIDERS) {
   const { owner, repo, subdir } = parseSourceString(sourceStr);
   const config = getConfig();
+
+  // Validate providers array is not empty
+  if (!providers || providers.length === 0) {
+    return { success: false, source: null, error: 'At least one provider is required' };
+  }
 
   // Check if already exists
   const existing = config.externalSources.find(s => s.owner === owner && s.repo === repo);
@@ -385,6 +434,7 @@ async function addExternalSource(sourceStr, branch = 'main') {
     subdir,
     url: buildGitHubUrl(owner, repo),
     branch,
+    providers,
     addedAt: new Date().toISOString()
   };
 
@@ -417,8 +467,39 @@ function removeExternalSource(owner, repo) {
 }
 
 /**
+ * Update an external source's configuration (e.g., providers).
+ * @param {string} owner
+ * @param {string} repo
+ * @param {object} updates - Fields to update (e.g., { providers: [...] })
+ * @returns {{success: boolean, source?: object, error?: string}}
+ */
+function updateExternalSource(owner, repo, updates) {
+  const config = getConfig();
+  const source = config.externalSources.find(s => s.owner === owner && s.repo === repo);
+  if (!source) {
+    return { success: false, error: 'Source not found' };
+  }
+
+  // Validate providers if being updated
+  if (updates.providers !== undefined) {
+    if (!updates.providers || updates.providers.length === 0) {
+      return { success: false, error: 'At least one provider is required' };
+    }
+    source.providers = updates.providers;
+  }
+
+  // Update branch if provided
+  if (updates.branch !== undefined) {
+    source.branch = updates.branch;
+  }
+
+  updateConfig(config);
+  return { success: true, source: listExternalSources().find(s => s.owner === owner && s.repo === repo) };
+}
+
+/**
  * List all configured external sources with their cached status.
- * @returns {{owner: string, repo: string, url: string, branch: string, cached: boolean, cacheDir: string}[]}
+ * @returns {{owner: string, repo: string, url: string, branch: string, cached: boolean, cacheDir: string, providers: string[]}[]}
  */
 function listExternalSources() {
   const config = getConfig();
@@ -428,6 +509,7 @@ function listExternalSources() {
     subdir: s.subdir || '',
     url: s.url,
     branch: s.branch,
+    providers: s.providers || ALL_PROVIDERS,
     cached: isSourceCached(s.owner, s.repo),
     cacheDir: getSourceCacheDir(s.owner, s.repo)
   }));
@@ -435,20 +517,26 @@ function listExternalSources() {
 
 /**
  * Discover all skills from all external sources.
- * @returns {{owner: string, repo: string, projectPath: string, skillName: string, sourcePath: string, installed: boolean, symlinkName?: string}[]}
+ * @returns {{owner: string, repo: string, projectPath: string, skillName: string, sourcePath: string, installed: boolean, symlinkName?: string, providers: string[]}[]}
  */
 function discoverExternalSkills() {
   const sources = listExternalSources();
-  const installed = listExternalSkills();
   const skills = [];
 
   for (const source of sources) {
     if (!source.cached) continue;
 
     const found = findSkillsInSource(source.cacheDir, source.subdir);
+    // Check installation status across all providers for this source
+    const installedSkills = [];
+    for (const providerName of source.providers) {
+      const installed = listExternalSkills(providerName);
+      installedSkills.push(...installed);
+    }
+
     for (const skill of found) {
       const symlinkName = generateSymlinkName(source.owner, skill.projectPath, skill.skillName);
-      const isInstalled = installed.some(s => s.symlinkName === symlinkName);
+      const isInstalled = installedSkills.some(s => s.symlinkName === symlinkName);
 
       skills.push({
         owner: source.owner,
@@ -457,7 +545,8 @@ function discoverExternalSkills() {
         skillName: skill.skillName,
         sourcePath: skill.path,
         installed: isInstalled,
-        symlinkName
+        symlinkName,
+        providers: source.providers
       });
     }
   }
@@ -475,13 +564,16 @@ module.exports = {
   generateSymlinkName,
   parseSymlinkName,
   getUserSkillsDir,
+  getDisabledSkillsDir,
   installExternalSkill,
   uninstallExternalSkill,
   listExternalSkills,
   addExternalSource,
+  updateExternalSource,
   removeExternalSource,
   listExternalSources,
   discoverExternalSkills,
-  EXTERNAL_SOURCE_MARKER
+  EXTERNAL_SOURCE_MARKER,
+  DEFAULT_PROVIDER
 };
 // [AGC:END]

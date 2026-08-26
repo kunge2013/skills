@@ -4,30 +4,27 @@
 /**
  * Skill enable/disable management (User-scope only).
  *
- * Claude Code discovers skills by scanning the direct children of
- * `~/.claude/skills/` for a SKILL.md.
- * There is no built-in "disabled" state, so this module implements one by
- * moving a skill directory into a hidden sibling folder:
+ * Supports multiple providers (Claude Code and Pi Agent).
+ * Each provider has its own skills directory.
  *
- *   enabled:  ~/.claude/skills/<skillName>/            (discovered by Claude Code)
- *   disabled: ~/.claude/skills/.kungeskill-disabled/<skillName>/   (ignored)
- *
- * Only user scope is managed here. Project scope is handled by Claude Code directly.
+ * Skills are enabled/disabled by moving directories between:
+ *   enabled:  <provider.skillsDir>/<skillName>/
+ *   disabled: <provider.disabledDir>/<skillName>/
  *
  * External skills (from GitHub) use a special naming convention:
  *   <owner>__<project>__<skillName>  (multi-level: owner/project/skill)
  *   <owner>__<skillName>             (single-level: owner/skill)
- *
- * This allows grouping by owner and project in the UI.
  */
 
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { parseSymlinkName, EXTERNAL_SOURCE_MARKER } = require('./external-source');
+const { getProviderByName } = require('./config');
 
 const DISABLED_DIR_NAME = '.kungeskill-disabled';
 const UNKNOWN_AUTHOR = 'Unknown';
+const DEFAULT_PROVIDER = 'claude-code';
 
 // ---------- helpers ----------
 
@@ -39,14 +36,29 @@ function readJsonSafe(fp) {
   }
 }
 
-/** Absolute path of ~/.claude/skills */
-function getUserSkillsDir() {
+/** Absolute path of provider's skills directory */
+function getUserSkillsDir(providerName = DEFAULT_PROVIDER) {
+  const provider = getProviderByName(providerName);
+  if (provider) {
+    return provider.skillsDir;
+  }
+  // Fallback for backward compatibility
   return path.join(os.homedir(), '.claude', 'skills');
 }
 
 /** Hidden folder inside a skills dir where disabled skills are parked. */
 function getDisabledDir(skillsDir) {
   return path.join(skillsDir, DISABLED_DIR_NAME);
+}
+
+/** Get the disabled directory for a provider */
+function getProviderDisabledDir(providerName = DEFAULT_PROVIDER) {
+  const provider = getProviderByName(providerName);
+  if (provider) {
+    return provider.disabledDir;
+  }
+  // Fallback for backward compatibility
+  return path.join(os.homedir(), '.claude', 'skills', '.kungeskill-disabled');
 }
 
 /**
@@ -202,12 +214,13 @@ function makeSkillEntry(skillName, currentPath, skillsDir, enabled) {
 }
 
 /**
- * List all skills in user scope (enabled + disabled).
+ * List all skills in user scope for a provider (enabled + disabled).
  * A directory qualifies as a skill when it contains SKILL.md.
  * Symlinks/junctions are followed; broken links are skipped.
+ * @param {string} [providerName='claude-code'] - Provider name
  */
-function listUserSkills() {
-  const dir = getUserSkillsDir();
+function listUserSkills(providerName = DEFAULT_PROVIDER) {
+  const dir = getUserSkillsDir(providerName);
   const out = [];
   if (!fs.existsSync(dir)) return out;
 
@@ -252,20 +265,23 @@ function listUserSkills() {
 /**
  * Group skills by owner, then by project (for external skills).
  *
+ * @param {string} [providerName='claude-code'] - Provider name
  * @returns {{
+ *   provider: string,
  *   userSkillsDir: string,
  *   groups: {owner: string, total: number, enabledCount: number,
  *            projects: {projectPath: string, total: number, enabledCount: number,
  *                       skills: object[]}[]}[]}
  */
-function listSkillToggleState() {
-  const userSkillsDir = getUserSkillsDir();
-  const all = listUserSkills();
+function listSkillToggleState(providerName = DEFAULT_PROVIDER) {
+  const userSkillsDir = getUserSkillsDir(providerName);
+  const all = listUserSkills(providerName);
 
   // Group by owner
   const ownerMap = new Map();
   for (const skill of all) {
-    const owner = skill.owner || skill.author || UNKNOWN_AUTHOR;
+    // Use skill.author if skill.owner is 'Unknown' or empty
+    const owner = (skill.owner && skill.owner !== UNKNOWN_AUTHOR) ? skill.owner : (skill.author || UNKNOWN_AUTHOR);
     if (!ownerMap.has(owner)) ownerMap.set(owner, []);
     ownerMap.get(owner).push(skill);
   }
@@ -306,6 +322,7 @@ function listSkillToggleState() {
   }
 
   return {
+    provider: providerName,
     userSkillsDir,
     exists: fs.existsSync(userSkillsDir),
     groups: groups.sort((a, b) => a.owner.localeCompare(b.owner))
@@ -326,20 +343,22 @@ function isValidSkillName(skillName) {
 
 /**
  * Enable or disable a single skill by moving its directory between
- * `~/.claude/skills/<name>` and `~/.claude/skills/.kungeskill-disabled/<name>`.
+ * `<provider.skillsDir>/<name>` and `<provider.disabledDir>/<name>`.
  *
  * @param {string} skillName
  * @param {boolean} enabled - true to enable, false to disable
+ * @param {string} [providerName='claude-code'] - Provider name
  * @returns {{success: boolean, error?: string, already?: boolean, path?: string}}
  */
-function setSkillEnabled(skillName, enabled) {
+function setSkillEnabled(skillName, enabled, providerName = DEFAULT_PROVIDER) {
   if (!isValidSkillName(skillName)) {
     return { success: false, error: 'Invalid skill name: ' + skillName };
   }
 
-  const dir = getUserSkillsDir();
+  const dir = getUserSkillsDir(providerName);
+  const disabledDir = getProviderDisabledDir(providerName);
   const enabledPath = path.join(dir, skillName);
-  const disabledPath = path.join(getDisabledDir(dir), skillName);
+  const disabledPath = path.join(disabledDir, skillName);
   const hasEnabled = fs.existsSync(enabledPath);
   const hasDisabled = fs.existsSync(disabledPath);
 
@@ -365,7 +384,7 @@ function setSkillEnabled(skillName, enabled) {
       if (hasDisabled) return { success: true, already: true, path: disabledPath };
       return { success: false, error: `Skill not found: ${skillName}` };
     }
-    fs.mkdirSync(getDisabledDir(dir), { recursive: true });
+    fs.mkdirSync(disabledDir, { recursive: true });
     fs.renameSync(enabledPath, disabledPath);
     return { success: true, path: disabledPath };
   } catch (err) {
@@ -379,11 +398,12 @@ function setSkillEnabled(skillName, enabled) {
  *
  * @param {string} owner
  * @param {boolean} enabled
+ * @param {string} [providerName='claude-code'] - Provider name
  * @returns {{success: boolean, data: {changed: number, results: any[]}, error?: string}}
  */
-function setOwnerSkillsEnabled(owner, enabled) {
+function setOwnerSkillsEnabled(owner, enabled, providerName = DEFAULT_PROVIDER) {
   if (!owner) return { success: false, error: 'owner is required', data: { changed: 0, results: [] } };
-  const state = listSkillToggleState();
+  const state = listSkillToggleState(providerName);
   const results = [];
 
   for (const group of state.groups) {
@@ -391,7 +411,7 @@ function setOwnerSkillsEnabled(owner, enabled) {
     for (const project of group.projects) {
       for (const skill of project.skills) {
         if (skill.enabled === enabled) continue;
-        const r = setSkillEnabled(skill.skillName, enabled);
+        const r = setSkillEnabled(skill.skillName, enabled, providerName);
         results.push({ skillName: skill.skillName, success: r.success, error: r.error });
       }
     }
@@ -408,11 +428,12 @@ function setOwnerSkillsEnabled(owner, enabled) {
  * @param {string} owner
  * @param {string} projectPath
  * @param {boolean} enabled
+ * @param {string} [providerName='claude-code'] - Provider name
  * @returns {{success: boolean, data: {changed: number, results: any[]}, error?: string}}
  */
-function setProjectSkillsEnabled(owner, projectPath, enabled) {
+function setProjectSkillsEnabled(owner, projectPath, enabled, providerName = DEFAULT_PROVIDER) {
   if (!owner) return { success: false, error: 'owner is required', data: { changed: 0, results: [] } };
-  const state = listSkillToggleState();
+  const state = listSkillToggleState(providerName);
   const results = [];
 
   for (const group of state.groups) {
@@ -421,7 +442,7 @@ function setProjectSkillsEnabled(owner, projectPath, enabled) {
       if (project.projectPath !== projectPath) continue;
       for (const skill of project.skills) {
         if (skill.enabled === enabled) continue;
-        const r = setSkillEnabled(skill.skillName, enabled);
+        const r = setSkillEnabled(skill.skillName, enabled, providerName);
         results.push({ skillName: skill.skillName, success: r.success, error: r.error });
       }
     }
@@ -435,8 +456,10 @@ function setProjectSkillsEnabled(owner, projectPath, enabled) {
 module.exports = {
   DISABLED_DIR_NAME,
   UNKNOWN_AUTHOR,
+  DEFAULT_PROVIDER,
   getUserSkillsDir,
   getDisabledDir,
+  getProviderDisabledDir,
   listSkillToggleState,
   setSkillEnabled,
   setOwnerSkillsEnabled,

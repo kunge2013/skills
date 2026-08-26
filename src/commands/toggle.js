@@ -4,24 +4,27 @@
 // [AGC:START] tool=Cc author=fangkun
 /**
  * CLI for skill enable/disable management (User-scope only).
+ * Supports multiple providers (Claude Code and Pi Agent).
  *
- *   kungeskill toggle list [--json]     list skills grouped by owner/project with status
- *   kungeskill toggle on <name>         enable a skill
- *   kungeskill toggle off <name>        disable a skill
- *   kungeskill toggle owner <owner> on|off   batch toggle by owner
- *   kungeskill toggle project <owner> <project> on|off  batch toggle by project
- *   kungeskill toggle source add <owner/repo>  add external skill source
+ *   kungeskill toggle list [--json] [--provider <name>]     list skills grouped by owner/project with status
+ *   kungeskill toggle on <name> [--provider <name>]         enable a skill
+ *   kungeskill toggle off <name> [--provider <name>]        disable a skill
+ *   kungeskill toggle owner <owner> on|off [--provider <name>]   batch toggle by owner
+ *   kungeskill toggle project <owner> <project> on|off [--provider <name>]  batch toggle by project
+ *   kungeskill toggle source add <owner/repo> [--providers <name1,name2>]  add external skill source
  *   kungeskill toggle source remove <owner/repo>  remove external skill source
  *   kungeskill toggle source list       list external skill sources
  *   kungeskill toggle source sync <owner/repo>  sync external source
  *
- * Disabling moves the skill directory into ~/.claude/skills/.kungeskill-disabled/,
- * which Claude Code does not scan, so the skill is no longer loaded.
+ * Disabling moves the skill directory into <provider>.skillsDir/.kungeskill-disabled/,
+ * which the agent does not scan, so the skill is no longer loaded.
  */
 
 const { listSkillToggleState, setSkillEnabled, setOwnerSkillsEnabled, setProjectSkillsEnabled } = require('../core/skill-toggle.js');
 const { addExternalSource, removeExternalSource, listExternalSources, syncExternalSource, discoverExternalSkills } = require('../core/external-source.js');
 const logger = require('../utils/logger');
+
+const DEFAULT_PROVIDER = 'claude-code';
 
 function parseArgs(args) {
   const positional = [];
@@ -29,7 +32,13 @@ function parseArgs(args) {
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === '--json') flags.json = true;
-    else positional.push(a);
+    else if (a === '--provider' && args[i + 1]) {
+      flags.provider = args[i + 1];
+      i++;
+    } else if (a === '--providers' && args[i + 1]) {
+      flags.providers = args[i + 1].split(',').map(s => s.trim()).filter(Boolean);
+      i++;
+    } else positional.push(a);
   }
   return { positional, flags };
 }
@@ -37,17 +46,19 @@ function parseArgs(args) {
 async function cmdToggle(argv) {
   const { positional, flags } = parseArgs(argv);
   const sub = positional[0];
+  const provider = flags.provider || DEFAULT_PROVIDER;
 
   if (sub === 'list') {
-    const state = listSkillToggleState();
+    const state = listSkillToggleState(provider);
     if (flags.json) {
       console.log(JSON.stringify(state, null, 2));
       return;
     }
     if (!state.groups.length) {
-      logger.info('No installed skills found.');
+      logger.info(`No installed skills found for provider: ${provider}`);
       return;
     }
+    logger.info(`Provider: ${provider}`);
     logger.info(`User skills directory: ${state.userSkillsDir}`);
     for (const g of state.groups) {
       logger.info(`[${g.owner}]  (${g.enabledCount}/${g.total} enabled)`);
@@ -67,12 +78,12 @@ async function cmdToggle(argv) {
   if (sub === 'on' || sub === 'off') {
     const skillName = positional[1];
     if (!skillName) {
-      logger.error(`Usage: kungeskill toggle ${sub} <skill>`);
+      logger.error(`Usage: kungeskill toggle ${sub} <skill> [--provider <name>]`);
       process.exitCode = 1;
       return;
     }
     const enabled = sub === 'on';
-    const r = setSkillEnabled(skillName, enabled);
+    const r = setSkillEnabled(skillName, enabled, provider);
     if (r.success) {
       logger.success(r.already ? `Already ${sub}: ${skillName}` : `${enabled ? 'Enabled' : 'Disabled'} ${skillName}`);
     } else {
@@ -86,11 +97,11 @@ async function cmdToggle(argv) {
     const owner = positional[1];
     const state = positional[2];
     if (!owner || (state !== 'on' && state !== 'off')) {
-      logger.error('Usage: kungeskill toggle owner <owner> on|off');
+      logger.error('Usage: kungeskill toggle owner <owner> on|off [--provider <name>]');
       process.exitCode = 1;
       return;
     }
-    const r = setOwnerSkillsEnabled(owner, state === 'on');
+    const r = setOwnerSkillsEnabled(owner, state === 'on', provider);
     if (r.success) {
       logger.success(`${state === 'on' ? 'Enabled' : 'Disabled'} ${r.data.changed} skill(s) by ${owner}`);
     } else {
@@ -107,11 +118,11 @@ async function cmdToggle(argv) {
     const project = positional[2];
     const state = positional[3];
     if (!owner || !project || (state !== 'on' && state !== 'off')) {
-      logger.error('Usage: kungeskill toggle project <owner> <project> on|off');
+      logger.error('Usage: kungeskill toggle project <owner> <project> on|off [--provider <name>]');
       process.exitCode = 1;
       return;
     }
-    const r = setProjectSkillsEnabled(owner, project, state === 'on');
+    const r = setProjectSkillsEnabled(owner, project, state === 'on', provider);
     if (r.success) {
       logger.success(`${state === 'on' ? 'Enabled' : 'Disabled'} ${r.data.changed} skill(s) in ${owner}/${project}`);
     } else {
@@ -129,13 +140,14 @@ async function cmdToggle(argv) {
 
     if (sourceCmd === 'add') {
       if (!sourceStr) {
-        logger.error('Usage: kungeskill toggle source add <owner/repo> [branch]');
+        logger.error('Usage: kungeskill toggle source add <owner/repo> [branch] [--providers <name1,name2>]');
         process.exitCode = 1;
         return;
       }
       const branch = positional[3] || 'main';
-      logger.info(`Adding external source: ${sourceStr} (branch: ${branch})...`);
-      const r = await addExternalSource(sourceStr, branch);
+      const providers = flags.providers || [DEFAULT_PROVIDER];
+      logger.info(`Adding external source: ${sourceStr} (branch: ${branch}, providers: ${providers.join(',')})...`);
+      const r = await addExternalSource(sourceStr, branch, providers);
       if (r.success) {
         logger.success(`Added source: ${r.source.owner}/${r.source.repo}`);
         // Discover and list available skills
@@ -184,7 +196,8 @@ async function cmdToggle(argv) {
       }
       for (const s of sources) {
         const cached = s.cached ? 'cached' : 'not cached';
-        logger.info(`${s.owner}/${s.repo} (${s.branch}) - ${cached}`);
+        const providers = (s.providers || [DEFAULT_PROVIDER]).join(',');
+        logger.info(`${s.owner}/${s.repo} (${s.branch}) - ${cached} [providers: ${providers}]`);
         logger.info(`  URL: ${s.url}`);
       }
       return;
@@ -218,7 +231,7 @@ async function cmdToggle(argv) {
     return;
   }
 
-  logger.error('Usage: kungeskill toggle list|on|off|owner|project|source [args] [--json]');
+  logger.error('Usage: kungeskill toggle list|on|off|owner|project|source [args] [--json] [--provider <name>] [--providers <name1,name2>]');
   process.exitCode = 1;
 }
 

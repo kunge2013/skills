@@ -1,6 +1,6 @@
 {
   "name": "kungeskill",
-  "version": "0.13.1",
+  "version": "0.13.4",
   "description": "Manage Claude Code skills via symlinks — install, remove, update skills from a marketplace cache",
   "main": "src/cli.js",
   "bin": {
@@ -11,6 +11,7 @@
   },
   "files": [
     "src/**/*.js",
+    "src/**/*.ts",
     "plugins/**/*",
     ".claude-plugin/**/*",
     "web/dist/**/*"
@@ -53,6 +54,7 @@
     "express": "^5.2.1",
     "express-rate-limit": "^7.5.1",
     "openai": "^4.104.0",
+    "tsx": "^4.23.0",
     "uuid": "^14.0.1"
   },
   "devDependencies": {
@@ -64,7 +66,6 @@
     "@types/uuid": "^10.0.0",
     "supertest": "^7.2.2",
     "tsup": "^8.3.0",
-    "tsx": "^4.23.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.9"
   }

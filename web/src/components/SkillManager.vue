@@ -15,6 +15,20 @@
         </el-tooltip>
       </div>
     </div>
+
+    <!-- Provider Tabs -->
+    <div class="provider-tabs">
+      <el-radio-group v-model="currentProvider" size="small">
+        <el-radio-button
+          v-for="p in providers"
+          :key="p.name"
+          :value="p.name"
+        >
+          {{ p.label }}
+        </el-radio-button>
+      </el-radio-group>
+    </div>
+
     <div class="manager-hint">{{ $t('manager.hint') }}</div>
 
     <!-- Tree -->
@@ -52,7 +66,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import type { TreeInstance } from 'element-plus'
 import { Refresh, User, Document, Folder } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
@@ -79,6 +93,7 @@ interface ManagedSource {
   totalSkills: number
   enabledCount: number
   categories: CategoryNode[]
+  providers?: string[]
 }
 
 interface TreeNode {
@@ -93,6 +108,8 @@ interface TreeNode {
   children?: TreeNode[]
 }
 
+type ProviderName = 'claude-code' | 'pi-agent' | 'codex'
+
 const { t } = useI18n()
 const loading = ref(false)
 const busy = ref(false)
@@ -100,6 +117,19 @@ const sources = ref<ManagedSource[]>([])
 const treeData = ref<TreeNode[]>([])
 const treeRef = ref<TreeInstance>()
 const treeKey = ref(0)
+
+// Provider state
+const currentProvider = ref<ProviderName>('claude-code')
+const providers: { name: ProviderName; label: string }[] = [
+  { name: 'claude-code', label: 'Claude Code' },
+  { name: 'pi-agent', label: 'Pi Agent' },
+  { name: 'codex', label: 'Codex' }
+]
+
+// Watch provider change to reload data
+watch(currentProvider, () => {
+  loadData()
+})
 
 const enabledCount = computed(() =>
   sources.value.reduce((sum, s) =>
@@ -160,7 +190,7 @@ function formatCategoryName(name: string): string {
 async function loadData() {
   loading.value = true
   try {
-    const r = await window.api.listManagedSkills()
+    const r = await window.api.listManagedSkills(currentProvider.value)
     if (r.success && r.data) {
       sources.value = r.data as ManagedSource[]
       treeData.value = buildTree()
@@ -183,7 +213,7 @@ async function onCheck(data: any, checkState: { checkedKeys: (string | number)[]
 
     if (data.type === 'skill') {
       // Toggle single skill
-      const r = await window.api.toggleManagedSkill(data.owner, data.repo, data.category, data.skillName, checked)
+      const r = await window.api.toggleManagedSkill(data.owner, data.repo, data.category, data.skillName, checked, currentProvider.value)
       if (!r.success) {
         ElMessage.error(r.error || t('manager.toggleFailed'))
       }
@@ -195,7 +225,7 @@ async function onCheck(data: any, checkState: { checkedKeys: (string | number)[]
       if (!cat) return
       for (const skill of cat.skills) {
         if (skill.enabled === checked) continue
-        await window.api.toggleManagedSkill(data.owner, data.repo, data.category, skill.name, checked)
+        await window.api.toggleManagedSkill(data.owner, data.repo, data.category, skill.name, checked, currentProvider.value)
       }
     } else if (data.type === 'owner') {
       // Toggle all skills for this owner
@@ -204,7 +234,7 @@ async function onCheck(data: any, checkState: { checkedKeys: (string | number)[]
       for (const cat of source.categories) {
         for (const skill of cat.skills) {
           if (skill.enabled === checked) continue
-          await window.api.toggleManagedSkill(data.owner, data.repo, cat.name, skill.name, checked)
+          await window.api.toggleManagedSkill(data.owner, data.repo, cat.name, skill.name, checked, currentProvider.value)
         }
       }
     }
@@ -250,6 +280,12 @@ onMounted(loadData)
 .summary {
   font-size: 12px;
   color: #909399;
+}
+
+.provider-tabs {
+  margin-bottom: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #e4e7ed;
 }
 
 .manager-hint {

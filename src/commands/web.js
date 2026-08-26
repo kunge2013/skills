@@ -15,11 +15,11 @@ const { parseMarketplace, findSkillMerged } = require('../core/registry.js');
 const { createSkillSymlink, removeSkillSymlink, getSymlinkStatus, copyDirRecursive } = require('../core/symlink.js');
 const { copyInstallSkill, uninstallCopySkill, getCopyInstallStatus } = require('../core/copy-install.js');
 const { listSkillToggleState, setSkillEnabled, setOwnerSkillsEnabled, setProjectSkillsEnabled } = require('../core/skill-toggle.js');
-const { addExternalSource, removeExternalSource, listExternalSources, syncExternalSource, discoverExternalSkills, installExternalSkill } = require('../core/external-source.js');
+const { addExternalSource, updateExternalSource, removeExternalSource, listExternalSources, syncExternalSource, discoverExternalSkills, installExternalSkill } = require('../core/external-source.js');
 const { getAllManagedSources, toggleSkill, enableCategory, disableCategory, enableAllSkills, disableAllSkills } = require('../core/skill-manager.js');
 const { findProjectSkillsDir } = require('../commands/shared.js');
 const { cloneRepo, pullRepo } = require('../utils/git.js');
-const { getConfig, updateConfig, getExternalSourceCacheDir } = require('../core/config.js');
+const { getConfig, updateConfig, getExternalSourceCacheDir, ALL_PROVIDERS } = require('../core/config.js');
 
 const pkgRoot = path.resolve(__dirname, '../..');
 const rendererDist = path.join(pkgRoot, 'web', 'dist');
@@ -590,36 +590,37 @@ function createServer(port) {
             case '/api/skill/save-file': result = saveFileContent(body?.path || '', body?.content || '', body?.expectedMtime); break;
             case '/api/skill/batch-save': result = batchSaveFiles(body?.files || []); break;
             // Skill enable/disable management (owner/project-grouped, user scope only)
-            case '/api/skill-toggle/list': result = { success: true, data: listSkillToggleState() }; break;
-            case '/api/skill-toggle/set': result = setSkillEnabled(body?.skillName, !!body?.enabled); break;
-            case '/api/skill-toggle/owner': result = setOwnerSkillsEnabled(body?.owner, !!body?.enabled); break;
-            case '/api/skill-toggle/project': result = setProjectSkillsEnabled(body?.owner, body?.projectPath, !!body?.enabled); break;
+            case '/api/skill-toggle/list': result = { success: true, data: listSkillToggleState(body?.provider || 'claude-code') }; break;
+            case '/api/skill-toggle/set': result = setSkillEnabled(body?.skillName, !!body?.enabled, body?.provider || 'claude-code'); break;
+            case '/api/skill-toggle/owner': result = setOwnerSkillsEnabled(body?.owner, !!body?.enabled, body?.provider || 'claude-code'); break;
+            case '/api/skill-toggle/project': result = setProjectSkillsEnabled(body?.owner, body?.projectPath, !!body?.enabled, body?.provider || 'claude-code'); break;
             // External source management
             case '/api/external-sources/list': result = { success: true, data: listExternalSources() }; break;
-            case '/api/external-sources/add': result = await addExternalSource(body?.source, body?.branch || 'main'); break;
+            case '/api/external-sources/add': result = await addExternalSource(body?.source, body?.branch || 'main', body?.providers || ALL_PROVIDERS); break;
+            case '/api/external-sources/update': result = updateExternalSource(body?.owner, body?.repo, { providers: body?.providers, branch: body?.branch }); break;
             case '/api/external-sources/remove': result = removeExternalSource(body?.owner, body?.repo); break;
             case '/api/external-sources/sync': result = await syncExternalSource(body?.owner, body?.repo); break;
             case '/api/external-sources/discover': result = { success: true, data: discoverExternalSkills() }; break;
-            case '/api/external-sources/install': result = installExternalSkill(body?.owner, body?.repo, body?.skillName, body?.sourcePath, body?.projectPath || ''); break;
+            case '/api/external-sources/install': result = installExternalSkill(body?.owner, body?.repo, body?.skillName, body?.sourcePath, body?.projectPath || '', body?.providers || ALL_PROVIDERS); break;
             // Skill manager - tree view enable/disable
-            case '/api/skill-manager/list': result = { success: true, data: getAllManagedSources() }; break;
+            case '/api/skill-manager/list': result = { success: true, data: getAllManagedSources(body?.provider || 'claude-code') }; break;
             case '/api/skill-manager/toggle': {
               const sourceDir = getExternalSourceCacheDir(body?.owner, body?.repo);
-              result = toggleSkill(body?.owner, body?.category, body?.skillName, sourceDir, !!body?.enabled);
+              result = toggleSkill(body?.owner, body?.category, body?.skillName, sourceDir, !!body?.enabled, body?.provider || 'claude-code');
               break;
             }
             case '/api/skill-manager/category-enable': {
               const sourceDir = getExternalSourceCacheDir(body?.owner, body?.repo);
-              result = enableCategory(body?.owner, body?.category, sourceDir);
+              result = enableCategory(body?.owner, body?.category, sourceDir, body?.provider || 'claude-code');
               break;
             }
-            case '/api/skill-manager/category-disable': result = disableCategory(body?.owner, body?.category); break;
+            case '/api/skill-manager/category-disable': result = disableCategory(body?.owner, body?.category, body?.provider || 'claude-code'); break;
             case '/api/skill-manager/enable-all': {
               const sourceDir = getExternalSourceCacheDir(body?.owner, body?.repo);
-              result = enableAllSkills(body?.owner, sourceDir);
+              result = enableAllSkills(body?.owner, sourceDir, body?.provider || 'claude-code');
               break;
             }
-            case '/api/skill-manager/disable-all': result = disableAllSkills(body?.owner); break;
+            case '/api/skill-manager/disable-all': result = disableAllSkills(body?.owner, body?.provider || 'claude-code'); break;
             // Git proxy configuration
             case '/api/config/git-proxy': result = { success: true, data: getConfig()?.git?.proxy || { enabled: false, url: '' } }; break;
             case '/api/config/git-proxy/set': {
@@ -699,24 +700,25 @@ window.api = {
   readSkillFile: function(p) { return this._post('/skill/read-file', { path: p }); },
   saveSkillFile: function(p, c, m) { return this._post('/skill/save-file', { path: p, content: c, expectedMtime: m }); },
   batchSaveFiles: function(files) { return this._post('/skill/batch-save', { files }); },
-  listSkillToggleState: function() { return this._post('/skill-toggle/list'); },
-  setSkillEnabled: function(n, e) { return this._post('/skill-toggle/set', { skillName: n, enabled: e }); },
-  setOwnerSkillsEnabled: function(o, e) { return this._post('/skill-toggle/owner', { owner: o, enabled: e }); },
-  setProjectSkillsEnabled: function(o, p, e) { return this._post('/skill-toggle/project', { owner: o, projectPath: p, enabled: e }); },
+  listSkillToggleState: function(provider) { return this._post('/skill-toggle/list', { provider: provider || 'claude-code' }); },
+  setSkillEnabled: function(n, e, provider) { return this._post('/skill-toggle/set', { skillName: n, enabled: e, provider: provider || 'claude-code' }); },
+  setOwnerSkillsEnabled: function(o, e, provider) { return this._post('/skill-toggle/owner', { owner: o, enabled: e, provider: provider || 'claude-code' }); },
+  setProjectSkillsEnabled: function(o, p, e, provider) { return this._post('/skill-toggle/project', { owner: o, projectPath: p, enabled: e, provider: provider || 'claude-code' }); },
   listExternalSources: function() { return this._post('/external-sources/list'); },
-  addExternalSource: function(s, b) { return this._post('/external-sources/add', { source: s, branch: b }); },
+  addExternalSource: function(s, b, providers) { return this._post('/external-sources/add', { source: s, branch: b, providers: providers || ALL_PROVIDERS }); },
+  updateExternalSource: function(o, r, updates) { return this._post('/external-sources/update', { owner: o, repo: r, ...updates }); },
   removeExternalSource: function(o, r) { return this._post('/external-sources/remove', { owner: o, repo: r }); },
   syncExternalSource: function(o, r) { return this._post('/external-sources/sync', { owner: o, repo: r }); },
   discoverExternalSkills: function() { return this._post('/external-sources/discover'); },
-  installExternalSkill: function(o, r, sn, sp, pp) { return this._post('/external-sources/install', { owner: o, repo: r, skillName: sn, sourcePath: sp, projectPath: pp }); },
+  installExternalSkill: function(o, r, sn, sp, pp, providers) { return this._post('/external-sources/install', { owner: o, repo: r, skillName: sn, sourcePath: sp, projectPath: pp, providers: providers || ALL_PROVIDERS }); },
   getGitProxy: function() { return this._post('/config/git-proxy'); },
   setGitProxy: function(e, u) { return this._post('/config/git-proxy/set', { enabled: e, url: u }); },
-  listManagedSkills: function() { return this._post('/skill-manager/list'); },
-  toggleManagedSkill: function(o, r, c, sn, e) { return this._post('/skill-manager/toggle', { owner: o, repo: r, category: c, skillName: sn, enabled: e }); },
-  enableCategory: function(o, r, c) { return this._post('/skill-manager/category-enable', { owner: o, repo: r, category: c }); },
-  disableCategory: function(o, c) { return this._post('/skill-manager/category-disable', { owner: o, category: c }); },
-  enableAllManagedSkills: function(o, r) { return this._post('/skill-manager/enable-all', { owner: o, repo: r }); },
-  disableAllManagedSkills: function(o) { return this._post('/skill-manager/disable-all', { owner: o }); },
+  listManagedSkills: function(provider) { return this._post('/skill-manager/list', { provider: provider || 'claude-code' }); },
+  toggleManagedSkill: function(o, r, c, sn, e, provider) { return this._post('/skill-manager/toggle', { owner: o, repo: r, category: c, skillName: sn, enabled: e, provider: provider || 'claude-code' }); },
+  enableCategory: function(o, r, c, provider) { return this._post('/skill-manager/category-enable', { owner: o, repo: r, category: c, provider: provider || 'claude-code' }); },
+  disableCategory: function(o, c, provider) { return this._post('/skill-manager/category-disable', { owner: o, category: c, provider: provider || 'claude-code' }); },
+  enableAllManagedSkills: function(o, r, provider) { return this._post('/skill-manager/enable-all', { owner: o, repo: r, provider: provider || 'claude-code' }); },
+  disableAllManagedSkills: function(o, provider) { return this._post('/skill-manager/disable-all', { owner: o, provider: provider || 'claude-code' }); },
   onFileChanged: function() { return function() {}; }
 };
 </script></body>`;
@@ -770,6 +772,7 @@ async function cmdWeb() {
 /**
  * Start the prompt Express server internally and proxy /api/v1/* to it.
  */
+// [AGC:START] tool=Cc author=fangkun
 async function startInternalPromptServer() {
   const { spawn } = require('child_process');
 
@@ -779,15 +782,47 @@ async function startInternalPromptServer() {
   const serverEntry = path.join(serverDir, 'prompt-server.ts');
   const projectRoot = path.resolve(__dirname, '../..');
 
-  // Find tsx
-  const tsxPath = [
-    path.join(projectRoot, 'node_modules', 'tsx', 'dist', 'cli.mjs'),
-  ].find(p => fs.existsSync(p));
+  // Find tsx - use require.resolve for robustness across npm install layouts
+  let tsxPath = null;
+  try {
+    tsxPath = require.resolve('tsx/dist/cli.mjs');
+  } catch {
+    // Fallback: look in projectRoot/node_modules
+    const fallback = path.join(projectRoot, 'node_modules', 'tsx', 'dist', 'cli.mjs');
+    if (fs.existsSync(fallback)) tsxPath = fallback;
+  }
 
   if (!tsxPath) {
     logger.warn('tsx not found, prompt API will be unavailable');
     promptServerPort = 0;
     return;
+  }
+
+  // Helper: check if a port already has a healthy prompt server
+  async function isHealthy(port) {
+    return new Promise((resolve) => {
+      const testReq = http.get(`http://127.0.0.1:${port}/health`, (res) => {
+        let body = '';
+        res.on('data', (d) => { body += d; });
+        res.on('end', () => {
+          try {
+            const j = JSON.parse(body);
+            resolve(j.status === 'ok');
+          } catch { resolve(false); }
+        });
+      });
+      testReq.on('error', () => resolve(false));
+      testReq.setTimeout(1000, () => { testReq.destroy(); resolve(false); });
+    });
+  }
+
+  // First, check if a healthy prompt server already exists on any candidate port
+  for (let p = 3020; p < 3030; p++) {
+    if (await isHealthy(p)) {
+      promptServerPort = p;
+      logger.success(`Prompt API already running on port ${p}, reusing`);
+      return;
+    }
   }
 
   // Find an available port for the internal prompt server
@@ -811,7 +846,7 @@ async function startInternalPromptServer() {
   }
 
   const child = spawn(process.execPath, [tsxPath, serverEntry], {
-    stdio: ['pipe', 'pipe', 'inherit'],
+    stdio: ['pipe', 'pipe', 'pipe'],
     env: {
       ...process.env,
       PORT: String(pPort),
@@ -821,31 +856,34 @@ async function startInternalPromptServer() {
     cwd: projectRoot,
   });
 
-  // Forward child stdout
+  // Forward child stdout and stderr
   child.stdout.on('data', (data) => process.stdout.write(data.toString()));
+  child.stderr.on('data', (data) => process.stderr.write(data.toString()));
+
+  child.on('exit', (code) => {
+    if (code && code !== 0) {
+      logger.error(`Prompt server exited with code ${code}`);
+      if (promptServerPort === pPort) promptServerPort = 0;
+    }
+  });
 
   // Wait for server to be ready by polling
   const start = Date.now();
+  const timeout = 50000;
   logger.info(`Waiting for Prompt API to be ready on port ${pPort}...`);
-  while (Date.now() - start < 50000) {
-    try {
-      await new Promise((resolve, reject) => {
-        const testReq = http.get(`http://127.0.0.1:${pPort}/health`, (res) => {
-          resolve();
-        });
-        testReq.on('error', () => reject(new Error('not ready')));
-        testReq.setTimeout(500, () => { testReq.destroy(); reject(new Error('timeout')); });
-      });
+  while (Date.now() - start < timeout) {
+    if (await isHealthy(pPort)) {
       promptServerPort = pPort;
       logger.success(`Prompt API ready on internal port ${pPort}`);
       return;
-    } catch { /* not ready yet */ }
-    await new Promise(r => setTimeout(r, 100));
+    }
+    await new Promise(r => setTimeout(r, 200));
   }
 
-  logger.warn('Prompt server did not start within 5 seconds');
+  logger.warn(`Prompt server did not start within ${timeout / 1000}s`);
   promptServerPort = 0;
 }
+// [AGC:END]
 
 module.exports = { cmdWeb, createServer };
 // [AGC:END]

@@ -11,6 +11,7 @@ import {
   resolveSkillAuthor,
   parseSkillStructure,
 } from '../../src/core/skill-toggle.js'
+import { getProviderByName } from '../../src/core/config.js'
 
 const testBase = path.join(os.tmpdir(), 'skills-toggle-test-' + Date.now())
 
@@ -38,13 +39,14 @@ function linkDir(target, link) {
 
 // Use user-level skills dir for testing
 const userSkills = path.join(testBase, 'fake-home', '.claude', 'skills')
+const piAgentSkills = path.join(testBase, 'fake-home', '.pi', 'agent', 'skills')
 
 // Mock os.homedir to return our test directory
 const originalHomedir = os.homedir
 beforeEach(() => {
   os.homedir = () => path.join(testBase, 'fake-home')
 
-  // Create some test skills in user scope
+  // Create some test skills in user scope (Claude Code)
   ensureDir(userSkills)
 
   // Local skill
@@ -55,6 +57,11 @@ beforeEach(() => {
   writeSkillMd(path.join(userSkills, 'mattpocock__ts-skill'), 'ts-skill', 'TypeScript skill', 'mattpocock')
   // Multi-level: mattpocock__project__skill-name
   writeSkillMd(path.join(userSkills, 'mattpocock__myproject__react-skill'), 'react-skill', 'React skill', 'mattpocock')
+
+  // Create some test skills for Pi Agent
+  ensureDir(piAgentSkills)
+  writeSkillMd(path.join(piAgentSkills, 'pi-local-skill'), 'pi-local-skill', 'A Pi Agent skill', 'Dave')
+  writeSkillMd(path.join(piAgentSkills, 'mattpocock__pi-skill'), 'pi-skill', 'Pi TypeScript skill', 'mattpocock')
 })
 
 afterEach(() => {
@@ -131,6 +138,41 @@ describe('listSkillToggleState', () => {
     const carol = state.groups.find(g => g.owner === 'Carol')
     expect(carol.enabledCount).toBe(0)
     expect(carol.total).toBe(1)
+  })
+})
+
+// Provider-aware tests
+describe.each([
+  ['claude-code', userSkills],
+  ['pi-agent', piAgentSkills]
+])('provider: %s', (provider, skillsDir) => {
+  describe('listSkillToggleState with provider', () => {
+    it(`lists skills for ${provider}`, () => {
+      const state = listSkillToggleState(provider)
+      expect(state.provider).toBe(provider)
+      expect(state.userSkillsDir).toBe(skillsDir)
+      expect(state.groups.length).toBeGreaterThan(0)
+    })
+  })
+
+  describe('setSkillEnabled with provider', () => {
+    it(`disables a skill for ${provider}`, () => {
+      const skillName = provider === 'claude-code' ? 'local-skill' : 'pi-local-skill'
+      const r = setSkillEnabled(skillName, false, provider)
+      expect(r.success).toBe(true)
+
+      const disabledDir = path.join(skillsDir, DISABLED_DIR_NAME)
+      expect(fs.existsSync(path.join(skillsDir, skillName))).toBe(false)
+      expect(fs.existsSync(path.join(disabledDir, skillName, 'SKILL.md'))).toBe(true)
+    })
+
+    it(`re-enables a disabled skill for ${provider}`, () => {
+      const skillName = provider === 'claude-code' ? 'local-skill' : 'pi-local-skill'
+      setSkillEnabled(skillName, false, provider)
+      const r = setSkillEnabled(skillName, true, provider)
+      expect(r.success).toBe(true)
+      expect(fs.existsSync(path.join(skillsDir, skillName, 'SKILL.md'))).toBe(true)
+    })
   })
 })
 

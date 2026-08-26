@@ -23,6 +23,20 @@ export function registerModelRoutes(router: Router, modelManager: ModelManager) 
     }
   });
 
+  // GET /models/:id - get single model by id
+  router.get('/models/:id', async (req, res) => {
+    try {
+      const model = await modelManager.getModel(req.params.id);
+      if (!model) {
+        res.status(404).json({ success: false, error: { message: `Model "${req.params.id}" not found` } });
+        return;
+      }
+      res.json({ success: true, data: model });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: { message: error.message } });
+    }
+  });
+
   // POST /models - add model
   router.post('/models', async (req, res) => {
     try {

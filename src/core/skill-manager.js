@@ -5,31 +5,65 @@
  * Skill manager for external sources.
  *
  * Provides tree-view management of external skills with enable/disable state.
+ * Supports multiple providers (Claude Code and Pi Agent).
  * State is persisted to skill_manage_setting.json.
  *
  * Directory structure:
  *   ~/.kungeskills/skill_manage_setting.json - persisted state
- *   ~/.claude/skills/<owner>__<project>__<skill> -> symlink to cached skill
+ *   <provider.skillsDir>/<owner>__<project>__<skill> -> symlink to cached skill
  */
 
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { getConfig, getExternalSourceCacheDir } = require('./config');
+const { getConfig, getExternalSourceCacheDir, getProviderByName } = require('./config');
 const { createSkillSymlink } = require('./symlink');
 
 const SETTINGS_FILE = 'skill_manage_setting.json';
-const USER_SKILLS_DIR = path.join(os.homedir(), '.claude', 'skills');
+const DEFAULT_PROVIDER = 'claude-code';
+
+/**
+ * Get user skills directory for a provider.
+ * @param {string} [providerName='claude-code']
+ * @returns {string}
+ */
+function getUserSkillsDir(providerName = DEFAULT_PROVIDER) {
+  const provider = getProviderByName(providerName);
+  if (provider) {
+    return provider.skillsDir;
+  }
+  // Fallback for backward compatibility
+  return path.join(os.homedir(), '.claude', 'skills');
+}
 
 // ========== Settings Management ==========
 
-function getSettingsPath() {
+function getSettingsPath(providerName = DEFAULT_PROVIDER) {
   const configDir = path.join(os.homedir(), '.kungeskills');
-  return path.join(configDir, SETTINGS_FILE);
+  return path.join(configDir, `${SETTINGS_FILE.replace('.json', '')}.${providerName}.json`);
 }
 
-function loadSettings() {
-  const settingsPath = getSettingsPath();
+/**
+ * One-time migration: move old shared skill_manage_setting.json
+ * into skill_manage_setting.claude-code.json (previously all settings
+ * were effectively for the default provider).
+ */
+function migrateLegacySettings() {
+  const configDir = path.join(os.homedir(), '.kungeskills');
+  const legacyPath = path.join(configDir, SETTINGS_FILE);
+  const newPath = getSettingsPath(DEFAULT_PROVIDER);
+  if (fs.existsSync(legacyPath) && !fs.existsSync(newPath)) {
+    try {
+      fs.copyFileSync(legacyPath, newPath);
+    } catch {
+      /* best-effort */
+    }
+  }
+}
+
+function loadSettings(providerName = DEFAULT_PROVIDER) {
+  migrateLegacySettings();
+  const settingsPath = getSettingsPath(providerName);
   if (!fs.existsSync(settingsPath)) {
     return { sources: {} };
   }
@@ -40,8 +74,8 @@ function loadSettings() {
   }
 }
 
-function saveSettings(settings) {
-  const settingsPath = getSettingsPath();
+function saveSettings(settings, providerName = DEFAULT_PROVIDER) {
+  const settingsPath = getSettingsPath(providerName);
   const configDir = path.dirname(settingsPath);
   if (!fs.existsSync(configDir)) {
     fs.mkdirSync(configDir, { recursive: true });
@@ -88,9 +122,9 @@ function parseSkillPath(skillPath) {
 
 // ========== Tree Building ==========
 
-function buildTreeFromPlugin(sourceDir, owner) {
+function buildTreeFromPlugin(sourceDir, owner, providerName = DEFAULT_PROVIDER) {
   const plugin = parsePluginJson(sourceDir);
-  const settings = loadSettings();
+  const settings = loadSettings(providerName);
   const sourceKey = `${owner}`;
   const sourceSettings = settings.sources[sourceKey] || {};
 
@@ -191,7 +225,8 @@ function scanSkillsDirectory(dir, relativePath, categories, sourceSettings) {
 
 // ========== Symlink Management ==========
 
-function getSymlinkPath(owner, category, skillName) {
+function getSymlinkPath(owner, category, skillName, providerName = DEFAULT_PROVIDER) {
+  const userSkillsDir = getUserSkillsDir(providerName);
   // Use double underscore as separator, omit _root category
   let safeName;
   if (category === '_root') {
@@ -199,11 +234,11 @@ function getSymlinkPath(owner, category, skillName) {
   } else {
     safeName = `${owner}__${category}__${skillName}`;
   }
-  return path.join(USER_SKILLS_DIR, safeName.replace(/\//g, '__'));
+  return path.join(userSkillsDir, safeName.replace(/\//g, '__'));
 }
 
-function enableSkill(owner, category, skillName, sourceDir) {
-  const settings = loadSettings();
+function enableSkill(owner, category, skillName, sourceDir, providerName = DEFAULT_PROVIDER) {
+  const settings = loadSettings(providerName);
   const sourceKey = owner;
 
   if (!settings.sources[sourceKey]) {
@@ -220,11 +255,12 @@ function enableSkill(owner, category, skillName, sourceDir) {
   } else {
     skillPath = path.join(sourceDir, 'skills', category, skillName);
   }
-  const symlinkPath = getSymlinkPath(owner, category, skillName);
+  const symlinkPath = getSymlinkPath(owner, category, skillName, providerName);
+  const userSkillsDir = getUserSkillsDir(providerName);
 
   try {
-    if (!fs.existsSync(USER_SKILLS_DIR)) {
-      fs.mkdirSync(USER_SKILLS_DIR, { recursive: true });
+    if (!fs.existsSync(userSkillsDir)) {
+      fs.mkdirSync(userSkillsDir, { recursive: true });
     }
 
     // Remove existing if any (including broken symlinks)
@@ -245,15 +281,15 @@ function enableSkill(owner, category, skillName, sourceDir) {
       createSkillSymlink(skillPath, symlinkPath);
     }
 
-    saveSettings(settings);
+    saveSettings(settings, providerName);
     return { success: true, path: symlinkPath };
   } catch (err) {
     return { success: false, error: err.message };
   }
 }
 
-function disableSkill(owner, category, skillName) {
-  const settings = loadSettings();
+function disableSkill(owner, category, skillName, providerName = DEFAULT_PROVIDER) {
+  const settings = loadSettings(providerName);
   const sourceKey = owner;
 
   if (settings.sources[sourceKey]) {
@@ -262,7 +298,7 @@ function disableSkill(owner, category, skillName) {
   }
 
   // Remove symlink
-  const symlinkPath = getSymlinkPath(owner, category, skillName);
+  const symlinkPath = getSymlinkPath(owner, category, skillName, providerName);
 
   try {
     // Check if symlink exists (including broken symlinks)
@@ -278,31 +314,37 @@ function disableSkill(owner, category, skillName) {
       fs.unlinkSync(symlinkPath);
     }
 
-    saveSettings(settings);
+    saveSettings(settings, providerName);
     return { success: true };
   } catch (err) {
     return { success: false, error: err.message };
   }
 }
 
-function toggleSkill(owner, category, skillName, sourceDir, enabled) {
+function toggleSkill(owner, category, skillName, sourceDir, enabled, providerName = DEFAULT_PROVIDER) {
   if (enabled) {
-    return enableSkill(owner, category, skillName, sourceDir);
+    return enableSkill(owner, category, skillName, sourceDir, providerName);
   } else {
-    return disableSkill(owner, category, skillName);
+    return disableSkill(owner, category, skillName, providerName);
   }
 }
 
 // ========== Get All Sources ==========
 
-function getAllManagedSources() {
+function getAllManagedSources(providerName = DEFAULT_PROVIDER) {
   const config = getConfig();
   const externalSources = config.externalSources || [];
-  const settings = loadSettings();
+  const settings = loadSettings(providerName);
 
   const result = [];
 
   for (const source of externalSources) {
+    // Filter by provider - only show sources that include this provider
+    const sourceProviders = source.providers || [DEFAULT_PROVIDER];
+    if (!sourceProviders.includes(providerName)) {
+      continue;
+    }
+
     const { owner, repo } = source;
     const sourceDir = getExternalSourceCacheDir(owner, repo);
 
@@ -310,7 +352,7 @@ function getAllManagedSources() {
       continue;
     }
 
-    const tree = buildTreeFromPlugin(sourceDir, owner);
+    const tree = buildTreeFromPlugin(sourceDir, owner, providerName);
 
     if (tree) {
       const sourceSettings = settings.sources[owner] || {};
@@ -326,7 +368,8 @@ function getAllManagedSources() {
         author: tree.author,
         totalSkills,
         enabledCount,
-        categories: tree.categories
+        categories: tree.categories,
+        providers: sourceProviders
       });
     }
   }
@@ -336,8 +379,8 @@ function getAllManagedSources() {
 
 // ========== Enable/Disable All ==========
 
-function enableCategory(owner, category, sourceDir) {
-  const tree = buildTreeFromPlugin(sourceDir, owner);
+function enableCategory(owner, category, sourceDir, providerName = DEFAULT_PROVIDER) {
+  const tree = buildTreeFromPlugin(sourceDir, owner, providerName);
   if (!tree) return { success: false, error: 'Plugin not found' };
 
   const cat = tree.categories.find(c => c.name === category);
@@ -345,15 +388,15 @@ function enableCategory(owner, category, sourceDir) {
 
   let enabledCount = 0;
   for (const skill of cat.skills) {
-    const result = enableSkill(owner, category, skill.name, sourceDir);
+    const result = enableSkill(owner, category, skill.name, sourceDir, providerName);
     if (result.success) enabledCount++;
   }
 
   return { success: true, enabledCount };
 }
 
-function disableCategory(owner, category) {
-  const tree = buildTreeFromPlugin(getExternalSourceCacheDir(owner, getRepoByOwner(owner)), owner);
+function disableCategory(owner, category, providerName = DEFAULT_PROVIDER) {
+  const tree = buildTreeFromPlugin(getExternalSourceCacheDir(owner, getRepoByOwner(owner)), owner, providerName);
   if (!tree) return { success: false, error: 'Plugin not found' };
 
   const cat = tree.categories.find(c => c.name === category);
@@ -361,7 +404,7 @@ function disableCategory(owner, category) {
 
   let disabledCount = 0;
   for (const skill of cat.skills) {
-    const result = disableSkill(owner, category, skill.name);
+    const result = disableSkill(owner, category, skill.name, providerName);
     if (result.success) disabledCount++;
   }
 
@@ -374,14 +417,14 @@ function getRepoByOwner(owner) {
   return source?.repo || '';
 }
 
-function enableAllSkills(owner, sourceDir) {
-  const tree = buildTreeFromPlugin(sourceDir, owner);
+function enableAllSkills(owner, sourceDir, providerName = DEFAULT_PROVIDER) {
+  const tree = buildTreeFromPlugin(sourceDir, owner, providerName);
   if (!tree) return { success: false, error: 'Plugin not found' };
 
   let enabledCount = 0;
   for (const cat of tree.categories) {
     for (const skill of cat.skills) {
-      const result = enableSkill(owner, cat.name, skill.name, sourceDir);
+      const result = enableSkill(owner, cat.name, skill.name, sourceDir, providerName);
       if (result.success) enabledCount++;
     }
   }
@@ -389,18 +432,18 @@ function enableAllSkills(owner, sourceDir) {
   return { success: true, enabledCount };
 }
 
-function disableAllSkills(owner) {
+function disableAllSkills(owner, providerName = DEFAULT_PROVIDER) {
   const repo = getRepoByOwner(owner);
   if (!repo) return { success: false, error: 'Source not found' };
 
   const sourceDir = getExternalSourceCacheDir(owner, repo);
-  const tree = buildTreeFromPlugin(sourceDir, owner);
+  const tree = buildTreeFromPlugin(sourceDir, owner, providerName);
   if (!tree) return { success: false, error: 'Plugin not found' };
 
   let disabledCount = 0;
   for (const cat of tree.categories) {
     for (const skill of cat.skills) {
-      const result = disableSkill(owner, cat.name, skill.name);
+      const result = disableSkill(owner, cat.name, skill.name, providerName);
       if (result.success) disabledCount++;
     }
   }
@@ -421,6 +464,8 @@ module.exports = {
   disableCategory,
   enableAllSkills,
   disableAllSkills,
-  getSymlinkPath
+  getSymlinkPath,
+  getUserSkillsDir,
+  DEFAULT_PROVIDER
 };
 // [AGC:END]

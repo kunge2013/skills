@@ -1,4 +1,13 @@
 export type InstallMode = 'symlink' | 'copy'
+export type ProviderName = 'claude-code' | 'pi-agent' | 'codex'
+
+export interface Provider {
+  name: ProviderName
+  skillsDir: string
+  disabledDir: string
+  enabled: boolean
+}
+
 export interface SkillInfo { skillName: string; pluginName: string; sourcePath: string; pluginDescription?: string; pluginAuthor?: string; pluginLicense?: string; pluginCategory?: string; pluginKeywords?: string[] }
 export interface PluginInfo { name: string; source: string; description: string; author: string; license: string; category: string; keywords: string[]; skillCount: number; skills: { skillName: string; sourcePath: string; description?: string; author?: string; license?: string; category?: string; keywords?: string[] }[]; sourceDir: string }
 export interface SkillContent { content: string; path: string; lastModified: number }
@@ -37,5 +46,15 @@ export interface BatchSaveResult {
   saved: string[];
   failed: { path: string; error: string }[];
   conflicts: { path: string; currentContent: string }[];
+}
+
+export interface ExternalSource {
+  owner: string
+  repo: string
+  url: string
+  branch: string
+  providers: ProviderName[]
+  cached: boolean
+  cacheDir: string
 }
 // [AGC:END]

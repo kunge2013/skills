@@ -18,6 +18,20 @@
         </el-tooltip>
       </div>
     </div>
+
+    <!-- Provider Tabs -->
+    <div class="provider-tabs">
+      <el-radio-group v-model="currentProvider" size="small">
+        <el-radio-button
+          v-for="p in providers"
+          :key="p.name"
+          :value="p.name"
+        >
+          {{ p.label }}
+        </el-radio-button>
+      </el-radio-group>
+    </div>
+
     <div class="toggle-hint">{{ $t('toggle.hint') }}</div>
 
     <!-- External Sources -->
@@ -28,8 +42,20 @@
         <el-tag size="small" :type="source.cached ? 'success' : 'info'">
           {{ source.cached ? $t('toggle.cached') : $t('toggle.notCached') }}
         </el-tag>
+        <el-tag
+          v-for="p in (source.providers || ['claude-code', 'pi-agent', 'codex'])"
+          :key="p"
+          size="small"
+          type="warning"
+          effect="plain"
+        >
+          {{ p === 'claude-code' ? 'CC' : p === 'pi-agent' ? 'PI' : 'CX' }}
+        </el-tag>
         <el-button size="small" text type="primary" @click="syncSource(source)">
           {{ $t('toggle.sync') }}
+        </el-button>
+        <el-button size="small" text type="warning" @click="openEditSourceDialog(source)">
+          {{ $t('toggle.edit') }}
         </el-button>
         <el-button size="small" text type="danger" @click="removeSource(source)">
           {{ $t('toggle.remove') }}
@@ -119,11 +145,49 @@
         <el-form-item :label="$t('toggle.branch')">
           <el-input v-model="addSourceForm.branch" placeholder="main" />
         </el-form-item>
+        <el-form-item label="Providers">
+          <el-checkbox-group v-model="addSourceForm.providers">
+            <el-checkbox
+              v-for="p in providers"
+              :key="p.name"
+              :value="p.name"
+              :label="p.label"
+            />
+          </el-checkbox-group>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="showAddSourceDialog = false">{{ $t('toggle.cancel') }}</el-button>
         <el-button type="primary" :loading="addingSource" @click="handleAddSource">
           {{ $t('toggle.add') }}
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- Edit Source Dialog -->
+    <el-dialog v-model="showEditSourceDialog" :title="$t('toggle.editSource')" width="500px">
+      <el-form :model="editSourceForm" label-width="100px">
+        <el-form-item :label="$t('toggle.sourceUrl')">
+          <el-input :model-value="`${editSourceForm.owner}/${editSourceForm.repo}`" disabled />
+        </el-form-item>
+        <el-form-item :label="$t('toggle.branch')">
+          <el-input v-model="editSourceForm.branch" placeholder="main" />
+        </el-form-item>
+        <el-form-item label="Providers">
+          <el-checkbox-group v-model="editSourceForm.providers">
+            <el-checkbox
+              v-for="p in providers"
+              :key="p.name"
+              :value="p.name"
+              :label="p.label"
+            />
+          </el-checkbox-group>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showEditSourceDialog = false">{{ $t('toggle.cancel') }}</el-button>
+        <el-button type="primary" :loading="editingSource" @click="handleEditSource">
+          {{ $t('toggle.save') }}
         </el-button>
       </template>
     </el-dialog>
@@ -154,7 +218,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import type { TreeInstance } from 'element-plus'
 import { Refresh, User, Document, Folder, Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -199,9 +263,12 @@ interface ExternalSource {
   repo: string
   url: string
   branch: string
+  providers: string[]
   cached: boolean
   cacheDir: string
 }
+
+type ProviderName = 'claude-code' | 'pi-agent' | 'codex'
 
 interface TreeNodeData {
   key: string
@@ -225,6 +292,14 @@ const treeData = ref<TreeNodeData[]>([])
 const treeRef = ref<TreeInstance>()
 const treeKey = ref(0)
 
+// Provider state
+const currentProvider = ref<ProviderName>('claude-code')
+const providers: { name: ProviderName; label: string }[] = [
+  { name: 'claude-code', label: 'Claude Code' },
+  { name: 'pi-agent', label: 'Pi Agent' },
+  { name: 'codex', label: 'Codex' }
+]
+
 // Default expand only owner level
 const defaultExpandedKeys = computed(() =>
   (state.value?.groups || []).map(g => `owner:${g.owner}`))
@@ -239,7 +314,10 @@ const defaultCheckedKeys = computed(() =>
 const externalSources = ref<ExternalSource[]>([])
 const showAddSourceDialog = ref(false)
 const addingSource = ref(false)
-const addSourceForm = ref({ source: '', branch: 'main' })
+const addSourceForm = ref({ source: '', branch: 'main', providers: ['claude-code', 'pi-agent', 'codex'] as ProviderName[] })
+const showEditSourceDialog = ref(false)
+const editingSource = ref(false)
+const editSourceForm = ref({ owner: '', repo: '', branch: 'main', providers: ['claude-code', 'pi-agent', 'codex'] as ProviderName[] })
 const showProxyDialog = ref(false)
 const savingProxy = ref(false)
 const proxyConfig = ref({ enabled: false, url: '' })
@@ -251,10 +329,15 @@ const enabledCount = computed(
 const totalCount = computed(() => state.value?.groups.reduce((n, g) => n + g.total, 0) ?? 0)
 const userDir = computed(() => state.value?.userSkillsDir ?? '')
 
+// Watch provider change to reload state
+watch(currentProvider, () => {
+  loadState()
+})
+
 async function loadState() {
   loading.value = true
   try {
-    const r = await window.api.listSkillToggleState()
+    const r = await window.api.listSkillToggleState(currentProvider.value)
     if (r.success && r.data) {
       const st = r.data as ToggleState
       state.value = st
@@ -351,21 +434,21 @@ async function onCheck(data: any, checkState: { checkedKeys: (string | number)[]
     const checked = checkState.checkedKeys.includes(data.key)
 
     if (data.type === 'owner') {
-      const r = await window.api.setOwnerSkillsEnabled(data.owner, checked)
+      const r = await window.api.setOwnerSkillsEnabled(data.owner, checked, currentProvider.value)
       if (!r.success) {
         ElMessage.error(r.error || t('toggle.updateFailed'))
       } else if (r.data?.changed) {
         ElMessage.success(t('toggle.batchSuccess', { count: r.data.changed }))
       }
     } else if (data.type === 'project') {
-      const r = await window.api.setProjectSkillsEnabled(data.owner, data.projectPath, checked)
+      const r = await window.api.setProjectSkillsEnabled(data.owner, data.projectPath, checked, currentProvider.value)
       if (!r.success) {
         ElMessage.error(r.error || t('toggle.updateFailed'))
       } else if (r.data?.changed) {
         ElMessage.success(t('toggle.batchSuccess', { count: r.data.changed }))
       }
     } else if (data.type === 'skill') {
-      const r = await window.api.setSkillEnabled(data.skillName, checked)
+      const r = await window.api.setSkillEnabled(data.skillName, checked, currentProvider.value)
       if (!r.success) {
         ElMessage.error(r.error || t('toggle.updateFailed'))
       }
@@ -383,13 +466,17 @@ async function handleAddSource() {
     ElMessage.warning(t('toggle.sourceRequired'))
     return
   }
+  if (!addSourceForm.value.providers || addSourceForm.value.providers.length === 0) {
+    ElMessage.warning('Please select at least one provider')
+    return
+  }
   addingSource.value = true
   try {
-    const r = await window.api.addExternalSource(addSourceForm.value.source, addSourceForm.value.branch)
+    const r = await window.api.addExternalSource(addSourceForm.value.source, addSourceForm.value.branch, addSourceForm.value.providers)
     if (r.success) {
       ElMessage.success(t('toggle.sourceAdded'))
       showAddSourceDialog.value = false
-      addSourceForm.value = { source: '', branch: 'main' }
+      addSourceForm.value = { source: '', branch: 'main', providers: ['claude-code', 'pi-agent', 'codex'] }
       await loadExternalSources()
       await loadState()
     } else {
@@ -399,6 +486,42 @@ async function handleAddSource() {
     ElMessage.error(e?.message || t('toggle.addFailed'))
   } finally {
     addingSource.value = false
+  }
+}
+
+function openEditSourceDialog(source: ExternalSource) {
+  editSourceForm.value = {
+    owner: source.owner,
+    repo: source.repo,
+    branch: source.branch || 'main',
+    providers: (source.providers || ['claude-code', 'pi-agent', 'codex']) as ProviderName[]
+  }
+  showEditSourceDialog.value = true
+}
+
+async function handleEditSource() {
+  if (!editSourceForm.value.providers || editSourceForm.value.providers.length === 0) {
+    ElMessage.warning('Please select at least one provider')
+    return
+  }
+  editingSource.value = true
+  try {
+    const r = await window.api.updateExternalSource(editSourceForm.value.owner, editSourceForm.value.repo, {
+      providers: editSourceForm.value.providers,
+      branch: editSourceForm.value.branch
+    })
+    if (r.success) {
+      ElMessage.success(t('toggle.sourceUpdated'))
+      showEditSourceDialog.value = false
+      await loadExternalSources()
+      await loadState()
+    } else {
+      ElMessage.error(r.error || t('toggle.updateFailed'))
+    }
+  } catch (e: any) {
+    ElMessage.error(e?.message || t('toggle.updateFailed'))
+  } finally {
+    editingSource.value = false
   }
 }
 
@@ -491,6 +614,12 @@ onMounted(() => {
 .header-actions {
   display: flex;
   gap: 8px;
+}
+
+.provider-tabs {
+  margin-bottom: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #e4e7ed;
 }
 
 .toggle-hint {
