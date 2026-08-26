@@ -115,7 +115,7 @@ export const usePromptStore = defineStore('prompt', {
     customTemplateIds: [] as string[], // IDs of user-created templates (editable/deletable)
 
     // Tab navigation
-    activePromptTab: 'optimize',
+    activePromptTab: 'models',
 
     // History
     history: [] as PromptRecord[],
@@ -321,7 +321,7 @@ export const usePromptStore = defineStore('prompt', {
     },
     selectAndOptimize(template: Template) {
       this.optimizeInput = template.content.system
-      this.activePromptTab = 'optimize'
+      this.activePromptTab = 'models'
     },
 
     // History
