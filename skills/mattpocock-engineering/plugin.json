@@ -1,0 +1,8 @@
+{
+  "name": "mattpocock-engineering",
+  "description": "Engineering workflow skills from Matt Pocock — TDD, design, triage, prototyping, and codebase improvement",
+  "author": { "name": "Matt Pocock" },
+  "license": "Proprietary",
+  "keywords": ["tdd", "design", "triage", "prototyping", "codebase", "engineering", "workflow"],
+  "category": "workflow"
+}

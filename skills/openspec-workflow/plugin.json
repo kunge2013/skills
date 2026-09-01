@@ -1,0 +1,6 @@
+{
+  "name": "openspec-workflow",
+  "description": "Spec-driven change lifecycle for Claude Code: explore, propose, apply, archive",
+  "author": { "name": "kunge2013" },
+  "license": "MIT"
+}

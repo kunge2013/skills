@@ -1,0 +1,8 @@
+{
+  "name": "mattpocock-productivity",
+  "description": "Productivity skills from Matt Pocock — grilling, handoff, teaching, and writing great skills",
+  "author": { "name": "Matt Pocock" },
+  "license": "Proprietary",
+  "keywords": ["productivity", "grilling", "handoff", "teach", "writing", "workflow", "design"],
+  "category": "workflow"
+}

@@ -1,0 +1,8 @@
+{
+  "name": "mattpocock-misc",
+  "description": "Miscellaneous utility skills from Matt Pocock — git guardrails, test migration, exercise scaffolding, and pre-commit setup",
+  "author": { "name": "Matt Pocock" },
+  "license": "Proprietary",
+  "keywords": ["git", "guardrails", "migration", "scaffold", "pre-commit", "husky", "utilities"],
+  "category": "utility"
+}
