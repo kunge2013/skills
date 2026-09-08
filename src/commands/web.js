@@ -29,6 +29,36 @@ const rendererDist = path.join(pkgRoot, 'web', 'dist');
 
 // ---------- API Handlers (reusing CLI core modules) ----------
 
+// [AGC:START] tool=Cc author=fangkun
+/**
+ * Parse SKILL.md frontmatter to extract name and description.
+ * @param {string} skillPath - Path to the skill directory
+ * @returns {{ name: string, description: string } | null}
+ */
+function parseSkillFrontmatter(skillPath) {
+  const fp = path.join(skillPath, 'SKILL.md');
+  if (!fs.existsSync(fp)) return null;
+  const content = fs.readFileSync(fp, 'utf-8');
+  const fm = content.match(/^---\s*\n([\s\S]*?)\n---\s*\n/);
+  if (!fm) return null;
+  const frontmatter = fm[1].replace(/\r\n/g, '\n'); // Normalize line endings
+  const nameMatch = frontmatter.match(/^name:\s*(.+)$/m);
+  // Handle both single-line and multi-line (|) description formats
+  let description = '';
+  const descLineMatch = frontmatter.match(/^description:\s*\|?\s*\n?([\s\S]*?)(?=\n\w+:|\n---|\s*$)/m);
+  if (descLineMatch) {
+    description = descLineMatch[1].trim().replace(/\s+/g, ' ');
+  } else {
+    const descMatch = frontmatter.match(/^description:\s*(.+)$/m);
+    if (descMatch) description = descMatch[1].trim();
+  }
+  return {
+    name: nameMatch ? nameMatch[1].trim() : path.basename(skillPath),
+    description
+  };
+}
+// [AGC:END]
+
 function listPlugins() {
   const sourceDirs = getAllMarketplaceDirs();
   const all = []; const seen = new Set();
@@ -43,7 +73,9 @@ function listPlugins() {
         for (const d of fs.readdirSync(sDir)) {
           const f = path.join(sDir, d);
           if (!fs.statSync(f).isDirectory() || !fs.existsSync(path.join(f, 'SKILL.md'))) continue;
-          skills.push({ skillName: d, sourcePath: path.join(sDir, d), description: p.description, author: p.author?.name || 'Unknown', license: p.license || 'Unknown', category: p.category || 'other', keywords: p.keywords || [] });
+          // Read each skill's own description from SKILL.md frontmatter
+          const skillMeta = parseSkillFrontmatter(f);
+          skills.push({ skillName: d, sourcePath: path.join(sDir, d), description: skillMeta?.description || p.description, author: p.author?.name || 'Unknown', license: p.license || 'Unknown', category: p.category || 'other', keywords: p.keywords || [] });
         }
       }
       all.push({ name: p.name, source: p.source, description: p.description, author: p.author?.name || 'Unknown', license: p.license || 'Unknown', category: p.category || 'other', keywords: p.keywords || [], skillCount: skills.length, skills, sourceDir: path.join(sd, p.source) });
@@ -65,7 +97,9 @@ function listAllSkills() {
         const f = path.join(sDir, d);
         if (!fs.statSync(f).isDirectory() || !fs.existsSync(path.join(f, 'SKILL.md'))) continue;
         if (seen.has(d)) continue; seen.add(d);
-        all.push({ skillName: d, pluginName: p.name, sourcePath: path.join(sDir, d), pluginDescription: p.description, pluginAuthor: p.author?.name || 'Unknown', pluginLicense: p.license || 'Unknown', pluginCategory: p.category || 'other', pluginKeywords: p.keywords || [] });
+        // Read each skill's own description from SKILL.md frontmatter
+        const skillMeta = parseSkillFrontmatter(f);
+        all.push({ skillName: d, pluginName: p.name, sourcePath: path.join(sDir, d), description: skillMeta?.description || '', pluginDescription: p.description, pluginAuthor: p.author?.name || 'Unknown', pluginLicense: p.license || 'Unknown', pluginCategory: p.category || 'other', pluginKeywords: p.keywords || [] });
       }
     }
   }

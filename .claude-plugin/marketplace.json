@@ -131,6 +131,15 @@
       "license": "MIT",
       "keywords": ["ocr", "pdf", "image", "text-extraction", "xfei", "llm-ocr", "document"],
       "category": "utility"
+    },
+    {
+      "name": "huashu-skills",
+      "source": "./plugins/huashu-skills",
+      "description": "花叔(AlchainCyf)开源内容创作 Skills 合集 — 涵盖 PPT/幻灯片、数据分析、抖音脚本、公众号/小红书配图、审校去AI味、选题调研、视频创作、Markdown转PDF、演讲教练等端到端内容创作工作流",
+      "author": { "name": "alchaincyf" },
+      "license": "MIT",
+      "keywords": ["huashu", "花叔", "content", "writing", "PPT", "slides", "design", "video", "douyin", "wechat", "xiaohongshu", "proofreading", "research"],
+      "category": "content"
     }
   ]
 }
