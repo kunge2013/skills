@@ -85,6 +85,23 @@ export function registerLLMRoutes(router: Router, llmService: LLMService, modelM
     }
   });
 
+  // [AGC:START] tool=Cc author=fangkun
+  // POST /llm/raw
+  router.post('/llm/raw', async (req, res) => {
+    try {
+      const { modelKey, payload } = req.body;
+      if (!modelKey || !payload) {
+        res.status(400).json({ success: false, error: { message: 'modelKey and payload are required' } });
+        return;
+      }
+      const data = await llmService.sendRaw(payload, modelKey);
+      res.json({ success: true, data });
+    } catch (error: any) {
+      res.status(400).json({ success: false, error: { message: error.message } });
+    }
+  });
+  // [AGC:END]
+
   // GET /llm/providers
   router.get('/llm/providers', (_req, res) => {
     try {

@@ -55,6 +55,18 @@ export class LLMService implements ILLMService {
     return adapter.sendMessage(messages, config);
   }
 
+  // [AGC:START] tool=Cc author=fangkun
+  async sendRaw(payload: Record<string, any>, provider: string): Promise<Record<string, any>> {
+    const config = await this.getModelConfig(provider);
+    const protocol = resolveProtocol(config);
+    const adapter = this.registry.getAdapter(protocol);
+    if (!adapter.sendRaw) {
+      throw new Error(`Provider "${provider}" does not support raw invocation`);
+    }
+    return adapter.sendRaw(payload, config);
+  }
+  // [AGC:END]
+
   async sendMessageStream(messages: Message[], provider: string, callbacks: StreamHandlers): Promise<void> {
     const config = await this.getModelConfig(provider);
     const protocol = resolveProtocol(config);
