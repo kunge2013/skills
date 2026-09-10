@@ -1,6 +1,7 @@
 // [AGC:FILE] tool=Cc author=fangkun date=2026-09-10
 // src/server/services/llm-call/types.ts
 
+// [AGC:START] tool=Cc author=fangkun
 export type LLMCallSource = 'apiTester' | 'prompt' | 'stream' | 'test-connection';
 
 export interface LLMCallLogRecord {
@@ -16,3 +17,4 @@ export interface LLMCallLogRecord {
   status: number;
   error: string | null;
 }
+// [AGC:END]
