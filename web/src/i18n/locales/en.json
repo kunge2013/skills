@@ -15,7 +15,8 @@
     "externalManager": "External Manager",
     "promptOptimizer": "Prompt Optimizer",
     "promptMaintenance": "Prompt Maintenance",
-    "agent": "Agent"
+    "agent": "Agent",
+    "apiTester": "API Tester"
   },
   "list": {
     "searchPlaceholder": "Search skills...",
@@ -344,5 +345,23 @@
     "copy": "Copy",
     "regenerate": "Regenerate",
     "edit": "Edit"
+  },
+  "apiTester": {
+    "selectModel": "Model",
+    "selectModelPlaceholder": "Select a model",
+    "protocol": "Protocol",
+    "requestPayload": "Request Payload (JSON)",
+    "response": "Response JSON",
+    "responsePlaceholder": "The raw JSON response will appear here",
+    "loadExample": "Example",
+    "format": "Format",
+    "clear": "Clear",
+    "send": "Send",
+    "sending": "Sending...",
+    "duration": "Duration",
+    "copy": "Copy",
+    "copied": "Copied",
+    "copyFailed": "Copy failed",
+    "invalidJson": "Please enter valid JSON"
   }
 }

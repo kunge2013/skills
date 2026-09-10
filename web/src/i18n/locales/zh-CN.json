@@ -15,7 +15,8 @@
     "externalManager": "外部管理器",
     "promptOptimizer": "提示词优化器",
     "promptMaintenance": "提示词维护",
-    "agent": "Agent"
+    "agent": "Agent",
+    "apiTester": "API 调用"
   },
   "list": {
     "searchPlaceholder": "搜索技能...",
@@ -344,5 +345,23 @@
     "copy": "复制",
     "regenerate": "重新生成",
     "edit": "编辑"
+  },
+  "apiTester": {
+    "selectModel": "模型选择",
+    "selectModelPlaceholder": "请选择模型",
+    "protocol": "协议",
+    "requestPayload": "请求 Payload (JSON)",
+    "response": "响应 JSON",
+    "responsePlaceholder": "模型返回的原始 JSON 将显示在这里",
+    "loadExample": "加载示例",
+    "format": "格式化",
+    "clear": "清空",
+    "send": "发送",
+    "sending": "发送中...",
+    "duration": "耗时",
+    "copy": "复制",
+    "copied": "已复制",
+    "copyFailed": "复制失败",
+    "invalidJson": "请输入合法的 JSON"
   }
 }
