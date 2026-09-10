@@ -1,122 +1,68 @@
-# Task 1: Add Avatar Icons to ChatMessageBubble
+### Task 1: 后端 — openai / anthropic adapter 实现 `sendRaw`
 
 **Files:**
-- Modify: `web/src/components/agent/ChatMessageBubble.vue`
+- Modify: `src/server/services/llm/types.ts` — `ITextProviderAdapter` 新增可选 `sendRaw?`
+- Modify: `src/server/services/llm/adapters/openai-adapter.ts` — 新增 `sendRaw` 方法
+- Modify: `src/server/services/llm/adapters/anthropic-adapter.ts` — 新增 `sendRaw` 方法
 
 **Interfaces:**
-- Consumes: `isAgentType` computed (already exists, line 40-42)
-- Produces: `.chat-avatar`, `.chat-avatar--agent`, `.chat-avatar--user` CSS classes
+- Produces: `ITextProviderAdapter.sendRaw?(payload: Record<string, any>, config: TextModelConfig): Promise<Record<string, any>>` — 两个 adapter 均实现；Task 2 的 `LLMService.sendRaw` 消费此方法。
 
-- [ ] **Step 1: Add avatar markup to template**
+- [ ] **Step 1: 扩展 `ITextProviderAdapter` 接口**
 
-Add the following avatar element BEFORE the `.chat-bubble` div (for AI messages) and AFTER (for user messages). Replace the current template structure:
+在 `src/server/services/llm/types.ts` 的 `ITextProviderAdapter` 接口内（`buildDefaultModel` 之后）追加：
 
-```vue
-<template>
-  <div class="chat-message" :class="`chat-message--${message.type}`">
-    <div v-if="isAgentType" class="chat-avatar chat-avatar--agent">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="8" width="18" height="12" rx="2"/>
-        <circle cx="9" cy="14" r="1.5" fill="currentColor" stroke="none"/>
-        <circle cx="15" cy="14" r="1.5" fill="currentColor" stroke="none"/>
-        <path d="M12 8V4"/>
-        <path d="M8 4h8"/>
-      </svg>
-    </div>
-    <div class="chat-bubble" :class="bubbleClasses">
-      <AgentMessageContent v-if="isAgentType" :message="message" />
-      <p v-else class="user-text">{{ message.content }}</p>
-      <div class="message-actions">
-        <button class="action-btn" @click="copyMessage" :title="$t('agent.copy')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="9" y="9" width="13" height="13" rx="2"/>
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-          </svg>
-        </button>
-        <button v-if="isAgentType" class="action-btn" @click="handleRegenerate" :title="$t('agent.regenerate')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
-            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-          </svg>
-        </button>
-        <button v-else class="action-btn" @click="startEdit" :title="$t('agent.edit')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-          </svg>
-        </button>
-      </div>
-    </div>
-    <div v-if="!isAgentType" class="chat-avatar chat-avatar--user">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="8" r="4"/>
-        <path d="M4 20c0-4 4-7 8-7s8 3 8 7"/>
-      </svg>
-    </div>
-    <div class="chat-timestamp">{{ formatTime(message.timestamp) }}</div>
-  </div>
-</template>
+```typescript
+  // [AGC:START] tool=Cc author=fangkun
+  // 新增(可选): 透传原始请求，返回完整原始响应
+  sendRaw?(
+    payload: Record<string, any>,
+    config: TextModelConfig
+  ): Promise<Record<string, any>>;
+  // [AGC:END]
 ```
 
-Key changes:
-- AI avatar (`v-if="isAgentType"`) renders BEFORE the bubble
-- User avatar (`v-if="!isAgentType"`) renders AFTER the bubble
-- Robot SVG: square head with two dot eyes and antenna
-- Person SVG: circle head with curved body
+- [ ] **Step 2: openai-adapter 实现 `sendRaw`**
 
-- [ ] **Step 2: Add avatar CSS to `<style scoped>`**
+在 `src/server/services/llm/adapters/openai-adapter.ts` 的 adapter 对象字面量内（`sendImageUnderstandingStream` 之后、`buildDefaultModel` 之前）新增：
 
-Add these styles before the closing `</style>` tag (after line 143):
-
-```css
-.chat-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.chat-avatar--agent {
-  background: #e0f2fe;
-  color: #0284c7;
-}
-
-.chat-avatar--user {
-  background: #f3f4f6;
-  color: #6b7280;
-}
-
-.chat-message--agent > .chat-avatar,
-.chat-message--plan > .chat-avatar,
-.chat-message--error > .chat-avatar {
-  margin-right: 8px;
-}
-
-.chat-message--user > .chat-avatar {
-  margin-left: 8px;
-}
+```typescript
+    // [AGC:START] tool=Cc author=fangkun
+    async sendRaw(payload: Record<string, any>, config: TextModelConfig): Promise<Record<string, any>> {
+      const client = getClient(config);
+      const body = { ...payload, model: payload.model || config.modelId || config.modelMeta.id };
+      const response = await client.chat.completions.create(body as any);
+      return response as unknown as Record<string, any>;
+    },
+    // [AGC:END]
 ```
 
-- [ ] **Step 3: Verify the dev server runs**
+- [ ] **Step 3: anthropic-adapter 实现 `sendRaw`**
 
-Run: `cd web && npm run dev` (on port 3010 per dev server config)
-Expected: No compilation errors
+在 `src/server/services/llm/adapters/anthropic-adapter.ts` 的 adapter 对象字面量内（`sendImageUnderstandingStream` 之后、`buildDefaultModel` 之前）新增：
 
-- [ ] **Step 4: Visual verification**
+```typescript
+    // [AGC:START] tool=Cc author=fangkun
+    async sendRaw(payload: Record<string, any>, config: TextModelConfig): Promise<Record<string, any>> {
+      const client = getClient(config);
+      const body = { ...payload, model: payload.model || config.modelId || config.modelMeta.id };
+      const response = await client.messages.create(body as any);
+      return response as unknown as Record<string, any>;
+    },
+    // [AGC:END]
+```
 
-Open the agent panel in the browser and verify:
-- AI messages show a robot icon on the LEFT side of the bubble
-- User messages show a person icon on the RIGHT side of the bubble
-- Icons are 40px circles with correct colors
-- 8px gap between avatar and bubble
-- Layout looks correct for all message types (agent, plan, tool_call, error, user, user_question)
+- [ ] **Step 4: 类型检查**
+
+Run: `npx tsc -p tsconfig.server.json --noEmit`
+Expected: 通过（无类型错误；gemini/deepseek adapter 因接口方法可选而无需改动）。
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add web/src/components/agent/ChatMessageBubble.vue
-git commit -m "feat: add avatar icons to distinguish AI and user messages"
+git add src/server/services/llm/types.ts src/server/services/llm/adapters/openai-adapter.ts src/server/services/llm/adapters/anthropic-adapter.ts
+git commit -m "feat: add sendRaw passthrough to openai/anthropic adapters"
 ```
+
+---
+

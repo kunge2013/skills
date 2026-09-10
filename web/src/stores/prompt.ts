@@ -521,12 +521,25 @@ export const usePromptStore = defineStore('prompt', {
       this.apiTesterError = ''
       this.apiTesterResponse = ''
       this.apiTesterStatus = 0
+      this.apiTesterDuration = 0
       const start = Date.now()
       try {
-        const data = await apiPost('/llm/raw', { modelKey: this.selectedModelKey, payload: payloadObj })
+        // Dedicated fetch: the shared apiPost helper discards the server's
+        // error.message on non-2xx (throws "HTTP <status>"), but /llm/raw
+        // returns { error: { message } } we must surface verbatim.
+        const res = await fetch(`${API_BASE}/llm/raw`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ modelKey: this.selectedModelKey, payload: payloadObj }),
+        })
+        const json = await res.json()
         this.apiTesterDuration = Date.now() - start
-        this.apiTesterResponse = JSON.stringify(data, null, 2)
-        this.apiTesterStatus = 200
+        this.apiTesterStatus = res.status
+        if (!res.ok) {
+          this.apiTesterError = json?.error?.message || `HTTP ${res.status}`
+          return
+        }
+        this.apiTesterResponse = JSON.stringify(json.data !== undefined ? json.data : json, null, 2)
       } catch (e: any) {
         this.apiTesterError = e.message
       } finally {
