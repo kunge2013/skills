@@ -12,6 +12,7 @@
       <el-menu-item index="toggle"><el-icon><Switch /></el-icon><span>{{ $t('nav.skillToggle') }}</span></el-menu-item>
       <el-menu-item index="manager"><el-icon><Grid /></el-icon><span>{{ $t('nav.externalManager') }}</span></el-menu-item>
       <el-menu-item index="agent"><el-icon><Monitor /></el-icon><span>{{ $t('nav.agent') }}</span></el-menu-item>
+      <el-menu-item index="apiTester"><el-icon><Promotion /></el-icon><span>{{ $t('nav.apiTester') }}</span></el-menu-item>
     </el-menu>
     <div class="nav-footer">
       <div class="cache-status">
@@ -31,7 +32,7 @@
 </template>
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Document, FolderOpened, EditPen, Setting, Monitor, Switch, Grid } from '@element-plus/icons-vue'
+import { Document, FolderOpened, EditPen, Setting, Monitor, Switch, Grid, Promotion } from '@element-plus/icons-vue'
 import { useSkillsStore } from '../stores/skills'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
@@ -42,6 +43,7 @@ const version = __APP_VERSION__
 const currentLocale = ref(i18n.global.locale.value as SupportedLocale)
 const activeMenu = computed(() => {
   if (store.currentView === 'agent') return 'agent'
+  if (store.currentView === 'apiTester') return 'apiTester'
   if (store.currentView === 'promptMaintenance') return 'promptMaintenance'
   if (store.currentView === 'manage') return 'manage'
   if (store.currentView === 'toggle') return 'toggle'
@@ -53,6 +55,8 @@ const activeMenu = computed(() => {
 function handleMenuSelect(index: string) {
   if (index === 'agent') {
     store.setView('agent')
+  } else if (index === 'apiTester') {
+    store.setView('apiTester')
   } else if (index === 'promptMaintenance') {
     store.setView('promptMaintenance')
   } else if (index === 'manage') {
