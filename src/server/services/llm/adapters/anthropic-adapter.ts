@@ -306,6 +306,15 @@ export function createAnthropicAdapter(): ITextProviderAdapter {
       }
     },
 
+    // [AGC:START] tool=Cc author=fangkun
+    async sendRaw(payload: Record<string, any>, config: TextModelConfig): Promise<Record<string, any>> {
+      const client = getClient(config);
+      const body = { ...payload, model: payload.model || config.modelId || config.modelMeta.id };
+      const response = await client.messages.create(body as any);
+      return response as unknown as Record<string, any>;
+    },
+    // [AGC:END]
+
     buildDefaultModel(modelId: string): TextModel {
       return {
         id: modelId,

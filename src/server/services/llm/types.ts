@@ -163,6 +163,13 @@ export interface ITextProviderAdapter {
     callbacks: StreamHandlers
   ): Promise<void>;
   buildDefaultModel(modelId: string): TextModel;
+  // [AGC:START] tool=Cc author=fangkun
+  // 新增(可选): 透传原始请求，返回完整原始响应
+  sendRaw?(
+    payload: Record<string, any>,
+    config: TextModelConfig
+  ): Promise<Record<string, any>>;
+  // [AGC:END]
 }
 
 export interface ImageUnderstandingImageInput {
