@@ -4,11 +4,13 @@ import { defineStore } from 'pinia'
 
 const API_BASE = '/api/v1'
 
+export type LLMCallSource = 'apiTester' | 'prompt' | 'stream' | 'test-connection'
+
 export interface LLMCallLogRecord {
   id: string
   timestamp: number
   durationMs: number
-  source: string
+  source: LLMCallSource
   modelKey: string
   protocol: string
   modelParams: Record<string, unknown>
@@ -22,7 +24,7 @@ export interface LLMCallLogFilter {
   from?: number
   to?: number
   modelKey?: string
-  source?: string
+  source?: LLMCallSource
   status?: number
 }
 
