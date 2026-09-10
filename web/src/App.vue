@@ -12,6 +12,7 @@
       <template v-else-if="store.currentView === 'promptMaintenance'"><PromptMaintenanceView /></template>
       <template v-else-if="store.currentView === 'agent'"><AgentPanel /></template>
       <template v-else-if="store.currentView === 'apiTester'"><ApiTester /></template>
+      <template v-else-if="store.currentView === 'llmCallLogs'"><LLMCallLogs /></template>
       <template v-else><StatusBar /></template>
     </div>
   </div>
@@ -29,6 +30,7 @@ import PromptView from './components/prompt/PromptView.vue'
 import PromptMaintenanceView from './components/prompt/PromptMaintenanceView.vue'
 import AgentPanel from './components/agent/AgentPanel.vue'
 import ApiTester from './components/ApiTester.vue'
+import LLMCallLogs from './components/LLMCallLogs.vue'
 import { useSkillsStore } from './stores/skills'
 import { usePromptStore } from './stores/prompt'
 const store = useSkillsStore()

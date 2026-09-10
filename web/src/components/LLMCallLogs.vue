@@ -59,15 +59,21 @@
       <div v-if="detail" class="detail">
         <section v-if="Object.keys(detail.modelParams).length">
           <h4>{{ t('llmCallLogs.detail.params') }}</h4>
-          <pre class="json-block" v-html="highlightJson(JSON.stringify(detail.modelParams, null, 2))"></pre>
+          <div class="editor-wrap">
+            <Codemirror :model-value="jsonText(detail.modelParams)" :extensions="readonlyExtensions" />
+          </div>
         </section>
         <section>
           <h4>{{ t('llmCallLogs.detail.request') }}</h4>
-          <pre class="json-block" v-html="highlightJson(JSON.stringify(detail.request, null, 2))"></pre>
+          <div class="editor-wrap">
+            <Codemirror :model-value="jsonText(detail.request)" :extensions="readonlyExtensions" />
+          </div>
         </section>
         <section v-if="detail.response">
           <h4>{{ t('llmCallLogs.detail.response') }}</h4>
-          <pre class="json-block" v-html="highlightJson(JSON.stringify(detail.response, null, 2))"></pre>
+          <div class="editor-wrap">
+            <Codemirror :model-value="jsonText(detail.response)" :extensions="readonlyExtensions" />
+          </div>
         </section>
         <section v-if="detail.error">
           <h4>{{ t('llmCallLogs.detail.error') }}</h4>
@@ -83,13 +89,20 @@
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
+import { Codemirror } from 'vue-codemirror'
 import { useLLMCallLogsStore, type LLMCallLogRecord, type LLMCallLogFilter } from '../stores/llmCallLogs'
 import { usePromptStore } from '../stores/prompt'
-import { highlightJson } from '../utils/jsonHighlight'
+import { readonlyJsonExtensions } from '../utils/jsonCodeMirror'
 
 const { t } = useI18n()
 const store = useLLMCallLogsStore()
 const promptStore = usePromptStore()
+
+const readonlyExtensions = readonlyJsonExtensions
+
+function jsonText(obj: Record<string, unknown> | null | undefined): string {
+  return JSON.stringify(obj ?? {}, null, 2)
+}
 
 const SOURCES = ['apiTester', 'prompt', 'stream', 'test-connection'] as const
 
@@ -174,11 +187,19 @@ onMounted(async () => {
 .pager { margin-top: 12px; display: flex; justify-content: flex-end; }
 .detail section { margin-bottom: 16px; }
 .detail h4 { margin: 0 0 8px; }
-.json-block { background: #1e1e1e; color: #d4d4d4; border-radius: 6px; padding: 12px; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 13px; line-height: 1.6; max-height: 40vh; overflow: auto; }
-.json-block :deep(.tok-key) { color: #9cdcfe; }
-.json-block :deep(.tok-string) { color: #ce9178; }
-.json-block :deep(.tok-number) { color: #b5cea8; }
-.json-block :deep(.tok-keyword) { color: #569cd6; }
-.json-block :deep(.tok-bracket) { background: #264f78; color: #fff; border-radius: 2px; box-shadow: 0 0 0 1px #569cd6; }
-.json-block :deep(.tok-bracket-region) { background: rgba(86, 156, 214, 0.12); }
+.editor-wrap {
+  background-color: #fdfdfe;
+  border: 1px solid #e2e5ea;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.editor-wrap:focus-within {
+  border-color: #409eff;
+  box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.18);
+}
+.editor-wrap :deep(.cm-editor) {
+  min-height: 120px;
+  max-height: 40vh;
+}
 </style>

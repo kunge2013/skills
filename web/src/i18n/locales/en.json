@@ -16,7 +16,8 @@
     "promptOptimizer": "Prompt Optimizer",
     "promptMaintenance": "Prompt Maintenance",
     "agent": "Agent",
-    "apiTester": "API Tester"
+    "apiTester": "API Tester",
+    "llmCallLogs": "Call Logs"
   },
   "list": {
     "searchPlaceholder": "Search skills...",
@@ -363,5 +364,40 @@
     "copied": "Copied",
     "copyFailed": "Copy failed",
     "invalidJson": "Please enter valid JSON"
+  },
+  "llmCallLogs": {
+    "filterStart": "Start time",
+    "filterEnd": "End time",
+    "filterModel": "Model",
+    "filterSource": "Source",
+    "filterStatus": "Status",
+    "source": {
+      "apiTester": "API Tester",
+      "prompt": "Prompt",
+      "stream": "Stream",
+      "test-connection": "Test Connection"
+    },
+    "statusSuccess": "Success",
+    "statusFailed": "Failed",
+    "search": "Search",
+    "reset": "Reset",
+    "clearLogs": "Clear Logs",
+    "cleared": "Cleared",
+    "nothingCleared": "Nothing to clear",
+    "columns": {
+      "time": "Time",
+      "model": "Model",
+      "source": "Source",
+      "status": "Status",
+      "duration": "Duration",
+      "summary": "Summary"
+    },
+    "detailTitle": "Call Detail",
+    "detail": {
+      "params": "Model Params",
+      "request": "Request",
+      "response": "Response",
+      "error": "Error"
+    }
   }
 }
