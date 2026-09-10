@@ -7,6 +7,12 @@ export function registerLLMCallLogRoutes(router: Router, query: LLMCallLogQuery)
   router.get('/llm-call-logs', async (req, res) => {
     try {
       const { from, to, modelKey, source, status } = req.query;
+      for (const [name, value] of Object.entries({ from, to, status })) {
+        if (value !== undefined && !Number.isFinite(Number(value))) {
+          res.status(400).json({ success: false, error: { message: `Invalid value for param: ${name}` } });
+          return;
+        }
+      }
       const page = Math.max(1, parseInt(String(req.query.page ?? '1'), 10) || 1);
       const pageSize = Math.min(100, Math.max(1, parseInt(String(req.query.pageSize ?? '20'), 10) || 20));
       const filter: LLMCallLogFilter = {};
@@ -38,6 +44,12 @@ export function registerLLMCallLogRoutes(router: Router, query: LLMCallLogQuery)
   router.delete('/llm-call-logs', async (req, res) => {
     try {
       const { from, to } = req.query;
+      for (const [name, value] of Object.entries({ from, to })) {
+        if (value !== undefined && !Number.isFinite(Number(value))) {
+          res.status(400).json({ success: false, error: { message: `Invalid value for param: ${name}` } });
+          return;
+        }
+      }
       const deleted = await query.deleteRange(Number(from ?? 0), Number(to ?? Date.now()));
       res.json({ success: true, data: { deleted } });
     } catch (error: any) {

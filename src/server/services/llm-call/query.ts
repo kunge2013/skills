@@ -92,6 +92,7 @@ export class LLMCallLogQuery {
   }
 
   async deleteRange(from: number, to: number): Promise<number> {
+    if (!Number.isFinite(from) || !Number.isFinite(to)) return 0;
     if (!fs.existsSync(this.logDir)) return 0;
     const fromDate = this.toYMD(from);
     const toDate = this.toYMD(to);

@@ -55,4 +55,32 @@ describe('LLM call logs route', () => {
     expect(res.body.data.deleted).toBe(2);
     expect(query.deleteRange).toHaveBeenCalledWith(100, 200);
   });
+
+  it('GET /llm-call-logs rejects non-numeric status with 400 and does not call list', async () => {
+    const query = {
+      list: vi.fn(),
+      getById: vi.fn(),
+      deleteRange: vi.fn(),
+    } as unknown as LLMCallLogQuery;
+    const app = buildApp(query);
+    const res = await request(app).get('/api/v1/llm-call-logs?status=abc');
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.message).toBe('Invalid value for param: status');
+    expect(query.list).not.toHaveBeenCalled();
+  });
+
+  it('DELETE /llm-call-logs rejects non-numeric from with 400 and does not call deleteRange', async () => {
+    const query = {
+      list: vi.fn(),
+      getById: vi.fn(),
+      deleteRange: vi.fn(),
+    } as unknown as LLMCallLogQuery;
+    const app = buildApp(query);
+    const res = await request(app).delete('/api/v1/llm-call-logs?from=abc');
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.message).toBe('Invalid value for param: from');
+    expect(query.deleteRange).not.toHaveBeenCalled();
+  });
 });
