@@ -31,24 +31,32 @@
               <span>{{ t('apiTester.requestPayload') }}</span>
               <div class="panel-actions">
                 <el-button size="small" @click="loadExample">{{ t('apiTester.loadExample') }}</el-button>
-                <el-button size="small" @click="formatPayload">{{ t('apiTester.format') }}</el-button>
+                <el-button size="small" type="primary" plain class="format-btn" @click="formatPayload">
+                  <el-icon><MagicStick /></el-icon>
+                  <span>{{ t('apiTester.format') }}</span>
+                </el-button>
                 <el-button size="small" @click="clearPayload">{{ t('apiTester.clear') }}</el-button>
               </div>
             </div>
           </template>
-          <div class="json-editor">
-            <pre ref="inputHighlightRef" class="editor-highlight" aria-hidden="true" v-html="highlightedInput"></pre>
-            <textarea
-              ref="inputTextareaRef"
-              v-model="payloadText"
-              class="editor-input"
-              spellcheck="false"
-              @input="onInputChanged"
-              @scroll="syncScroll"
-              @click="onInputActive"
-              @keyup="onInputActive"
-            ></textarea>
-          </div>
+          <el-dropdown trigger="contextmenu" class="editor-dropdown" @command="onInputMenu">
+            <div class="editor-wrap" @contextmenu.prevent>
+              <Codemirror v-model="payloadText" :extensions="editableExtensions" />
+            </div>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="format">
+                  <el-icon><MagicStick /></el-icon>{{ t('apiTester.format') }}
+                </el-dropdown-item>
+                <el-dropdown-item command="copy">
+                  <el-icon><CopyDocument /></el-icon>{{ t('apiTester.copy') }}
+                </el-dropdown-item>
+                <el-dropdown-item command="clear" divided>
+                  <el-icon><Delete /></el-icon>{{ t('apiTester.clear') }}
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </el-card>
       </el-col>
 
@@ -65,15 +73,29 @@
                   {{ t('apiTester.duration') }}: {{ (store.apiTesterDuration / 1000).toFixed(2) }}s
                 </el-tag>
                 <el-button size="small" :disabled="!store.apiTesterResponse" @click="copyResponse">
-                  {{ t('apiTester.copy') }}
+                  <el-icon><CopyDocument /></el-icon>
+                  <span>{{ t('apiTester.copy') }}</span>
                 </el-button>
               </div>
             </div>
           </template>
-          <div class="response-display" @click="onOutputClick">
-            <pre ref="outputRef" v-if="store.apiTesterResponse" v-html="highlightedOutput"></pre>
-            <span v-else class="placeholder">{{ t('apiTester.responsePlaceholder') }}</span>
-          </div>
+          <el-dropdown trigger="contextmenu" class="response-dropdown" @command="onOutputMenu">
+            <div class="editor-wrap" @contextmenu.prevent>
+              <Codemirror
+                v-if="store.apiTesterResponse"
+                :model-value="store.apiTesterResponse"
+                :extensions="readonlyExtensions"
+              />
+              <span v-else class="placeholder">{{ t('apiTester.responsePlaceholder') }}</span>
+            </div>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="copy" :disabled="!store.apiTesterResponse">
+                  <el-icon><CopyDocument /></el-icon>{{ t('apiTester.copy') }}
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
           <el-alert v-if="store.apiTesterError" type="error" :title="store.apiTesterError" show-icon closable class="mt-2" />
         </el-card>
       </el-col>
@@ -94,21 +116,29 @@
 
 <script setup lang="ts">
 // [AGC:START] tool=Cc author=fangkun
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
+import { Codemirror } from 'vue-codemirror'
+import { keymap } from '@codemirror/view'
+import { MagicStick, CopyDocument, Delete } from '@element-plus/icons-vue'
 import { usePromptStore } from '../stores/prompt'
-import { highlightJson, isBracket, buildBracketMap } from '../utils/jsonHighlight'
+import { editableJsonExtensions, readonlyJsonExtensions, formatJson } from '../utils/jsonCodeMirror'
 
 const { t } = useI18n()
 const store = usePromptStore()
 
 const payloadText = ref('')
-const inputTextareaRef = ref<HTMLTextAreaElement | null>(null)
-const inputHighlightRef = ref<HTMLElement | null>(null)
-const outputRef = ref<HTMLElement | null>(null)
-const activeInputPair = ref<[number, number] | null>(null)
-const outputPair = ref<[number, number] | null>(null)
+
+// Component-local keybindings on top of the shared editable extensions.
+const editableExtensions = [
+  ...editableJsonExtensions,
+  keymap.of([
+    { key: 'Mod-Shift-f', run: () => (formatPayload(), true) },
+    { key: 'Mod-Enter', run: () => (onSend(), true) },
+  ]),
+]
+const readonlyExtensions = readonlyJsonExtensions
 
 const OPENAI_EXAMPLE = JSON.stringify(
   {
@@ -142,7 +172,6 @@ const selectedProtocol = computed(() => {
 
 function loadExample() {
   payloadText.value = selectedProtocol.value === 'anthropic' ? ANTHROPIC_EXAMPLE : OPENAI_EXAMPLE
-  activeInputPair.value = null
 }
 
 function onModelChange() {
@@ -153,106 +182,50 @@ function onModelChange() {
 
 function formatPayload() {
   try {
-    payloadText.value = JSON.stringify(JSON.parse(payloadText.value), null, 2)
+    payloadText.value = formatJson(payloadText.value)
   } catch {
     ElMessage.error(t('apiTester.invalidJson'))
   }
-  activeInputPair.value = null
+}
+
+function onInputMenu(command: string) {
+  if (command === 'format') formatPayload()
+  else if (command === 'copy') copyPayload()
+  else if (command === 'clear') clearPayload()
+}
+
+function onOutputMenu(command: string) {
+  if (command === 'copy') copyResponse()
 }
 
 function clearPayload() {
   payloadText.value = ''
-  activeInputPair.value = null
   store.apiTesterResponse = ''
   store.apiTesterError = ''
   store.apiTesterDuration = 0
   store.apiTesterStatus = 0
 }
 
-const inputBracketMap = computed(() => buildBracketMap(payloadText.value))
-
-const highlightedInput = computed(() =>
-  highlightJson(payloadText.value, activeInputPair.value)
-)
-
-const highlightedOutput = computed(() =>
-  highlightJson(store.apiTesterResponse, outputPair.value)
-)
-
-function onInputActive() {
-  const ta = inputTextareaRef.value
-  if (!ta) return
-  const text = payloadText.value
-  for (const pos of [ta.selectionStart - 1, ta.selectionStart]) {
-    if (pos >= 0 && pos < text.length && isBracket(text[pos])) {
-      const match = inputBracketMap.value.get(pos)
-      activeInputPair.value = match !== undefined ? [pos, match] : null
-      return
-    }
-  }
-  activeInputPair.value = null
-}
-
-function onInputChanged() {
-  onInputActive()
-}
-
-function syncScroll() {
-  const ta = inputTextareaRef.value
-  const pre = inputHighlightRef.value
-  if (ta && pre) {
-    pre.scrollTop = ta.scrollTop
-    pre.scrollLeft = ta.scrollLeft
-  }
-}
-
-function onOutputClick(e: MouseEvent) {
-  const pre = outputRef.value
-  if (!pre || !store.apiTesterResponse) return
-  const doc = document as any
-  let node: Node | null = null
-  let offset = 0
-  if (doc.caretRangeFromPoint) {
-    const range = doc.caretRangeFromPoint(e.clientX, e.clientY)
-    if (range) { node = range.startContainer; offset = range.startOffset }
-  } else if (doc.caretPositionFromPoint) {
-    const pos = doc.caretPositionFromPoint(e.clientX, e.clientY)
-    if (pos) { node = pos.offsetNode; offset = pos.offset }
-  }
-  if (!node || node.nodeType !== Node.TEXT_NODE) {
-    outputPair.value = null
-    return
-  }
-  const walker = document.createTreeWalker(pre, NodeFilter.SHOW_TEXT)
-  let globalOffset = 0
-  let n = walker.nextNode()
-  while (n && n !== node) {
-    globalOffset += (n as Text).length
-    n = walker.nextNode()
-  }
-  globalOffset += offset
-  const text = store.apiTesterResponse
-  for (const pos of [globalOffset - 1, globalOffset]) {
-    if (pos >= 0 && pos < text.length && isBracket(text[pos])) {
-      const match = buildBracketMap(text).get(pos)
-      outputPair.value = match !== undefined ? [pos, match] : null
-      return
-    }
-  }
-  outputPair.value = null
-}
-
-watch(() => store.apiTesterResponse, () => { outputPair.value = null })
-
 async function onSend() {
   let parsed: any
   try {
     parsed = JSON.parse(payloadText.value)
+    const formatted = formatJson(payloadText.value)
+    if (formatted !== payloadText.value) payloadText.value = formatted
   } catch {
     ElMessage.error(t('apiTester.invalidJson'))
     return
   }
   await store.sendRawRequest(parsed)
+}
+
+async function copyPayload() {
+  try {
+    await navigator.clipboard.writeText(payloadText.value)
+    ElMessage.success(t('apiTester.copied'))
+  } catch {
+    ElMessage.error(t('apiTester.copyFailed'))
+  }
 }
 
 async function copyResponse() {
@@ -283,94 +256,47 @@ onMounted(() => {
 /* Constrain panels to the visible height so long JSON scrolls internally
    and the send bar below is never pushed out of view. */
 .panel-col { height: 100%; }
-.panel-card { height: 100%; display: flex; flex-direction: column; }
+.panel-card { height: 100%; display: flex; flex-direction: column; animation: panel-rise 0.3s ease both; }
+.panel-col:nth-child(2) .panel-card { animation-delay: 0.06s; }
+@keyframes panel-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 .panel-card :deep(.el-card__body) { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
 
-/* JSON input editor: a transparent textarea over a highlighted <pre> so the
-   syntax highlight and bracket matches stay perfectly aligned with the caret. */
-.json-editor {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  background-color: #1e1e1e;
-  box-shadow: 0 0 0 1px #3c3c3c inset;
-  border-radius: 6px;
-}
-.json-editor .editor-highlight,
-.json-editor .editor-input {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 12px;
-  border: none;
-  box-sizing: border-box;
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-  font-size: 13px;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  word-break: break-word;
-  overflow-wrap: break-word;
-  overflow: auto;
-  background: transparent;
-}
-.json-editor .editor-highlight {
-  color: #d4d4d4;
-  pointer-events: none;
-  z-index: 0;
-}
-.json-editor .editor-input {
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-  caret-color: #ffffff;
-  resize: none;
-  outline: none;
-  z-index: 1;
-}
+/* Button hover/press feedback. */
+.panel-actions :deep(.el-button),
+.send-bar :deep(.el-button) { transition: transform 0.12s ease, box-shadow 0.12s ease; }
+.panel-actions :deep(.el-button:active),
+.send-bar :deep(.el-button:active) { transform: scale(0.97); }
+.format-btn { font-weight: 600; }
 
-.response-display {
+/* The el-dropdown wrappers inherit the panel body's stretch so the editors
+   still fill the available height. vue-codemirror's root is display: contents,
+   so the visible .cm-editor is the flex item here. */
+.editor-dropdown,
+.response-dropdown { flex: 1; min-height: 0; display: flex; }
+
+.editor-wrap {
   flex: 1;
   min-height: 0;
-  overflow: auto;
-  padding: 12px;
-  background-color: #1e1e1e;
-  box-shadow: 0 0 0 1px #3c3c3c inset;
-  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: #fdfdfe;
+  border: 1px solid #e2e5ea;
+  border-radius: 8px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
-.response-display pre {
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-  font-size: 13px;
-  line-height: 1.6;
-  color: #d4d4d4;
-  margin: 0;
+.editor-wrap:focus-within {
+  border-color: #409eff;
+  box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.18);
 }
-.placeholder { color: var(--el-text-color-placeholder); }
+.editor-wrap :deep(.cm-editor) { flex: 1; min-height: 0; }
+
+.placeholder { color: var(--el-text-color-placeholder); padding: 4px; }
 .send-bar { flex-shrink: 0; margin-top: 4px; }
 .mt-2 { margin-top: 8px; }
-
-/* JSON syntax highlight tokens. */
-.tok-key { color: #9cdcfe; }
-.tok-string { color: #ce9178; }
-.tok-number { color: #b5cea8; }
-.tok-keyword { color: #569cd6; }
-.tok-bracket { background: #264f78; color: #ffffff; border-radius: 2px; box-shadow: 0 0 0 1px #569cd6; }
-.tok-bracket-region { background: rgba(86, 156, 214, 0.12); }
-
-/* Scrollbars. */
-.response-display::-webkit-scrollbar,
-.json-editor .editor-highlight::-webkit-scrollbar,
-.json-editor .editor-input::-webkit-scrollbar { width: 10px; height: 10px; }
-.response-display::-webkit-scrollbar-thumb,
-.json-editor .editor-highlight::-webkit-scrollbar-thumb,
-.json-editor .editor-input::-webkit-scrollbar-thumb { background: #3c3c3c; border-radius: 5px; }
-.response-display::-webkit-scrollbar-track,
-.json-editor .editor-highlight::-webkit-scrollbar-track,
-.json-editor .editor-input::-webkit-scrollbar-track { background: transparent; }
 
 @media (max-width: 767px) {
   .api-tester { overflow-y: auto; }

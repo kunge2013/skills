@@ -53,10 +53,23 @@
 - **按钮悬停/按压**：`:active` 时 `scale(0.97)`，`transition` 过渡。
 - **面板过渡**：卡片淡入上移（mount 动画）；响应内容切换时淡入。
 
+## 变更：改用 CodeMirror 6（2026-09-10 用户确认）
+
+用户确认将手写编辑器替换为 **CodeMirror 6**（`vue-codemirror` + `@codemirror/lang-json`），以省去自维护的高亮/括号匹配/滚动同步，提升稳定性。
+
+- 新增依赖：`vue-codemirror`、`codemirror`、`@codemirror/lang-json`、`@codemirror/language`、`@codemirror/state`、`@codemirror/view`、`@codemirror/commands`、`@lezer/highlight`（其中核心包模板已预装，现显式声明）
+- 新建 `web/src/utils/jsonCodeMirror.ts`：导出浅色 `EditorView.theme`、JSON 语法 `HighlightStyle`（VS Code Light+ 配色）、可编辑与只读两组 extensions、`formatJson` 帮助函数
+- 请求编辑器改为 `<Codemirror v-model="payloadText">`，内置高亮/括号匹配/折叠/行号
+- 响应框改为只读 `<Codemirror :model-value>`（`EditorState.readOnly.of(true)`，保留点击括号匹配）
+- 删除组件内自实现：textarea+pre 叠层、`syncScroll`、`onInputActive`、`onOutputClick`、`activeInputPair`/`outputPair`、`highlightJson`/`buildBracketMap`/`isBracket` 使用
+- 聚焦动效改为编辑器外层 div 的 `:focus-within` 蓝色 ring；括号高亮由 `.cm-matchingBracket` 样式 + 过渡实现
+- `jsonHighlight.ts` 保留：`LLMCallLogs.vue` 仍在使用
+
 ## 非目标 / 保持不变
 
-- 不改 store、不改 `jsonHighlight.ts`
-- 保留现有括号匹配、滚动同步逻辑
+- 不改 store
+- `jsonHighlight.ts` 保留（供 LLMCallLogs 使用）
+- 保留格式化/右键菜单/发送前自动格式化逻辑
 - 保留 `[AGC]` 标签
 
 ## 验证
