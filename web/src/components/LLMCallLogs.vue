@@ -124,21 +124,25 @@ function applyFilters() {
   })
 }
 
-async function handleSearch() {
-  applyFilters()
-  await store.fetchList()
+function reportError(e: unknown) {
+  ElMessage.error(e instanceof Error ? e.message : String(e))
 }
 
-function handleReset() {
+async function handleSearch() {
+  applyFilters()
+  try { await store.fetchList() } catch (e) { reportError(e) }
+}
+
+async function handleReset() {
   dateRange.value = null
   filters.value = {}
   store.setFilters({ from: undefined, to: undefined, modelKey: undefined, source: undefined, status: undefined })
-  store.fetchList()
+  try { await store.fetchList() } catch (e) { reportError(e) }
 }
 
 async function handlePageChange(p: number) {
   store.setPage(p)
-  await store.fetchList()
+  try { await store.fetchList() } catch (e) { reportError(e) }
 }
 
 function openDetail(row: LLMCallLogRecord) {
@@ -149,14 +153,16 @@ function openDetail(row: LLMCallLogRecord) {
 async function handleClear() {
   const from = dateRange.value?.[0]?.getTime() ?? 0
   const to = dateRange.value?.[1]?.getTime() ?? Date.now()
-  const r = await store.clearRange(from, to)
-  if (r.deleted > 0) ElMessage.success(`${t('llmCallLogs.cleared')} ${r.deleted}`)
-  else ElMessage.info(t('llmCallLogs.nothingCleared'))
-  await store.fetchList()
+  try {
+    const r = await store.clearRange(from, to)
+    if (r.deleted > 0) ElMessage.success(`${t('llmCallLogs.cleared')} ${r.deleted}`)
+    else ElMessage.info(t('llmCallLogs.nothingCleared'))
+    await store.fetchList()
+  } catch (e) { reportError(e) }
 }
 
 onMounted(async () => {
-  await store.fetchList()
+  try { await store.fetchList() } catch (e) { reportError(e) }
 })
 // [AGC:END]
 </script>
