@@ -9,7 +9,7 @@ import {
   ModelOption,
   TextModelConfig,
 } from './types';
-import { LLMCallLogger } from '../llm-call/logger';
+import { LLMCallLogger, LLMCallHandle } from '../llm-call/logger';
 
 export interface IModelManager {
   getModel(key: string): Promise<TextModelConfig | undefined>;
@@ -49,6 +49,27 @@ export class LLMService implements ILLMService {
 
   private protocolOf(config: TextModelConfig): 'openai' | 'anthropic' {
     return resolveProtocol(config);
+  }
+
+  private wrapStreamHandlers(handle: LLMCallHandle | undefined, callbacks: StreamHandlers): StreamHandlers {
+    return {
+      onToken: callbacks.onToken,
+      onReasoningToken: callbacks.onReasoningToken,
+      onToolCall: callbacks.onToolCall,
+      onComplete: (response) => {
+        handle?.complete({
+          response: response
+            ? { content: response.content, reasoning: response.reasoning, ...(response.metadata ? { metadata: response.metadata } : {}) }
+            : undefined,
+          status: 200,
+        });
+        callbacks.onComplete(response);
+      },
+      onError: (error) => {
+        handle?.complete({ status: 500, error: error.message });
+        callbacks.onError(error);
+      },
+    };
   }
   // [AGC:END]
 
@@ -139,25 +160,13 @@ export class LLMService implements ILLMService {
       source: 'stream', modelKey: config.id, protocol,
       modelParams: this.modelParamsOf(config), request: { messages },
     });
-    const wrapped: StreamHandlers = {
-      onToken: callbacks.onToken,
-      onReasoningToken: callbacks.onReasoningToken,
-      onToolCall: callbacks.onToolCall,
-      onComplete: (response) => {
-        handle?.complete({
-          response: response
-            ? { content: response.content, reasoning: response.reasoning, ...(response.metadata ? { metadata: response.metadata } : {}) }
-            : undefined,
-          status: 200,
-        });
-        callbacks.onComplete(response);
-      },
-      onError: (error) => {
-        handle?.complete({ status: 500, error: error.message });
-        callbacks.onError(error);
-      },
-    };
-    await adapter.sendMessageStream(messages, config, wrapped);
+    const wrapped = this.wrapStreamHandlers(handle, callbacks);
+    try {
+      await adapter.sendMessageStream(messages, config, wrapped);
+    } catch (e: any) {
+      handle?.complete({ status: 500, error: e.message });
+      throw e;
+    }
   }
 
   async sendMessageStreamWithTools(
@@ -173,25 +182,13 @@ export class LLMService implements ILLMService {
       source: 'stream', modelKey: config.id, protocol,
       modelParams: this.modelParamsOf(config), request: { messages, tools },
     });
-    const wrapped: StreamHandlers = {
-      onToken: callbacks.onToken,
-      onReasoningToken: callbacks.onReasoningToken,
-      onToolCall: callbacks.onToolCall,
-      onComplete: (response) => {
-        handle?.complete({
-          response: response
-            ? { content: response.content, reasoning: response.reasoning, ...(response.metadata ? { metadata: response.metadata } : {}) }
-            : undefined,
-          status: 200,
-        });
-        callbacks.onComplete(response);
-      },
-      onError: (error) => {
-        handle?.complete({ status: 500, error: error.message });
-        callbacks.onError(error);
-      },
-    };
-    await adapter.sendMessageStreamWithTools(messages, config, tools, wrapped);
+    const wrapped = this.wrapStreamHandlers(handle, callbacks);
+    try {
+      await adapter.sendMessageStreamWithTools(messages, config, tools, wrapped);
+    } catch (e: any) {
+      handle?.complete({ status: 500, error: e.message });
+      throw e;
+    }
   }
   // [AGC:END]
 
