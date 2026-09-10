@@ -28,20 +28,25 @@ export class LLMCallLogQuery {
     const files = fs.readdirSync(this.logDir).filter(f => f.endsWith('.jsonl'));
     const records: LLMCallLogRecord[] = [];
     for (const file of files) {
-      const content = fs.readFileSync(path.join(this.logDir, file), 'utf-8');
-      for (const line of content.split('\n')) {
-        if (!line.trim()) continue;
-        try {
-          const rec = JSON.parse(line) as LLMCallLogRecord;
-          if (filter.from !== undefined && rec.timestamp < filter.from) continue;
-          if (filter.to !== undefined && rec.timestamp > filter.to) continue;
-          if (filter.modelKey && rec.modelKey !== filter.modelKey) continue;
-          if (filter.source && rec.source !== filter.source) continue;
-          if (filter.status !== undefined && rec.status !== filter.status) continue;
-          records.push(rec);
-        } catch {
-          // skip corrupted line
+      try {
+        const content = fs.readFileSync(path.join(this.logDir, file), 'utf-8');
+        for (const line of content.split('\n')) {
+          if (!line.trim()) continue;
+          try {
+            const rec = JSON.parse(line) as LLMCallLogRecord;
+            if (typeof rec?.id !== 'string' || typeof rec?.timestamp !== 'number') continue;
+            if (filter.from !== undefined && rec.timestamp < filter.from) continue;
+            if (filter.to !== undefined && rec.timestamp > filter.to) continue;
+            if (filter.modelKey && rec.modelKey !== filter.modelKey) continue;
+            if (filter.source && rec.source !== filter.source) continue;
+            if (filter.status !== undefined && rec.status !== filter.status) continue;
+            records.push(rec);
+          } catch {
+            // skip corrupted line
+          }
         }
+      } catch {
+        // skip unreadable file (stray directory, permission error, ENOENT race)
       }
     }
     return records;
@@ -49,23 +54,30 @@ export class LLMCallLogQuery {
 
   async list(filter: LLMCallLogFilter, page = 1, pageSize = 20): Promise<Paginated<LLMCallLogRecord>> {
     const all = this.readAll(filter).sort((a, b) => b.timestamp - a.timestamp);
-    const start = (page - 1) * pageSize;
-    return { items: all.slice(start, start + pageSize), total: all.length, page, pageSize };
+    const p = Math.max(1, Math.floor(page || 1));
+    const ps = Math.max(1, Math.floor(pageSize || 20));
+    const start = (p - 1) * ps;
+    return { items: all.slice(start, start + ps), total: all.length, page: p, pageSize: ps };
   }
 
   async getById(id: string): Promise<LLMCallLogRecord | null> {
     if (!fs.existsSync(this.logDir)) return null;
     const files = fs.readdirSync(this.logDir).filter(f => f.endsWith('.jsonl')).sort().reverse();
     for (const file of files) {
-      const lines = fs.readFileSync(path.join(this.logDir, file), 'utf-8').split('\n').reverse();
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        try {
-          const rec = JSON.parse(line) as LLMCallLogRecord;
-          if (rec.id === id) return rec;
-        } catch {
-          // skip corrupted line
+      try {
+        const lines = fs.readFileSync(path.join(this.logDir, file), 'utf-8').split('\n').reverse();
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const rec = JSON.parse(line) as LLMCallLogRecord;
+            if (typeof rec?.id !== 'string' || typeof rec?.timestamp !== 'number') continue;
+            if (rec.id === id) return rec;
+          } catch {
+            // skip corrupted line
+          }
         }
+      } catch {
+        // skip unreadable file (stray directory, permission error, ENOENT race)
       }
     }
     return null;
