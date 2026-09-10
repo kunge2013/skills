@@ -159,6 +159,16 @@ export const usePromptStore = defineStore('prompt', {
     // Template test history
     templateTestHistory: [] as TemplateTestRecord[],
     selectedHistoryTemplateId: '',
+
+    // [AGC:START] tool=Cc author=fangkun
+    // API Tester state
+    apiTesterPayload: '',
+    apiTesterResponse: '',
+    apiTesterError: '',
+    apiTesterLoading: false,
+    apiTesterDuration: 0,
+    apiTesterStatus: 0,
+    // [AGC:END]
   }),
   getters: {
     enabledModels: (state) => state.allModels.filter((m: TextModelConfig) => m.enabled),
@@ -501,6 +511,26 @@ export const usePromptStore = defineStore('prompt', {
         await this.loadTemplateTestHistory(this.selectedHistoryTemplateId)
       } catch (e: any) {
         alert(e.message)
+      }
+    },
+    // [AGC:END]
+
+    // [AGC:START] tool=Cc author=fangkun
+    async sendRawRequest(payloadObj: any) {
+      this.apiTesterLoading = true
+      this.apiTesterError = ''
+      this.apiTesterResponse = ''
+      this.apiTesterStatus = 0
+      const start = Date.now()
+      try {
+        const data = await apiPost('/llm/raw', { modelKey: this.selectedModelKey, payload: payloadObj })
+        this.apiTesterDuration = Date.now() - start
+        this.apiTesterResponse = JSON.stringify(data, null, 2)
+        this.apiTesterStatus = 200
+      } catch (e: any) {
+        this.apiTesterError = e.message
+      } finally {
+        this.apiTesterLoading = false
       }
     },
     // [AGC:END]
