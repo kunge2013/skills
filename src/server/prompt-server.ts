@@ -42,6 +42,9 @@ import { ImageService, ImageModelManager } from './services/image/service';
 import { TextAdapterRegistry } from './services/llm/adapters/registry';
 import { LLMService } from './services/llm/service';
 import { PromptService } from './services/prompt/service';
+import { LLMCallLogger } from './services/llm-call/logger';
+import { LLMCallLogQuery } from './services/llm-call/query';
+import { registerLLMCallLogRoutes } from './routes/llm-call-logs';
 import { createOpenAIAdapter } from './services/llm/adapters/openai-adapter';
 import { createAnthropicAdapter } from './services/llm/adapters/anthropic-adapter';
 import { createGeminiAdapter } from './services/llm/adapters/gemini-adapter';
@@ -88,7 +91,10 @@ export async function createApp(): Promise<express.Express> {
   registry.register(createDeepSeekAdapter());
 
   // LLM Service
-  const llmService = new LLMService(registry, modelManager);
+  const llmCallLogDir = path.join(dataDir, 'llm-call-logs');
+  const llmCallLogger = new LLMCallLogger(llmCallLogDir);
+  const llmCallQuery = new LLMCallLogQuery(llmCallLogDir);
+  const llmService = new LLMService(registry, modelManager, llmCallLogger);
 
   // Prompt Service
   const promptService = new PromptService(llmService, templateManager, historyManager, templateTestHistoryManager);
@@ -103,6 +109,7 @@ export async function createApp(): Promise<express.Express> {
   registerHealthRoute(router);
   registerAuthRoutes(router);
   registerLLMRoutes(router, llmService, modelManager, registry);
+  registerLLMCallLogRoutes(router, llmCallQuery);
   registerModelRoutes(router, modelManager);
   registerPromptRoutes(router, promptService);
   registerTemplateRoutes(router, templateManager);
