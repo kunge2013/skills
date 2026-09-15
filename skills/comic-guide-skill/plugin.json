@@ -1,0 +1,8 @@
+{
+  "name": "feyman-skills",
+  "description": "学习方式,方法",
+  "author": { "name": "feyman" },
+  "license": "Proprietary",
+  "keywords": ["study method", "workflow"],
+  "category": "workflow"
+}
