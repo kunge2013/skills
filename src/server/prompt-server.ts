@@ -49,6 +49,7 @@ import { createOpenAIAdapter } from './services/llm/adapters/openai-adapter';
 import { createAnthropicAdapter } from './services/llm/adapters/anthropic-adapter';
 import { createGeminiAdapter } from './services/llm/adapters/gemini-adapter';
 import { createDeepSeekAdapter } from './services/llm/adapters/deepseek-adapter';
+import { createNanoBananaAdapter } from './services/llm/adapters/nano-banana-adapter';
 
 function getPort(): number {
   return parseInt(process.env.PORT || '3000', 10);
@@ -80,7 +81,7 @@ export async function createApp(): Promise<express.Express> {
   const dataManager = new DataManager(storage);
   const contextManager = new ContextManager(storage);
   const templateTestHistoryManager = new TemplateTestHistoryManager(storage);
-  const imageService = new ImageService(storage);
+  const imageService = new ImageService(storage, dataDir);
   const imageModelManager = new ImageModelManager(storage);
 
   // LLM adapters
@@ -89,6 +90,7 @@ export async function createApp(): Promise<express.Express> {
   registry.register(createAnthropicAdapter());
   registry.register(createGeminiAdapter());
   registry.register(createDeepSeekAdapter());
+  registry.register(createNanoBananaAdapter(dataDir, imageService));
 
   // LLM Service
   const llmCallLogDir = path.join(dataDir, 'llm-call-logs');
@@ -119,11 +121,16 @@ export async function createApp(): Promise<express.Express> {
   registerDataRoutes(router, dataManager);
   registerContextRoutes(router, contextManager);
   registerTemplateTestHistoryRoutes(router, templateTestHistoryManager);
-  registerImageRoutes(router, imageService);
+  registerImageRoutes(router, imageService, imageModelManager, llmCallLogger);
   registerImageModelRoutes(router, imageModelManager);
   registerAgentRoutes(router, agentService, skillRegistry);
 
   app.use('/api/v1', authMiddleware, router);
+
+  // Serve generated images statically
+  const generatedImagesDir = path.join(dataDir, 'generated-images');
+  fs.mkdirSync(generatedImagesDir, { recursive: true });
+  app.use('/images/generated', express.static(generatedImagesDir));
 
   // Root-level health check (for proxy from web.js)
   app.get('/health', (_req, res) => {

@@ -17,7 +17,8 @@
     "promptMaintenance": "提示词维护",
     "agent": "Agent",
     "apiTester": "API 调用",
-    "llmCallLogs": "调用日志"
+    "llmCallLogs": "调用日志",
+    "imageHistory": "图片历史"
   },
   "list": {
     "searchPlaceholder": "搜索技能...",
@@ -375,7 +376,8 @@
       "apiTester": "API 测试",
       "prompt": "提示词",
       "stream": "流式",
-      "test-connection": "连接测试"
+      "test-connection": "连接测试",
+      "image": "图片"
     },
     "statusSuccess": "成功",
     "statusFailed": "失败",
@@ -390,14 +392,23 @@
       "source": "来源",
       "status": "状态",
       "duration": "耗时",
+      "thumbnail": "图片",
       "summary": "摘要"
     },
     "detailTitle": "调用详情",
     "detail": {
       "params": "模型参数",
       "request": "请求",
+      "generatedImages": "生成图片",
       "response": "响应",
       "error": "错误"
     }
+  },
+  "imageHistory": {
+    "refresh": "刷新",
+    "empty": "暂无图片",
+    "deleteTitle": "删除图片",
+    "confirmDelete": "确定要删除这张图片吗？",
+    "deleted": "已删除"
   }
 }

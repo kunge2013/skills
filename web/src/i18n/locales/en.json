@@ -17,7 +17,8 @@
     "promptMaintenance": "Prompt Maintenance",
     "agent": "Agent",
     "apiTester": "API Tester",
-    "llmCallLogs": "Call Logs"
+    "llmCallLogs": "Call Logs",
+    "imageHistory": "Image History"
   },
   "list": {
     "searchPlaceholder": "Search skills...",
@@ -375,7 +376,8 @@
       "apiTester": "API Tester",
       "prompt": "Prompt",
       "stream": "Stream",
-      "test-connection": "Test Connection"
+      "test-connection": "Test Connection",
+      "image": "Image"
     },
     "statusSuccess": "Success",
     "statusFailed": "Failed",
@@ -390,14 +392,23 @@
       "source": "Source",
       "status": "Status",
       "duration": "Duration",
+      "thumbnail": "Image",
       "summary": "Summary"
     },
     "detailTitle": "Call Detail",
     "detail": {
       "params": "Model Params",
       "request": "Request",
+      "generatedImages": "Generated Images",
       "response": "Response",
       "error": "Error"
     }
+  },
+  "imageHistory": {
+    "refresh": "Refresh",
+    "empty": "No images yet",
+    "deleteTitle": "Delete Image",
+    "confirmDelete": "Are you sure you want to delete this image?",
+    "deleted": "Deleted"
   }
 }

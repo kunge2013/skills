@@ -4,7 +4,7 @@ import { defineStore } from 'pinia'
 
 const API_BASE = '/api/v1'
 
-export type LLMCallSource = 'apiTester' | 'prompt' | 'stream' | 'test-connection'
+export type LLMCallSource = 'apiTester' | 'prompt' | 'stream' | 'test-connection' | 'image'
 
 export interface LLMCallLogRecord {
   id: string

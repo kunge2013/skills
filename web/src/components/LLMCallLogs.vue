@@ -40,6 +40,11 @@
       <el-table-column prop="durationMs" :label="t('llmCallLogs.columns.duration')" width="110">
         <template #default="{ row }">{{ row.durationMs }} ms</template>
       </el-table-column>
+      <el-table-column :label="t('llmCallLogs.columns.thumbnail')" width="60">
+        <template #default="{ row }">
+          <img v-if="getFirstImageUrl(row)" :src="getFirstImageUrl(row)" class="thumbnail" @click.stop />
+        </template>
+      </el-table-column>
       <el-table-column :label="t('llmCallLogs.columns.summary')" min-width="220">
         <template #default="{ row }">{{ summarize(row) }}</template>
       </el-table-column>
@@ -69,6 +74,21 @@
             <Codemirror :model-value="jsonText(detail.request)" :extensions="readonlyExtensions" />
           </div>
         </section>
+        <!-- 图片预览区域 -->
+        <section v-if="isImageSource && imageUrls.length > 0">
+          <h4>{{ t('llmCallLogs.detail.generatedImages', '生成图片') }}</h4>
+          <div class="image-preview-grid">
+            <el-image
+              v-for="(url, index) in imageUrls"
+              :key="index"
+              :src="url"
+              :preview-src-list="imageUrls"
+              :initial-index="index"
+              fit="contain"
+              class="preview-image"
+            />
+          </div>
+        </section>
         <section v-if="detail.response">
           <h4>{{ t('llmCallLogs.detail.response') }}</h4>
           <div class="editor-wrap">
@@ -86,7 +106,7 @@
 
 <script setup lang="ts">
 // [AGC:START] tool=Cc author=fangkun
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Codemirror } from 'vue-codemirror'
@@ -104,12 +124,33 @@ function jsonText(obj: Record<string, unknown> | null | undefined): string {
   return JSON.stringify(obj ?? {}, null, 2)
 }
 
-const SOURCES = ['apiTester', 'prompt', 'stream', 'test-connection'] as const
+const SOURCES = ['apiTester', 'prompt', 'stream', 'test-connection', 'image'] as const
 
 const filters = ref<Partial<LLMCallLogFilter>>({})
 const dateRange = ref<[Date, Date] | null>(null)
 const drawerOpen = ref(false)
 const detail = ref<LLMCallLogRecord | null>(null)
+
+const isImageSource = computed(() => {
+  return detail.value?.source === 'image'
+})
+
+const imageUrls = computed(() => {
+  if (!detail.value?.response) return []
+  const response = detail.value.response as any
+  // Support both 'images' and 'results' fields
+  const images = response?.images || response?.results || []
+  if (Array.isArray(images)) {
+    return images
+      .map((item: unknown) => {
+        if (typeof item === 'string') return item
+        if (item && typeof item === 'object' && 'url' in item) return (item as { url: string }).url
+        return null
+      })
+      .filter((url: unknown) => typeof url === 'string' && url.startsWith('/images/'))
+  }
+  return []
+})
 
 function formatTime(ts: number): string {
   return new Date(ts).toLocaleString()
@@ -126,6 +167,19 @@ function summarize(row: LLMCallLogRecord): string {
   const s = JSON.stringify(req ?? '')
   return s.length > 80 ? s.slice(0, 80) + '…' : s
 }
+
+// [AGC:START] tool=Cc author=fangkun
+function getFirstImageUrl(row: LLMCallLogRecord): string | undefined {
+  if (row.source !== 'image') return undefined
+  const response = row.response as any
+  const items = response?.images || response?.results || []
+  if (!Array.isArray(items) || items.length === 0) return undefined
+  const first = items[0]
+  if (typeof first === 'string') return first.startsWith('/images/') ? first : undefined
+  if (first?.url && typeof first.url === 'string') return first.url.startsWith('/images/') ? first.url : undefined
+  return undefined
+}
+// [AGC:END]
 
 function applyFilters() {
   store.setFilters({
@@ -201,5 +255,29 @@ onMounted(async () => {
 .editor-wrap :deep(.cm-editor) {
   min-height: 120px;
   max-height: 40vh;
+}
+.image-preview-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.preview-image {
+  width: 200px;
+  height: 200px;
+  border: 1px solid #e2e5ea;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.preview-image:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+.thumbnail {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  cursor: pointer;
 }
 </style>

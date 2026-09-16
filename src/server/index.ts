@@ -47,6 +47,7 @@ import { createOpenAIAdapter } from './services/llm/adapters/openai-adapter';
 import { createAnthropicAdapter } from './services/llm/adapters/anthropic-adapter';
 import { createGeminiAdapter } from './services/llm/adapters/gemini-adapter';
 import { createDeepSeekAdapter } from './services/llm/adapters/deepseek-adapter';
+import { createNanoBananaAdapter } from './services/llm/adapters/nano-banana-adapter';
 
 export async function createApp(): Promise<{ app: express.Express; viteServer?: ViteDevServer }> {
   const app = express();
@@ -67,7 +68,7 @@ export async function createApp(): Promise<{ app: express.Express; viteServer?: 
   const historyManager = new HistoryManager(storage);
   const favoriteManager = new FavoriteManager(storage);
   const preferenceService = new PreferenceService(storage);
-  const imageService = new ImageService(storage);
+  const imageService = new ImageService(storage, dataDir);
   const imageModelManager = new ImageModelManager(storage);
   const dataManager = new DataManager(storage);
   const contextManager = new ContextManager(storage);
@@ -79,6 +80,7 @@ export async function createApp(): Promise<{ app: express.Express; viteServer?: 
   registry.register(createAnthropicAdapter());
   registry.register(createGeminiAdapter());
   registry.register(createDeepSeekAdapter());
+  registry.register(createNanoBananaAdapter(dataDir, imageService));
 
   // LLM Service
   const llmService = new LLMService(registry, modelManager);
@@ -104,7 +106,7 @@ export async function createApp(): Promise<{ app: express.Express; viteServer?: 
   registerHistoryRoutes(router, historyManager);
   registerFavoriteRoutes(router, favoriteManager);
   registerPreferenceRoutes(router, preferenceService);
-  registerImageRoutes(router, imageService);
+  registerImageRoutes(router, imageService, imageModelManager);
   registerImageModelRoutes(router, imageModelManager);
   registerDataRoutes(router, dataManager);
   registerContextRoutes(router, contextManager);
@@ -112,6 +114,11 @@ export async function createApp(): Promise<{ app: express.Express; viteServer?: 
   registerAgentRoutes(router, agentService, skillRegistry);
 
   app.use('/api/v1', authMiddleware, router);
+
+  // Serve generated images statically
+  const generatedImagesDir = path.join(dataDir, 'generated-images');
+  fs.mkdirSync(generatedImagesDir, { recursive: true });
+  app.use('/images/generated', express.static(generatedImagesDir));
 
   // Serve frontend
   const projectRoot = path.join(__dirname, '..', '..');
