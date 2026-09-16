@@ -50,7 +50,7 @@ export interface TextModelConfig {
     autoEnabledBy?: string;
   };
   providerId?: string;
-  protocol?: 'openai' | 'anthropic';  // NEW: determines which adapter to use
+  protocol?: 'openai' | 'anthropic' | 'nano-banana';  // NEW: determines which adapter to use
   modelId?: string;
   providerMeta: TextProvider;
   modelMeta: TextModel;

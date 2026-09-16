@@ -18,10 +18,11 @@ export interface IModelManager {
 }
 
 // [AGC:START] tool=Cc author=fangkun
-function resolveProtocol(config: TextModelConfig): 'openai' | 'anthropic' {
+function resolveProtocol(config: TextModelConfig): 'openai' | 'anthropic' | 'nano-banana' {
   if (config.protocol) return config.protocol;
   // Legacy configs without protocol: derive from providerId
   if (config.providerId === 'anthropic') return 'anthropic';
+  if (config.providerId === 'nano-banana') return 'nano-banana';
   // All others (openai/gemini/deepseek/maas/custom) -> openai-compatible
   return 'openai';
 }
@@ -47,7 +48,7 @@ export class LLMService implements ILLMService {
     return { modelId: config.modelId || config.modelMeta?.id, ...(config.paramOverrides || {}) };
   }
 
-  private protocolOf(config: TextModelConfig): 'openai' | 'anthropic' {
+  private protocolOf(config: TextModelConfig): 'openai' | 'anthropic' | 'nano-banana' {
     return resolveProtocol(config);
   }
 

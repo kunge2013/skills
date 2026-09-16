@@ -127,13 +127,15 @@ const store = usePromptStore()
 const PROTOCOL_OPTIONS = [
   { value: 'openai', label: t('prompt.protocolOpenai') },
   { value: 'anthropic', label: t('prompt.protocolAnthropic') },
+  { value: 'nano-banana', label: 'Nano Banana' },
 ]
 
-const PROVIDER_DEFAULTS: Record<string, { protocol: 'openai' | 'anthropic'; baseURL: string; modelId: string }> = {
+const PROVIDER_DEFAULTS: Record<string, { protocol: 'openai' | 'anthropic' | 'nano-banana'; baseURL: string; modelId: string }> = {
   openai: { protocol: 'openai', baseURL: 'https://api.openai.com/v1', modelId: 'gpt-4o' },
   anthropic: { protocol: 'anthropic', baseURL: 'https://api.anthropic.com', modelId: 'claude-sonnet-4-20250514' },
   gemini: { protocol: 'openai', baseURL: '', modelId: 'gemini-2.0-flash' },
   deepseek: { protocol: 'openai', baseURL: 'https://api.deepseek.com/v1', modelId: 'deepseek-chat' },
+  'nano-banana': { protocol: 'nano-banana', baseURL: '', modelId: 'nano-banana-2' },
   custom: { protocol: 'openai', baseURL: '', modelId: '' },
 }
 

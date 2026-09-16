@@ -164,19 +164,34 @@ const ANTHROPIC_EXAMPLE = JSON.stringify(
   2
 )
 
+const NANO_BANANA_EXAMPLE = JSON.stringify(
+  {
+    model: 'nano-banana-2',
+    prompt: 'Generate an image of a border collie and an old english sheepdog hosting a livestream.',
+    images: [],
+    aspectRatio: '1:1',
+    imageSize: '1K',
+    replyType: 'json',
+  },
+  null,
+  2
+)
+
 const selectedProtocol = computed(() => {
   const m = store.allModels.find((x) => x.id === store.selectedModelKey)
   if (!m) return ''
-  return m.protocol || (m.providerId === 'anthropic' ? 'anthropic' : 'openai')
+  return m.protocol || (m.providerId === 'anthropic' ? 'anthropic' : m.providerId === 'nano-banana' ? 'nano-banana' : 'openai')
 })
 
 function loadExample() {
-  payloadText.value = selectedProtocol.value === 'anthropic' ? ANTHROPIC_EXAMPLE : OPENAI_EXAMPLE
+  if (selectedProtocol.value === 'anthropic') payloadText.value = ANTHROPIC_EXAMPLE
+  else if (selectedProtocol.value === 'nano-banana') payloadText.value = NANO_BANANA_EXAMPLE
+  else payloadText.value = OPENAI_EXAMPLE
 }
 
 function onModelChange() {
   const isEmpty = !payloadText.value.trim()
-  const isCurrentExample = payloadText.value === OPENAI_EXAMPLE || payloadText.value === ANTHROPIC_EXAMPLE
+  const isCurrentExample = payloadText.value === OPENAI_EXAMPLE || payloadText.value === ANTHROPIC_EXAMPLE || payloadText.value === NANO_BANANA_EXAMPLE
   if (isEmpty || isCurrentExample) loadExample()
 }
 

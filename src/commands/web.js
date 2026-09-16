@@ -552,8 +552,8 @@ function createServer(port) {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     if (req.method === 'OPTIONS') { res.writeHead(200); res.end(); return; }
 
-    // Proxy /api/v1/* and /health to internal prompt server
-    if (pathname.startsWith('/api/v1/') || pathname === '/health') {
+    // Proxy /api/v1/*, /images/generated/*, and /health to internal prompt server
+    if (pathname.startsWith('/api/v1/') || pathname.startsWith('/images/generated/') || pathname === '/health') {
       if (!promptServerPort) {
         res.writeHead(503, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: false, error: 'Prompt server not ready' }));

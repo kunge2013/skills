@@ -8,7 +8,7 @@ import { LLMCallLogRecord, LLMCallSource } from './types';
 export interface LLMCallStart {
   source: LLMCallSource;
   modelKey: string;
-  protocol: 'openai' | 'anthropic';
+  protocol: 'openai' | 'anthropic' | 'nano-banana';
   modelParams: Record<string, unknown>;
   request: Record<string, unknown>;
 }

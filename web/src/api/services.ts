@@ -111,3 +111,62 @@ export function createPreferenceService(client: ApiClient) {
     batchUpdate: (prefs: Record<string, any>) => client.put('/preferences', prefs),
   };
 }
+
+// [AGC:START] tool=Cc author=fangkun
+export interface ImageGenerationResult {
+  id: string;
+  url: string;
+  prompt: string;
+  modelKey: string;
+  width: number;
+  height: number;
+  createdAt: number;
+}
+
+export interface ImageModelConfig {
+  id: string;
+  name: string;
+  enabled: boolean;
+  providerId: string;
+  modelId: string;
+  connectionConfig: {
+    apiKey?: string;
+    baseURL?: string;
+    [key: string]: any;
+  };
+}
+
+export function createImageService(client: ApiClient) {
+  return {
+    generateText2Image: (req: {
+      prompt: string;
+      modelKey?: string;
+      images?: string[];
+      aspectRatio?: string;
+      imageSize?: string;
+      replyType?: string;
+    }) => client.post<ImageGenerationResult | ImageGenerationResult[]>('/images/generate/text2image', req),
+
+    generateImage2Image: (req: {
+      prompt: string;
+      modelKey?: string;
+      images?: string[];
+      aspectRatio?: string;
+      imageSize?: string;
+      replyType?: string;
+    }) => client.post<ImageGenerationResult | ImageGenerationResult[]>('/images/generate/image2image', req),
+
+    testConnection: (modelKey: string) =>
+      client.post('/images/test-connection', { modelKey }),
+  };
+}
+
+export function createImageModelService(client: ApiClient) {
+  return {
+    getAll: () => client.get<ImageModelConfig[]>('/image-models'),
+    add: (config: ImageModelConfig) => client.post('/image-models', config),
+    update: (id: string, config: Partial<ImageModelConfig>) => client.put(`/image-models/${id}`, config),
+    delete: (id: string) => client.delete(`/image-models/${id}`),
+  };
+}
+// [AGC:END]

@@ -3,7 +3,7 @@ export interface TextModelConfig {
   name: string;
   enabled: boolean;
   providerId?: string;
-  protocol?: 'openai' | 'anthropic';
+  protocol?: 'openai' | 'anthropic' | 'nano-banana';
   modelId?: string;
   providerMeta: any;
   modelMeta: any;
@@ -38,7 +38,7 @@ export interface Template {
   content: { system: string; user?: string };
   category?: string;
 
-  // ÏµÍ³±äÁ¿ÁÐ±í,²âÊÔÊ±×Ô¶¯Ìî³ä»òÒþ²Ø
+  // ÏµÍ³ï¿½ï¿½ï¿½ï¿½ï¿½Ð±ï¿½,ï¿½ï¿½ï¿½ï¿½Ê±ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
   systemVariables?: string[];
 }
 // [AGC:END]
@@ -51,7 +51,7 @@ export interface LLMProvider {
   defaultBaseURL?: string;
   supportsDynamicModels?: boolean;
   apiKeyUrl?: string;
-  defaultProtocol?: 'openai' | 'anthropic';
+  defaultProtocol?: 'openai' | 'anthropic' | 'nano-banana';
 }
 
 // [AGC:START] tool=Cc author=fangkun
@@ -60,14 +60,14 @@ export interface TemplateTestRecord {
   templateId: string;
   templateName: string;
 
-  // ÓÃ»§ÊäÈëµÄ±äÁ¿Öµ
+  // ï¿½Ã»ï¿½ï¿½ï¿½ï¿½ï¿½Ä±ï¿½ï¿½ï¿½Öµ
   variables: Record<string, string>;
 
-  // Ìæ»»ºóµÄÌáÊ¾´Ê
+  // ï¿½æ»»ï¿½ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½
   processedSystemPrompt: string;
   processedUserPrompt: string;
 
-  // Ä£ÐÍÐÅÏ¢
+  // Ä£ï¿½ï¿½ï¿½ï¿½Ï¢
   modelKey: string;
   modelInfo: {
     id: string;
@@ -75,9 +75,9 @@ export interface TemplateTestRecord {
     providerId: string;
   };
 
-  // ²âÊÔ½á¹û
+  // ï¿½ï¿½ï¿½Ô½ï¿½ï¿½
   output: string;
   timestamp: number;
-  duration?: number;  // ºÁÃë
+  duration?: number;  // ï¿½ï¿½ï¿½ï¿½
 }
 // [AGC:END]

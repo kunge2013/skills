@@ -13,6 +13,7 @@ const LLM_PROVIDERS: LLMProvider[] = [
   { id: 'anthropic', name: 'Anthropic', requiresApiKey: true, defaultBaseURL: 'https://api.anthropic.com', supportsDynamicModels: false, apiKeyUrl: 'https://console.anthropic.com/settings/keys', defaultProtocol: 'anthropic' },
   { id: 'gemini', name: 'Google Gemini', requiresApiKey: true, defaultBaseURL: '', supportsDynamicModels: false, apiKeyUrl: 'https://aistudio.google.com/app/apikey', defaultProtocol: 'openai' },
   { id: 'deepseek', name: 'DeepSeek', requiresApiKey: true, defaultBaseURL: 'https://api.deepseek.com/v1', supportsDynamicModels: false, apiKeyUrl: 'https://platform.deepseek.com/api_keys', defaultProtocol: 'openai' },
+  { id: 'nano-banana', name: 'Nano Banana', requiresApiKey: true, defaultBaseURL: '', supportsDynamicModels: false, defaultProtocol: 'nano-banana' },
   { id: 'custom', name: '�Զ���/MaaS', requiresApiKey: true, defaultBaseURL: '', supportsDynamicModels: false, defaultProtocol: 'openai' },
 ]
 
@@ -148,12 +149,12 @@ export const usePromptStore = defineStore('prompt', {
     // Models management
     showAddModel: false,
     newModel: {
-      id: '', name: '', providerId: '', protocol: 'openai' as 'openai' | 'anthropic', modelId: '', apiKey: '', baseURL: '',
+      id: '', name: '', providerId: '', protocol: 'openai' as 'openai' | 'anthropic' | 'nano-banana', modelId: '', apiKey: '', baseURL: '',
     },
     // Edit state
     editingModelId: null as string | null,
     editForm: {
-      id: '', name: '', providerId: '', protocol: 'openai' as 'openai' | 'anthropic', modelId: '', apiKey: '', baseURL: '',
+      id: '', name: '', providerId: '', protocol: 'openai' as 'openai' | 'anthropic' | 'nano-banana', modelId: '', apiKey: '', baseURL: '',
     },
 
     // Template test history

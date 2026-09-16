@@ -2,7 +2,7 @@
 // src/server/services/llm-call/types.ts
 
 // [AGC:START] tool=Cc author=fangkun
-export type LLMCallSource = 'apiTester' | 'prompt' | 'stream' | 'test-connection';
+export type LLMCallSource = 'apiTester' | 'prompt' | 'stream' | 'test-connection' | 'image';
 
 export interface LLMCallLogRecord {
   id: string;
@@ -10,7 +10,7 @@ export interface LLMCallLogRecord {
   durationMs: number;
   source: LLMCallSource;
   modelKey: string;
-  protocol: 'openai' | 'anthropic';
+  protocol: 'openai' | 'anthropic' | 'nano-banana';
   modelParams: Record<string, unknown>;
   request: Record<string, unknown>;
   response: Record<string, unknown> | null;

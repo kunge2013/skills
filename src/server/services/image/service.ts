@@ -1,4 +1,51 @@
 import { IStorageProvider } from '../../storage/types';
+import fs from 'fs';
+import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
+
+// [AGC:START] tool=Cc author=fangkun
+/**
+ * Save a base64 image (with or without data URI prefix) or a remote URL to local disk.
+ * Returns the relative URL path (e.g. "/images/abc123.png") that can be served statically.
+ */
+export async function saveImageToDisk(
+  dataDir: string,
+  imageData: string,
+  prompt: string,
+): Promise<string> {
+  const imagesDir = path.join(dataDir, 'generated-images');
+  fs.mkdirSync(imagesDir, { recursive: true });
+
+  const id = uuidv4().replace(/-/g, '').slice(0, 12);
+  const safePrompt = prompt.slice(0, 40).replace(/[^a-zA-Z0-9一-龥_-]/g, '_');
+  const filename = `${id}_${safePrompt}.png`;
+  const filePath = path.join(imagesDir, filename);
+
+  if (imageData.startsWith('data:')) {
+    // data URI — extract base64 portion
+    const base64Data = imageData.split(',')[1];
+    fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
+  } else if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
+    // Remote URL — download and save
+    const response = await fetch(imageData);
+    if (!response.ok) throw new Error(`Failed to download image: HTTP ${response.status}`);
+    const buf = Buffer.from(await response.arrayBuffer());
+    fs.writeFileSync(filePath, buf);
+  } else {
+    // Assume raw base64
+    fs.writeFileSync(filePath, Buffer.from(imageData, 'base64'));
+  }
+
+  return `/images/generated/${filename}`;
+}
+
+/**
+ * Detect whether a string is image data (base64 or data URI) vs a plain URL/relative path.
+ */
+export function isImageData(s: string): boolean {
+  return s.startsWith('data:image/') || /^[A-Za-z0-9+/=]{100,}$/.test(s);
+}
+// [AGC:END]
 
 export interface ImageGenerationRequest {
   prompt: string;
@@ -26,9 +73,11 @@ export interface GeneratedImage {
 export class ImageService {
   private storageKey = 'images';
   private storage: IStorageProvider;
+  readonly dataDir: string;
 
-  constructor(storage: IStorageProvider) {
+  constructor(storage: IStorageProvider, dataDir: string) {
     this.storage = storage;
+    this.dataDir = dataDir;
   }
 
   async getGeneratedImages(): Promise<GeneratedImage[]> {
@@ -43,6 +92,32 @@ export class ImageService {
     if (images.length > 500) images.length = 500;
     await this.storage.setItem(this.storageKey, JSON.stringify(images));
   }
+
+  // [AGC:START] tool=Cc author=fangkun
+  /**
+   * Save an image (base64/URL) to local disk, persist record, return GeneratedImage.
+   */
+  async saveImageFromResponse(
+    imageData: string,
+    prompt: string,
+    modelKey: string,
+    width?: number,
+    height?: number,
+  ): Promise<GeneratedImage> {
+    const localUrl = await saveImageToDisk(this.dataDir, imageData, prompt);
+    const image: GeneratedImage = {
+      id: uuidv4(),
+      url: localUrl,
+      prompt,
+      modelKey,
+      width: width || 1024,
+      height: height || 1024,
+      createdAt: Date.now(),
+    };
+    await this.saveImage(image);
+    return image;
+  }
+  // [AGC:END]
 
   async deleteImage(id: string): Promise<void> {
     const images = await this.getGeneratedImages();
