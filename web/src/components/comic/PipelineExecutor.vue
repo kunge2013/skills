@@ -108,7 +108,7 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { useComicStore } from '../../stores/comic'
 import { usePromptStore } from '../../stores/prompt'
-import type { ComicTemplate, ComicCategory } from '../../types/comic'
+import type { ComicTemplate, ComicCategory, Novel } from '../../types/comic'
 
 const { t } = useI18n()
 const store = useComicStore()
@@ -250,6 +250,43 @@ function getPlaceholder(varName: string): string {
   }
 }
 
+// Map category to the novel field that stores the output
+function getCategoryOutputField(category: ComicCategory): keyof Novel | null {
+  switch (category) {
+    case 'cleaning': return 'content'
+    case 'extraction': return 'character_text'
+    case 'script': return 'script_text'
+    case 'storyboard': return 'storyboard_text'
+    default: return null
+  }
+}
+
+// Save step output to novel and persist to backend
+async function saveStepOutput(template: ComicTemplate, output: string) {
+  const novel = store.novels.find(n => n.id === selectedNovelId.value)
+  if (!novel) return
+
+  const field = getCategoryOutputField(template.category)
+  if (!field) return
+
+  // Update local store state immediately so next step can use it
+  const novelIndex = store.novels.findIndex(n => n.id === novel.id)
+  if (novelIndex >= 0) {
+    store.novels[novelIndex] = { ...novel, [field]: output, updated_at: Date.now() }
+  }
+
+  // Persist to backend directly (without reloading all novels to avoid race conditions)
+  try {
+    await fetch(`/api/v1/comic/novels/${novel.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [field]: output }),
+    })
+  } catch (err) {
+    console.warn('Failed to save step output to novel:', err)
+  }
+}
+
 watch(selectedNovelId, (newId) => {
   store.setSelectedNovel(newId)
 })
@@ -362,6 +399,9 @@ async function executeCurrentStep() {
     }
 
     completedSteps.value.add(currentTemplate.value.id)
+
+    // Save output to novel for next step chaining
+    await saveStepOutput(currentTemplate.value, fullOutput)
 
     const nextTemplate = findNextTemplate(currentTemplate.value)
     if (nextTemplate) {
