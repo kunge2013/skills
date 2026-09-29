@@ -10,30 +10,28 @@
     </div>
 
     <div class="novel-list">
-      <el-card v-for="novel in store.novels" :key="novel.id" class="novel-card" shadow="never">
-        <div class="novel-header">
-          <div class="novel-info">
-            <h4>{{ novel.name }}</h4>
-            <div class="novel-meta">
-              <span>{{ formatLength(novel.original_text?.length || 0) }} {{ $t('comic.chars') }}</span>
-              <span>{{ formatTime(novel.updated_at) }}</span>
-              <div class="progress-tags">
-                <el-tag size="small" :type="novel.is_format_cleaned ? 'success' : 'info'">{{ $t('comic.format') }}</el-tag>
-                <el-tag size="small" :type="novel.is_serial_cleaned ? 'success' : 'info'">{{ $t('comic.serial') }}</el-tag>
-                <el-tag size="small" :type="novel.is_punct_cleaned ? 'success' : 'info'">{{ $t('comic.punct') }}</el-tag>
-                <el-tag size="small" :type="novel.is_shot_cleaned ? 'success' : 'info'">{{ $t('comic.shot') }}</el-tag>
-              </div>
-            </div>
-          </div>
-          <div class="novel-actions">
-            <el-button size="small" @click="goToPipeline(novel.id)">{{ $t('comic.execute') }}</el-button>
-            <el-button size="small" @click="startEdit(novel)">{{ $t('comic.edit') }}</el-button>
-            <el-button size="small" type="danger" @click="handleDelete(novel)">
-              <el-icon><Delete /></el-icon>
-            </el-button>
+      <div v-for="novel in store.novels" :key="novel.id" class="novel-card">
+        <div class="novel-info">
+          <h4>{{ novel.name }}</h4>
+          <div class="novel-meta">
+            <span>📏 {{ formatLength(novel.original_text?.length || 0) }} {{ $t('comic.chars') }}</span>
+            <span>🕐 {{ formatTime(novel.updated_at) }}</span>
+            <span class="progress-tags">
+              <span class="progress-tag" :class="novel.is_format_cleaned ? 'done' : 'pending'">{{ $t('comic.format') }}</span>
+              <span class="progress-tag" :class="novel.is_serial_cleaned ? 'done' : 'pending'">{{ $t('comic.serial') }}</span>
+              <span class="progress-tag" :class="novel.is_punct_cleaned ? 'done' : 'pending'">{{ $t('comic.punct') }}</span>
+              <span class="progress-tag" :class="novel.is_shot_cleaned ? 'done' : 'pending'">{{ $t('comic.shot') }}</span>
+            </span>
           </div>
         </div>
-      </el-card>
+        <div class="novel-actions">
+          <el-button size="small" @click="goToPipeline(novel.id)">{{ $t('comic.execute') }}</el-button>
+          <el-button size="small" @click="startEdit(novel)">{{ $t('comic.edit') }}</el-button>
+          <el-button size="small" type="danger" @click="handleDelete(novel)">
+            <el-icon><Delete /></el-icon>
+          </el-button>
+        </div>
+      </div>
     </div>
 
     <el-empty v-if="store.novels.length === 0" :description="$t('comic.noNovels')" />
@@ -214,26 +212,32 @@ function resetForm() {
 }
 
 .novel-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
   margin-bottom: 12px;
+  border: 1px solid #e8e8e8;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: box-shadow 0.2s;
 }
 
-.novel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.novel-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .novel-info h4 {
-  font-size: 16px;
-  margin: 0 0 8px 0;
+  font-size: 15px;
+  margin: 0 0 4px 0;
 }
 
 .novel-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 13px;
+  font-size: 12px;
   color: #999;
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
 .progress-tags {
@@ -241,8 +245,24 @@ function resetForm() {
   gap: 4px;
 }
 
+.progress-tag {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.progress-tag.done {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.progress-tag.pending {
+  background: #f5f5f5;
+  color: #999;
+}
+
 .novel-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 </style>

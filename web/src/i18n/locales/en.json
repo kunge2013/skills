@@ -490,6 +490,17 @@
     "runId": "Run ID",
     "error": "Error",
     "deleteLogConfirm": "Are you sure you want to delete this log?",
-    "deleteAllConfirm": "Are you sure you want to delete all logs?"
+    "deleteAllConfirm": "Are you sure you want to delete all logs?",
+    "subSteps": "Sub-steps",
+    "autoFillHint": "Auto-filled from previous step",
+    "generated": "Generated",
+    "search": "Search",
+    "successShort": "Success",
+    "failureShort": "Failed",
+    "totalDuration": "Total duration",
+    "success": "Success",
+    "failure": "Failed",
+    "rerun": "Rerun",
+    "noLogs": "No logs yet"
   }
 }

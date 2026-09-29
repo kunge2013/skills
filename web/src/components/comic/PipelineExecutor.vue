@@ -1,155 +1,103 @@
 <!-- [AGC:FILE] tool=Cc author=fangkun date=2026-09-29 -->
 <template>
   <div class="pipeline-executor">
-    <div class="toolbar">
-      <div class="novel-select">
-        <el-select v-model="selectedNovelId" :placeholder="$t('comic.selectNovel')" filterable>
+    <div class="pipeline-container">
+      <!-- Novel Selection -->
+      <div class="pipeline-novel-select">
+        <label>{{ $t('comic.selectNovel') }}：</label>
+        <el-select v-model="selectedNovelId" :placeholder="$t('comic.selectNovel')" filterable style="min-width: 200px;">
           <el-option v-for="n in store.novels" :key="n.id" :label="n.name" :value="n.id" />
         </el-select>
+        <span class="run-id-hint" v-if="runId">
+          Run ID: <code>{{ runId }}</code>
+        </span>
       </div>
-      <div class="actions">
+
+      <!-- Step Flow Visualization -->
+      <div class="step-flow">
+        <div v-for="(stage, index) in stages" :key="stage.key" class="step-node-wrapper">
+          <div class="step-node">
+            <div class="step-circle" :class="getStepCircleClass(stage.key)">
+              <span v-if="isStageDone(stage.key)">✓</span>
+              <span v-else-if="isStageCurrent(stage.key)">{{ index + 1 }}</span>
+              <span v-else>{{ index + 1 }}</span>
+            </div>
+            <div class="step-label">{{ stage.label }}</div>
+          </div>
+          <div v-if="index < stages.length - 1" class="step-connector" :class="getConnectorClass(stage.key)"></div>
+        </div>
+      </div>
+
+      <!-- Current Stage Sub-steps -->
+      <div v-if="currentStage" class="current-stage-section">
+        <div class="stage-subtitle">{{ currentStage.emoji }} {{ currentStage.label }} - {{ $t('comic.subSteps') }}</div>
+        <div class="sub-steps-grid">
+          <div
+            v-for="t in getCurrentStageTemplates()"
+            :key="t.id"
+            class="sub-step-card"
+            :class="{ done: isCompleted(t.id), active: currentStepId === t.id }"
+            @click="selectStep(t.id)"
+          >
+            <div class="sub-step-header">
+              <h5>P{{ t.step_order }}: {{ t.name }}</h5>
+              <span class="sub-step-status" :class="getSubStepStatusClass(t.id)">
+                {{ getSubStepStatusText(t.id) }}
+              </span>
+            </div>
+            <div class="sub-step-meta">{{ t.description }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Execute Panel -->
+      <div v-if="currentTemplate" class="execute-panel">
+        <h4>📝 P{{ currentTemplate.step_order }}: {{ currentTemplate.name }}
+          <span class="subtitle">{{ currentTemplate.description }}</span>
+        </h4>
+
+        <div class="var-input-group" v-for="v in currentTemplate.input_variables" :key="v">
+          <label>📥 {{ v }} <span class="auto-hint">{{ $t('comic.autoFillHint') }}</span></label>
+          <el-input
+            v-model="inputValues[v]"
+            type="textarea"
+            :rows="5"
+            :placeholder="getPlaceholder(v)"
+          />
+        </div>
+
+        <div class="execute-actions">
+          <label>{{ $t('comic.model') }}：</label>
+          <el-select v-model="selectedModel" style="min-width: 180px;">
+            <el-option label="deepseek-chat" value="deepseek-chat" />
+            <el-option label="gpt-4o" value="gpt-4o" />
+            <el-option label="claude-sonnet-4-20250514" value="claude-sonnet-4-20250514" />
+          </el-select>
+          <el-button type="primary" :loading="store.executing" @click="executeCurrentStep">
+            {{ store.executing ? '⏸' : '▶️' }} {{ $t('comic.executeStep') }}
+          </el-button>
+          <el-button v-if="!store.executing" @click="regenerate">🔄 {{ $t('comic.regenerate') }}</el-button>
+          <span class="streaming-hint" v-if="store.executing">
+            {{ $t('comic.generated') }} {{ (store.executeOutput || '').length.toLocaleString() }} {{ $t('comic.chars') }}...
+            <span class="streaming-cursor"></span>
+          </span>
+        </div>
+
+        <!-- Output Panel -->
+        <div v-if="store.executeOutput || store.executeError" class="output-panel">
+          <div v-if="store.executeError" class="error-text">{{ store.executeError }}</div>
+          <template v-else>{{ store.executeOutput }}<span v-if="store.executing" class="streaming-cursor"></span></template>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="pipeline-actions">
         <el-button type="primary" :disabled="!selectedNovelId || store.executing" @click="startPipeline">
           {{ $t('comic.startPipeline') }}
         </el-button>
         <el-button :disabled="store.executing" @click="resetPipeline">
           {{ $t('comic.reset') }}
         </el-button>
-      </div>
-    </div>
-
-    <div class="pipeline-stages">
-      <!-- Stage 1: Cleaning -->
-      <div class="stage">
-        <div class="stage-header">
-          <h3>🧹 {{ $t('comic.cleaning') }}</h3>
-          <el-tag :type="getStageStatus('cleaning')" size="small">{{ getStageLabel('cleaning') }}</el-tag>
-        </div>
-        <div class="sub-steps">
-          <div v-for="t in cleaningTemplates" :key="t.id" class="sub-step" :class="{ completed: isCompleted(t.id), active: currentStepId === t.id }">
-            <div class="step-icon">
-              <el-icon v-if="isCompleted(t.id)" color="#67c23a"><Check /></el-icon>
-              <el-icon v-else-if="currentStepId === t.id" color="#409eff"><Loading /></el-icon>
-              <span v-else class="step-num">P{{ t.step_order }}</span>
-            </div>
-            <div class="step-info">
-              <div class="step-name">{{ t.name }}</div>
-              <div class="step-desc">{{ t.description }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Stage 2: Extraction -->
-      <div class="stage">
-        <div class="stage-header">
-          <h3>🕵️ {{ $t('comic.extraction') }}</h3>
-          <el-tag :type="getStageStatus('extraction')" size="small">{{ getStageLabel('extraction') }}</el-tag>
-        </div>
-        <div class="sub-steps">
-          <div v-for="t in extractionTemplates" :key="t.id" class="sub-step" :class="{ completed: isCompleted(t.id), active: currentStepId === t.id }">
-            <div class="step-icon">
-              <el-icon v-if="isCompleted(t.id)" color="#67c23a"><Check /></el-icon>
-              <el-icon v-else-if="currentStepId === t.id" color="#409eff"><Loading /></el-icon>
-              <span v-else class="step-num">P{{ t.step_order }}</span>
-            </div>
-            <div class="step-info">
-              <div class="step-name">{{ t.name }}</div>
-              <div class="step-desc">{{ t.description }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Stage 3: Script -->
-      <div class="stage">
-        <div class="stage-header">
-          <h3>🎬 {{ $t('comic.script') }}</h3>
-          <el-tag :type="getStageStatus('script')" size="small">{{ getStageLabel('script') }}</el-tag>
-        </div>
-        <div class="sub-steps">
-          <div v-for="t in scriptTemplates" :key="t.id" class="sub-step" :class="{ completed: isCompleted(t.id), active: currentStepId === t.id }">
-            <div class="step-icon">
-              <el-icon v-if="isCompleted(t.id)" color="#67c23a"><Check /></el-icon>
-              <el-icon v-else-if="currentStepId === t.id" color="#409eff"><Loading /></el-icon>
-              <span v-else class="step-num">P{{ t.step_order }}</span>
-            </div>
-            <div class="step-info">
-              <div class="step-name">{{ t.name }}</div>
-              <div class="step-desc">{{ t.description }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Stage 4: Storyboard -->
-      <div class="stage">
-        <div class="stage-header">
-          <h3>🖼️ {{ $t('comic.storyboard') }}</h3>
-          <el-tag :type="getStageStatus('storyboard')" size="small">{{ getStageLabel('storyboard') }}</el-tag>
-        </div>
-        <div class="sub-steps">
-          <div v-for="t in storyboardTemplates" :key="t.id" class="sub-step" :class="{ completed: isCompleted(t.id), active: currentStepId === t.id }">
-            <div class="step-icon">
-              <el-icon v-if="isCompleted(t.id)" color="#67c23a"><Check /></el-icon>
-              <el-icon v-else-if="currentStepId === t.id" color="#409eff"><Loading /></el-icon>
-              <span v-else class="step-num">P{{ t.step_order }}</span>
-            </div>
-            <div class="step-info">
-              <div class="step-name">{{ t.name }}</div>
-              <div class="step-desc">{{ t.description }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Execute Panel -->
-    <div v-if="currentTemplate" class="execute-panel">
-      <div class="panel-header">
-        <h3>{{ currentTemplate.name }}</h3>
-        <el-tag type="info" size="small">P{{ currentTemplate.step_order }}</el-tag>
-      </div>
-      <div class="panel-body">
-        <div class="input-section">
-          <h4>{{ $t('comic.inputVariables') }}</h4>
-          <div v-for="v in currentTemplate.input_variables" :key="v" class="var-input">
-            <label>{{ v }}</label>
-            <el-input v-model="inputValues[v]" type="textarea" :rows="4" :placeholder="getPlaceholder(v)" />
-          </div>
-        </div>
-        <div class="model-section">
-          <h4>{{ $t('comic.model') }}</h4>
-          <el-select v-model="selectedModel" style="width: 100%">
-            <el-option label="Claude 3.5 Sonnet" value="claude-3-5-sonnet" />
-            <el-option label="Claude 3 Opus" value="claude-3-opus" />
-            <el-option label="GPT-4o" value="gpt-4o" />
-          </el-select>
-        </div>
-        <div class="system-prompt">
-          <h4>{{ $t('comic.systemPrompt') }}</h4>
-          <div class="prompt-preview">{{ currentTemplate.system_prompt }}</div>
-        </div>
-      </div>
-      <div class="panel-footer">
-        <el-button type="primary" :loading="store.executing" @click="executeCurrentStep">
-          {{ $t('comic.executeStep') }}
-        </el-button>
-      </div>
-    </div>
-
-    <!-- Output Section -->
-    <div v-if="store.executeOutput || store.executeError" class="output-section">
-      <div class="output-header">
-        <h3>{{ $t('comic.output') }}</h3>
-        <el-button v-if="store.executeOutput" size="small" @click="copyOutput">
-          {{ $t('comic.copy') }}
-        </el-button>
-      </div>
-      <div v-if="store.executeError" class="error-output">
-        {{ store.executeError }}
-      </div>
-      <div v-else class="text-output">
-        {{ store.executeOutput }}
       </div>
     </div>
   </div>
@@ -160,7 +108,6 @@
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import { Check, Loading } from '@element-plus/icons-vue'
 import { useComicStore } from '../../stores/comic'
 import type { ComicTemplate, ComicCategory } from '../../types/comic'
 
@@ -169,39 +116,83 @@ const store = useComicStore()
 
 const selectedNovelId = ref('')
 const currentStepId = ref('')
-const selectedModel = ref('claude-3-5-sonnet')
+const selectedModel = ref('deepseek-chat')
 const inputValues = ref<Record<string, string>>({})
 const completedSteps = ref<Set<string>>(new Set())
 const runId = ref('')
+
+const stages = computed(() => [
+  { key: 'cleaning' as ComicCategory, label: t('comic.cleaning'), emoji: '🧹' },
+  { key: 'extraction' as ComicCategory, label: t('comic.extraction'), emoji: '🕵️' },
+  { key: 'script' as ComicCategory, label: t('comic.script'), emoji: '🎬' },
+  { key: 'storyboard' as ComicCategory, label: t('comic.storyboard'), emoji: '🖼️' },
+])
+
+const currentStage = computed(() => {
+  if (!currentStepId.value) return null
+  const template = store.templates.find(t => t.id === currentStepId.value)
+  if (!template) return null
+  return stages.value.find(s => s.key === template.category) || null
+})
 
 const currentTemplate = computed(() => {
   if (!currentStepId.value) return null
   return store.templates.find(t => t.id === currentStepId.value) || null
 })
 
-const cleaningTemplates = computed(() => store.templatesByCategory('cleaning').sort((a, b) => (a.step_order || 0) - (b.step_order || 0)))
-const extractionTemplates = computed(() => store.templatesByCategory('extraction').sort((a, b) => (a.step_order || 0) - (b.step_order || 0)))
-const scriptTemplates = computed(() => store.templatesByCategory('script').sort((a, b) => (a.step_order || 0) - (b.step_order || 0)))
-const storyboardTemplates = computed(() => store.templatesByCategory('storyboard').sort((a, b) => (a.step_order || 0) - (b.step_order || 0)))
-
 function isCompleted(templateId: string): boolean {
   return completedSteps.value.has(templateId)
 }
 
-function getStageStatus(category: ComicCategory): 'success' | 'warning' | 'info' {
-  const templates = store.templatesByCategory(category)
-  if (templates.length === 0) return 'info'
-  const allCompleted = templates.every(t => isCompleted(t.id))
-  if (allCompleted) return 'success'
-  const anyActive = templates.some(t => currentStepId.value === t.id)
-  if (anyActive) return 'warning'
-  return 'info'
+function getStageTemplates(category: ComicCategory): ComicTemplate[] {
+  return store.templatesByCategory(category).sort((a, b) => (a.step_order || 0) - (b.step_order || 0))
 }
 
-function getStageLabel(category: ComicCategory): string {
-  const templates = store.templatesByCategory(category)
-  const completed = templates.filter(t => isCompleted(t.id)).length
-  return `${completed}/${templates.length}`
+function isStageDone(category: ComicCategory): boolean {
+  const templates = getStageTemplates(category)
+  if (templates.length === 0) return false
+  return templates.every(t => isCompleted(t.id))
+}
+
+function isStageCurrent(category: ComicCategory): boolean {
+  if (!currentStepId.value) return false
+  const template = store.templates.find(t => t.id === currentStepId.value)
+  return template?.category === category
+}
+
+function getStepCircleClass(category: ComicCategory): string {
+  if (isStageDone(category)) return 'done'
+  if (isStageCurrent(category)) return 'current'
+  return 'pending'
+}
+
+function getConnectorClass(category: ComicCategory): string {
+  if (isStageDone(category)) return 'done'
+  if (isStageCurrent(category)) return 'active'
+  return ''
+}
+
+function getSubStepStatusClass(templateId: string): string {
+  if (isCompleted(templateId)) return 'done'
+  if (currentStepId.value === templateId) return 'running'
+  return 'pending'
+}
+
+function getSubStepStatusText(templateId: string): string {
+  if (isCompleted(templateId)) return '✅ 完成'
+  if (currentStepId.value === templateId) return '⏳ 执行中'
+  return '待执行'
+}
+
+function getCurrentStageTemplates(): ComicTemplate[] {
+  if (!currentStage.value) return []
+  return getStageTemplates(currentStage.value.key)
+}
+
+function selectStep(templateId: string) {
+  if (isCompleted(templateId)) return
+  currentStepId.value = templateId
+  inputValues.value = {}
 }
 
 function getPlaceholder(varName: string): string {
@@ -237,9 +228,9 @@ async function startPipeline() {
   store.executeOutput = ''
   store.executeError = ''
 
-  const firstCleaning = cleaningTemplates.value[0]
-  if (firstCleaning) {
-    currentStepId.value = firstCleaning.id
+  const firstCleaning = getStageTemplates('cleaning')
+  if (firstCleaning.length > 0) {
+    currentStepId.value = firstCleaning[0].id
   }
 
   ElMessage.success(t('comic.pipelineStarted'))
@@ -251,6 +242,13 @@ function resetPipeline() {
   inputValues.value = {}
   store.executeOutput = ''
   store.executeError = ''
+  runId.value = ''
+}
+
+function regenerate() {
+  store.executeOutput = ''
+  store.executeError = ''
+  inputValues.value = {}
 }
 
 async function executeCurrentStep() {
@@ -366,230 +364,289 @@ function findNextTemplate(current: ComicTemplate): ComicTemplate | null {
 
   return null
 }
-
-async function copyOutput() {
-  if (!store.executeOutput) return
-  try {
-    await navigator.clipboard.writeText(store.executeOutput)
-    ElMessage.success(t('comic.copied'))
-  } catch (e) {
-    ElMessage.error(t('comic.copyFailed'))
-  }
-}
 // [AGC:END]
 </script>
 
 <style scoped>
 .pipeline-executor {
   height: 100%;
-  display: flex;
-  flex-direction: column;
   overflow: auto;
 }
 
-.toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding: 16px;
+.pipeline-container {
   background: #fff;
-  border-radius: 4px;
+  border-radius: 8px;
+  padding: 24px;
 }
 
-.novel-select {
-  flex: 1;
-  max-width: 400px;
-}
-
-.actions {
-  display: flex;
-  gap: 8px;
-}
-
-.pipeline-stages {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.stage {
-  background: #fff;
-  border-radius: 4px;
-  padding: 16px;
-}
-
-.stage-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.stage-header h3 {
-  margin: 0;
-  font-size: 16px;
-}
-
-.sub-steps {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.sub-step {
+.pipeline-novel-select {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f0f0f0;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px;
-  border-radius: 4px;
-  border: 1px solid #e8e8e8;
-  transition: all 0.2s;
 }
 
-.sub-step.completed {
-  background: #f0f9ff;
-  border-color: #67c23a;
+.pipeline-novel-select label {
+  font-size: 14px;
+  color: #666;
 }
 
-.sub-step.active {
-  background: #e6f7ff;
-  border-color: #409eff;
+.run-id-hint {
+  font-size: 12px;
+  color: #999;
 }
 
-.step-icon {
-  width: 32px;
-  height: 32px;
+.run-id-hint code {
+  background: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+/* Step Flow */
+.step-flow {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 32px;
+  padding: 0 20px;
+}
+
+.step-node-wrapper {
+  display: flex;
+  align-items: flex-start;
+}
+
+.step-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 100px;
+}
+
+.step-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  transition: all 0.3s;
 }
 
-.step-num {
-  font-size: 12px;
+.step-circle.done {
+  background: #52c41a;
+  color: #fff;
+}
+
+.step-circle.current {
+  background: #409eff;
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(64, 158, 255, 0.2);
+}
+
+.step-circle.pending {
+  background: #f0f0f0;
   color: #999;
+}
+
+.step-label {
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+  max-width: 80px;
+}
+
+.step-connector {
+  flex: 1;
+  height: 2px;
+  background: #e8e8e8;
+  margin-top: 20px;
+  min-width: 30px;
+}
+
+.step-connector.done {
+  background: #52c41a;
+}
+
+.step-connector.active {
+  background: linear-gradient(90deg, #52c41a, #409eff);
+}
+
+/* Current Stage Sub-steps */
+.current-stage-section {
+  margin-bottom: 24px;
+}
+
+.stage-subtitle {
+  margin-bottom: 16px;
+  font-size: 14px;
   font-weight: 600;
 }
 
-.step-info {
-  flex: 1;
-  min-width: 0;
+.sub-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
 }
 
-.step-name {
-  font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 2px;
+.sub-step-card {
+  background: #fafafa;
+  border-radius: 8px;
+  padding: 14px;
+  border: 1px solid #e8e8e8;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.step-desc {
+.sub-step-card:hover {
+  border-color: #409eff;
+  background: #f0f5ff;
+}
+
+.sub-step-card.active {
+  border-color: #409eff;
+  background: #f0f5ff;
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.15);
+}
+
+.sub-step-card.done {
+  border-color: #b7eb8f;
+  background: #f6ffed;
+}
+
+.sub-step-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.sub-step-header h5 {
+  font-size: 13px;
+  margin: 0;
+}
+
+.sub-step-status {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.sub-step-status.done {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.sub-step-status.pending {
+  background: #f5f5f5;
+  color: #999;
+}
+
+.sub-step-status.running {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.sub-step-meta {
   font-size: 12px;
   color: #999;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
+/* Execute Panel */
 .execute-panel {
   background: #fff;
-  border-radius: 4px;
-  padding: 16px;
-  margin-bottom: 20px;
-}
-
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  padding: 20px;
   margin-bottom: 16px;
 }
 
-.panel-header h3 {
-  margin: 0;
-  font-size: 18px;
+.execute-panel h4 {
+  font-size: 15px;
+  margin: 0 0 16px 0;
 }
 
-.panel-body {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+.execute-panel h4 .subtitle {
+  font-size: 12px;
+  color: #999;
+  font-weight: normal;
+  margin-left: 8px;
 }
 
-.input-section h4,
-.model-section h4,
-.system-prompt h4 {
-  margin: 0 0 8px 0;
-  font-size: 14px;
-  font-weight: 500;
+.var-input-group {
+  margin-bottom: 16px;
 }
 
-.var-input {
-  margin-bottom: 12px;
-}
-
-.var-input label {
+.var-input-group label {
   display: block;
   font-size: 13px;
   color: #666;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
-.prompt-preview {
-  background: #fafafa;
-  padding: 12px;
-  border-radius: 4px;
-  font-size: 12px;
-  color: #666;
-  max-height: 120px;
-  overflow: auto;
-  line-height: 1.5;
-  white-space: pre-wrap;
+.auto-hint {
+  color: #999;
+  font-size: 11px;
+  margin-left: 6px;
 }
 
-.panel-footer {
-  margin-top: 16px;
+.execute-actions {
   display: flex;
-  justify-content: flex-end;
-}
-
-.output-section {
-  background: #fff;
-  border-radius: 4px;
-  padding: 16px;
-}
-
-.output-header {
-  display: flex;
-  justify-content: space-between;
+  gap: 10px;
   align-items: center;
-  margin-bottom: 12px;
+  flex-wrap: wrap;
 }
 
-.output-header h3 {
-  margin: 0;
-  font-size: 16px;
+.streaming-hint {
+  font-size: 12px;
+  color: #999;
 }
 
-.error-output {
-  background: #fff2f0;
-  border: 1px solid #ffccc7;
-  color: #ff4d4f;
-  padding: 12px;
-  border-radius: 4px;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.text-output {
-  background: #fafafa;
-  padding: 12px;
-  border-radius: 4px;
+/* Output Panel - dark theme */
+.output-panel {
+  margin-top: 16px;
+  background: #1e1e1e;
+  border-radius: 8px;
+  padding: 16px;
+  color: #d4d4d4;
   font-size: 13px;
   line-height: 1.6;
-  max-height: 400px;
-  overflow: auto;
+  max-height: 300px;
+  overflow-y: auto;
+  font-family: 'Consolas', 'Monaco', monospace;
   white-space: pre-wrap;
+}
+
+.error-text {
+  color: #ff6b6b;
+}
+
+.streaming-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 14px;
+  background: #409eff;
+  animation: blink 1s infinite;
+  vertical-align: middle;
+  margin-left: 2px;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.pipeline-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
 }
 </style>

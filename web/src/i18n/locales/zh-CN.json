@@ -492,6 +492,17 @@
     "runId": "运行ID",
     "error": "错误",
     "deleteLogConfirm": "确定要删除这条记录吗？",
-    "deleteAllConfirm": "确定要清空全部记录吗？"
+    "deleteAllConfirm": "确定要清空全部记录吗？",
+    "subSteps": "子步骤",
+    "autoFillHint": "自动从上一步结果填充",
+    "generated": "已生成",
+    "search": "搜索",
+    "successShort": "成功",
+    "failureShort": "失败",
+    "totalDuration": "总耗时",
+    "success": "成功",
+    "failure": "失败",
+    "rerun": "重跑",
+    "noLogs": "暂无调用记录"
   }
 }

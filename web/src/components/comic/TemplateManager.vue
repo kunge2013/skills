@@ -13,12 +13,12 @@
     <div class="template-section">
       <div class="section-title">🧹 {{ $t('comic.cleaning') }} <span class="badge">{{ cleaningTemplates.length }}</span></div>
       <div class="template-grid">
-        <el-card v-for="t in cleaningTemplates" :key="t.id" class="template-card" shadow="never">
-          <div class="step-badge">P{{ t.step_order }}</div>
+        <div v-for="t in cleaningTemplates" :key="t.id" class="template-card">
+          <span class="step-badge">P{{ t.step_order }}</span>
           <h4>{{ t.name }}</h4>
           <div class="desc">{{ t.description }}</div>
-          <div class="vars">
-            <el-tag v-for="v in t.input_variables" :key="v" size="small" type="warning">{{ '{' + v + '}' }}</el-tag>
+          <div class="template-vars">
+            <span class="var-tag" v-for="v in t.input_variables" :key="v">{{ '{' + v + '}' }}</span>
           </div>
           <div class="preview">{{ truncate(t.system_prompt, 100) }}</div>
           <div class="actions">
@@ -26,7 +26,7 @@
             <el-button v-if="!t.is_builtin" size="small" text @click="startEdit(t)">{{ $t('comic.edit') }}</el-button>
             <el-button v-if="!t.is_builtin" size="small" text type="danger" @click="handleDelete(t)">{{ $t('comic.delete') }}</el-button>
           </div>
-        </el-card>
+        </div>
       </div>
     </div>
 
@@ -34,12 +34,12 @@
     <div class="template-section">
       <div class="section-title">🕵️ {{ $t('comic.extraction') }} <span class="badge">{{ extractionTemplates.length }}</span></div>
       <div class="template-grid">
-        <el-card v-for="t in extractionTemplates" :key="t.id" class="template-card" shadow="never">
-          <div class="step-badge">P{{ t.step_order }}</div>
+        <div v-for="t in extractionTemplates" :key="t.id" class="template-card">
+          <span class="step-badge">P{{ t.step_order }}</span>
           <h4>{{ t.name }}</h4>
           <div class="desc">{{ t.description }}</div>
-          <div class="vars">
-            <el-tag v-for="v in t.input_variables" :key="v" size="small" type="warning">{{ '{' + v + '}' }}</el-tag>
+          <div class="template-vars">
+            <span class="var-tag" v-for="v in t.input_variables" :key="v">{{ '{' + v + '}' }}</span>
           </div>
           <div class="preview">{{ truncate(t.system_prompt, 100) }}</div>
           <div class="actions">
@@ -47,7 +47,7 @@
             <el-button v-if="!t.is_builtin" size="small" text @click="startEdit(t)">{{ $t('comic.edit') }}</el-button>
             <el-button v-if="!t.is_builtin" size="small" text type="danger" @click="handleDelete(t)">{{ $t('comic.delete') }}</el-button>
           </div>
-        </el-card>
+        </div>
       </div>
     </div>
 
@@ -55,12 +55,12 @@
     <div class="template-section">
       <div class="section-title">🎬 {{ $t('comic.script') }} <span class="badge">{{ scriptTemplates.length }}</span></div>
       <div class="template-grid">
-        <el-card v-for="t in scriptTemplates" :key="t.id" class="template-card" shadow="never">
-          <div class="step-badge">P{{ t.step_order }}</div>
+        <div v-for="t in scriptTemplates" :key="t.id" class="template-card">
+          <span class="step-badge">P{{ t.step_order }}</span>
           <h4>{{ t.name }}</h4>
           <div class="desc">{{ t.description }}</div>
-          <div class="vars">
-            <el-tag v-for="v in t.input_variables" :key="v" size="small" type="warning">{{ '{' + v + '}' }}</el-tag>
+          <div class="template-vars">
+            <span class="var-tag" v-for="v in t.input_variables" :key="v">{{ '{' + v + '}' }}</span>
           </div>
           <div class="preview">{{ truncate(t.system_prompt, 100) }}</div>
           <div class="actions">
@@ -68,7 +68,7 @@
             <el-button v-if="!t.is_builtin" size="small" text @click="startEdit(t)">{{ $t('comic.edit') }}</el-button>
             <el-button v-if="!t.is_builtin" size="small" text type="danger" @click="handleDelete(t)">{{ $t('comic.delete') }}</el-button>
           </div>
-        </el-card>
+        </div>
       </div>
     </div>
 
@@ -76,12 +76,12 @@
     <div class="template-section">
       <div class="section-title">🖼️ {{ $t('comic.storyboard') }} <span class="badge">{{ storyboardTemplates.length }}</span></div>
       <div class="template-grid">
-        <el-card v-for="t in storyboardTemplates" :key="t.id" class="template-card" shadow="never">
-          <div class="step-badge">P{{ t.step_order }}</div>
+        <div v-for="t in storyboardTemplates" :key="t.id" class="template-card">
+          <span class="step-badge">P{{ t.step_order }}</span>
           <h4>{{ t.name }}</h4>
           <div class="desc">{{ t.description }}</div>
-          <div class="vars">
-            <el-tag v-for="v in t.input_variables" :key="v" size="small" type="warning">{{ '{' + v + '}' }}</el-tag>
+          <div class="template-vars">
+            <span class="var-tag" v-for="v in t.input_variables" :key="v">{{ '{' + v + '}' }}</span>
           </div>
           <div class="preview">{{ truncate(t.system_prompt, 100) }}</div>
           <div class="actions">
@@ -89,7 +89,7 @@
             <el-button v-if="!t.is_builtin" size="small" text @click="startEdit(t)">{{ $t('comic.edit') }}</el-button>
             <el-button v-if="!t.is_builtin" size="small" text type="danger" @click="handleDelete(t)">{{ $t('comic.delete') }}</el-button>
           </div>
-        </el-card>
+        </div>
       </div>
     </div>
 
@@ -283,19 +283,29 @@ async function handleDelete(template: ComicTemplate) {
 .badge {
   background: #409eff;
   color: #fff;
-  font-size: 12px;
+  font-size: 11px;
   padding: 2px 8px;
   border-radius: 10px;
 }
 
 .template-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: 12px;
 }
 
 .template-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid #e8e8e8;
+  transition: all 0.2s;
   position: relative;
+}
+
+.template-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-color: #409eff;
 }
 
 .step-badge {
@@ -307,12 +317,13 @@ async function handleDelete(template: ComicTemplate) {
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 4px;
+  font-weight: 500;
 }
 
 .template-card h4 {
   font-size: 14px;
   margin: 0 0 6px 0;
-  padding-right: 50px;
+  padding-right: 60px;
 }
 
 .template-card .desc {
@@ -321,11 +332,19 @@ async function handleDelete(template: ComicTemplate) {
   margin-bottom: 8px;
 }
 
-.template-card .vars {
+.template-vars {
+  margin-top: 8px;
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
-  margin-bottom: 8px;
+}
+
+.var-tag {
+  background: #fff7e6;
+  color: #d48806;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 3px;
 }
 
 .template-card .preview {
