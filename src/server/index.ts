@@ -119,7 +119,7 @@ export async function createApp(): Promise<{ app: express.Express; viteServer?: 
   registerContextRoutes(router, contextManager);
   registerTemplateTestHistoryRoutes(router, templateTestHistoryManager);
   registerAgentRoutes(router, agentService, skillRegistry);
-  registerComicRoutes(router, comicService);
+  registerComicRoutes(router, comicService, llmService);
 
   app.use('/api/v1', authMiddleware, router);
 

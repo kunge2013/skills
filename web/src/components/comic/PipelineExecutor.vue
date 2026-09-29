@@ -68,10 +68,8 @@
 
         <div class="execute-actions">
           <label>{{ $t('comic.model') }}：</label>
-          <el-select v-model="selectedModel" style="min-width: 180px;">
-            <el-option label="deepseek-chat" value="deepseek-chat" />
-            <el-option label="gpt-4o" value="gpt-4o" />
-            <el-option label="claude-sonnet-4-20250514" value="claude-sonnet-4-20250514" />
+          <el-select v-model="selectedModel" style="min-width: 180px;" filterable>
+            <el-option v-for="m in promptStore.enabledModels" :key="m.id" :label="m.name" :value="m.id" />
           </el-select>
           <el-button type="primary" :loading="store.executing" @click="executeCurrentStep">
             {{ store.executing ? '⏸' : '▶️' }} {{ $t('comic.executeStep') }}
@@ -105,18 +103,31 @@
 
 <script setup lang="ts">
 // [AGC:START] tool=Cc author=fangkun
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { useComicStore } from '../../stores/comic'
+import { usePromptStore } from '../../stores/prompt'
 import type { ComicTemplate, ComicCategory } from '../../types/comic'
 
 const { t } = useI18n()
 const store = useComicStore()
+const promptStore = usePromptStore()
+
+onMounted(async () => {
+  // Load models if not already loaded
+  if (promptStore.allModels.length === 0) {
+    await promptStore.loadModels()
+  }
+  // Set default model to first enabled one
+  if (!selectedModel.value && promptStore.enabledModels.length > 0) {
+    selectedModel.value = promptStore.enabledModels[0].id
+  }
+})
 
 const selectedNovelId = ref('')
 const currentStepId = ref('')
-const selectedModel = ref('deepseek-chat')
+const selectedModel = ref('')
 const inputValues = ref<Record<string, string>>({})
 const completedSteps = ref<Set<string>>(new Set())
 const runId = ref('')

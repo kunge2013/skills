@@ -4,9 +4,11 @@
 import { Router } from 'express'
 import { ComicService } from '../services/comic/service'
 import type { ComicCategory, ComicStage } from '../services/comic/types'
+import type { LLMService } from '../services/llm/service'
+import type { Message } from '../services/llm/types'
 
 // [AGC:START] tool=Cc author=fangkun
-export function registerComicRoutes(router: Router, comicService: ComicService) {
+export function registerComicRoutes(router: Router, comicService: ComicService, llmService?: LLMService) {
   // ============ Novels ============
 
   // GET /comic/novels - List novels
@@ -271,81 +273,138 @@ export function registerComicRoutes(router: Router, comicService: ComicService) 
           userPrompt = userPrompt.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value))
         }
 
-        // Call LLM (using OpenAI-compatible API)
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.OPENAI_API_KEY || ''}`
-          },
-          body: JSON.stringify({
-            model: model || 'gpt-4o',
-            messages: [
-              { role: 'system', content: template.system_prompt },
-              { role: 'user', content: userPrompt }
-            ],
-            stream: true
+        // Build messages
+        const messages: Message[] = [
+          { role: 'system', content: template.system_prompt },
+          { role: 'user', content: userPrompt }
+        ]
+
+        // Use LLMService if available, otherwise fallback to direct OpenAI API
+        if (llmService && model) {
+          await llmService.sendMessageStream(messages, model, {
+            onToken: (token: string) => {
+              fullOutput += token
+              res.write(`data: ${JSON.stringify({ type: 'delta', content: token })}\n\n`)
+            },
+            onComplete: () => {
+              const duration = Date.now() - startTime
+
+              // Save call log
+              comicService.createCallLog({
+                run_id,
+                novel_id,
+                template_id,
+                stage: template.category as ComicStage,
+                input_variables: input_variables || {},
+                output: fullOutput,
+                model_key: model,
+                duration_ms: duration,
+                status: 200,
+                error: null
+              })
+
+              res.write(`data: ${JSON.stringify({ type: 'complete', output: fullOutput })}\n\n`)
+              res.write('data: [DONE]\n\n')
+              res.end()
+            },
+            onError: (error: Error) => {
+              const duration = Date.now() - startTime
+
+              // Save error log
+              comicService.createCallLog({
+                run_id,
+                novel_id,
+                template_id,
+                stage: template.category as ComicStage,
+                input_variables: input_variables || {},
+                output: null,
+                model_key: model,
+                duration_ms: duration,
+                status: 500,
+                error: error.message
+              })
+
+              res.write(`data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`)
+              res.end()
+            }
           })
-        })
+        } else {
+          // Fallback: direct OpenAI API call (legacy)
+          const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${process.env.OPENAI_API_KEY || ''}`
+            },
+            body: JSON.stringify({
+              model: model || 'gpt-4o',
+              messages: [
+                { role: 'system', content: template.system_prompt },
+                { role: 'user', content: userPrompt }
+              ],
+              stream: true
+            })
+          })
 
-        if (!response.ok) {
-          throw new Error(`LLM API error: ${response.status}`)
-        }
+          if (!response.ok) {
+            throw new Error(`LLM API error: ${response.status}`)
+          }
 
-        const reader = response.body?.getReader()
-        if (!reader) {
-          throw new Error('No response body')
-        }
+          const reader = response.body?.getReader()
+          if (!reader) {
+            throw new Error('No response body')
+          }
 
-        const decoder = new TextDecoder()
-        let buffer = ''
+          const decoder = new TextDecoder()
+          let buffer = ''
 
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
 
-          buffer += decoder.decode(value, { stream: true })
-          const lines = buffer.split('\n')
-          buffer = lines.pop() || ''
+            buffer += decoder.decode(value, { stream: true })
+            const lines = buffer.split('\n')
+            buffer = lines.pop() || ''
 
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const data = line.slice(6).trim()
-              if (data === '[DONE]') continue
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6).trim()
+                if (data === '[DONE]') continue
 
-              try {
-                const parsed = JSON.parse(data)
-                const content = parsed.choices?.[0]?.delta?.content || ''
-                if (content) {
-                  fullOutput += content
-                  res.write(`data: ${JSON.stringify({ type: 'delta', content })}\n\n`)
+                try {
+                  const parsed = JSON.parse(data)
+                  const content = parsed.choices?.[0]?.delta?.content || ''
+                  if (content) {
+                    fullOutput += content
+                    res.write(`data: ${JSON.stringify({ type: 'delta', content })}\n\n`)
+                  }
+                } catch (e) {
+                  // Ignore parse errors
                 }
-              } catch (e) {
-                // Ignore parse errors
               }
             }
           }
+
+          const duration = Date.now() - startTime
+
+          // Save call log
+          comicService.createCallLog({
+            run_id,
+            novel_id,
+            template_id,
+            stage: template.category as ComicStage,
+            input_variables: input_variables || {},
+            output: fullOutput,
+            model_key: model || 'gpt-4o',
+            duration_ms: duration,
+            status: 200,
+            error: null
+          })
+
+          res.write(`data: ${JSON.stringify({ type: 'complete', output: fullOutput })}\n\n`)
+          res.write('data: [DONE]\n\n')
+          res.end()
         }
-
-        const duration = Date.now() - startTime
-
-        // Save call log
-        comicService.createCallLog({
-          run_id,
-          novel_id,
-          template_id,
-          stage: template.category as ComicStage,
-          input_variables: input_variables || {},
-          output: fullOutput,
-          model_key: model || 'gpt-4o',
-          duration_ms: duration,
-          status: 200,
-          error: null
-        })
-
-        res.write(`data: ${JSON.stringify({ type: 'complete', output: fullOutput })}\n\n`)
-        res.write('data: [DONE]\n\n')
-        res.end()
       } catch (error: any) {
         const duration = Date.now() - startTime
 
@@ -357,7 +416,7 @@ export function registerComicRoutes(router: Router, comicService: ComicService) 
           stage: template.category as ComicStage,
           input_variables: input_variables || {},
           output: null,
-          model_key: model || 'gpt-4o',
+          model_key: model || 'unknown',
           duration_ms: duration,
           status: 500,
           error: error.message

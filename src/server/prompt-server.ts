@@ -131,7 +131,7 @@ export async function createApp(): Promise<express.Express> {
   registerImageRoutes(router, imageService, imageModelManager, llmCallLogger);
   registerImageModelRoutes(router, imageModelManager);
   registerAgentRoutes(router, agentService, skillRegistry);
-  registerComicRoutes(router, comicService);
+  registerComicRoutes(router, comicService, llmService);
 
   app.use('/api/v1', authMiddleware, router);
 
