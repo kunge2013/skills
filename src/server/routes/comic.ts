@@ -23,6 +23,17 @@ export function registerComicRoutes(router: Router, comicService: ComicService, 
     }
   })
 
+  // GET /comic/novels/:id/latest-run - Get latest pipeline run for novel
+  // NOTE: This must be registered BEFORE /novels/:id to avoid route conflict
+  router.get('/comic/novels/:id/latest-run', (req, res) => {
+    try {
+      const run = comicService.getLatestPipelineRunByNovelId(req.params.id)
+      res.json({ success: true, data: run })
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: { message: error.message } })
+    }
+  })
+
   // GET /comic/novels/:id - Get novel by ID
   router.get('/comic/novels/:id', (req, res) => {
     try {
@@ -235,6 +246,20 @@ export function registerComicRoutes(router: Router, comicService: ComicService, 
 
   // ============ Pipeline Execution ============
 
+  // GET /comic/pipeline-runs/:run_id - Get pipeline run status
+  router.get('/comic/pipeline-runs/:run_id', (req, res) => {
+    try {
+      const run = comicService.getPipelineRunByRunId(req.params.run_id)
+      if (!run) {
+        res.status(404).json({ success: false, error: { message: 'Pipeline run not found' } })
+        return
+      }
+      res.json({ success: true, data: run })
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: { message: error.message } })
+    }
+  })
+
   // POST /comic/execute - Execute template with SSE streaming
   router.post('/comic/execute', async (req, res) => {
     try {
@@ -255,6 +280,21 @@ export function registerComicRoutes(router: Router, comicService: ComicService, 
       if (!novel) {
         res.status(404).json({ success: false, error: { message: 'Novel not found' } })
         return
+      }
+
+      // Get or create pipeline run
+      let pipelineRun = comicService.getPipelineRunByRunId(run_id)
+      if (!pipelineRun) {
+        pipelineRun = comicService.createPipelineRun({
+          novel_id,
+          run_id,
+          completed_steps: [],
+          current_step: template_id,
+          model_key: model || null
+        })
+      } else {
+        // Update current step
+        comicService.updatePipelineRun(run_id, { current_step: template_id })
       }
 
       // Set SSE headers
@@ -301,6 +341,13 @@ export function registerComicRoutes(router: Router, comicService: ComicService, 
                 duration_ms: duration,
                 status: 200,
                 error: null
+              })
+
+              // Update pipeline run: mark step completed
+              const completedSteps = [...(pipelineRun!.completed_steps || []), template_id]
+              comicService.updatePipelineRun(run_id, {
+                completed_steps: completedSteps,
+                current_step: null
               })
 
               res.write(`data: ${JSON.stringify({ type: 'complete', output: fullOutput })}\n\n`)
@@ -399,6 +446,13 @@ export function registerComicRoutes(router: Router, comicService: ComicService, 
             duration_ms: duration,
             status: 200,
             error: null
+          })
+
+          // Update pipeline run: mark step completed
+          const completedSteps = [...(pipelineRun!.completed_steps || []), template_id]
+          comicService.updatePipelineRun(run_id, {
+            completed_steps: completedSteps,
+            current_step: null
           })
 
           res.write(`data: ${JSON.stringify({ type: 'complete', output: fullOutput })}\n\n`)

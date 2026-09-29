@@ -105,6 +105,27 @@ function createTables(db: Database.Database): void {
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_call_logs_created_at ON comic_call_logs(created_at)
   `)
+
+  // Pipeline runs table - track execution progress for resumption
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS pipeline_runs (
+      id TEXT PRIMARY KEY,
+      novel_id TEXT NOT NULL,
+      run_id TEXT NOT NULL,
+      completed_steps TEXT DEFAULT '[]',
+      current_step TEXT,
+      model_key TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      FOREIGN KEY (novel_id) REFERENCES novels(id)
+    )
+  `)
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_pipeline_runs_novel ON pipeline_runs(novel_id)
+  `)
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_pipeline_runs_run ON pipeline_runs(run_id)
+  `)
 }
 
 export function closeDatabase(): void {

@@ -10,7 +10,8 @@ import type {
   ComicCallLogFilter,
   Paginated,
   ComicCategory,
-  ComicStage
+  ComicStage,
+  PipelineRun
 } from './types'
 import { createBuiltinTemplates } from './builtin-templates'
 
@@ -339,6 +340,77 @@ export class ComicService {
     return {
       ...row,
       input_variables: typeof row.input_variables === 'string' ? JSON.parse(row.input_variables || '{}') : (row.input_variables || {})
+    }
+  }
+
+  // ============ Pipeline Runs ============
+
+  getPipelineRunByRunId(runId: string): PipelineRun | null {
+    const row = this.db.prepare('SELECT * FROM pipeline_runs WHERE run_id = ?').get(runId) as any
+    return row ? this.normalizePipelineRun(row) : null
+  }
+
+  getLatestPipelineRunByNovelId(novelId: string): PipelineRun | null {
+    const row = this.db.prepare('SELECT * FROM pipeline_runs WHERE novel_id = ? ORDER BY updated_at DESC LIMIT 1').get(novelId) as any
+    return row ? this.normalizePipelineRun(row) : null
+  }
+
+  createPipelineRun(data: Omit<PipelineRun, 'id' | 'created_at' | 'updated_at'>): PipelineRun {
+    const id = uuidv4()
+    const now = Date.now()
+    this.db.prepare(`
+      INSERT INTO pipeline_runs (id, novel_id, run_id, completed_steps, current_step, model_key, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id,
+      data.novel_id,
+      data.run_id,
+      JSON.stringify(data.completed_steps || []),
+      data.current_step,
+      data.model_key,
+      now,
+      now
+    )
+    return this.getPipelineRunByRunId(data.run_id)!
+  }
+
+  updatePipelineRun(runId: string, data: Partial<Omit<PipelineRun, 'id' | 'created_at' | 'run_id'>>): PipelineRun | null {
+    const existing = this.getPipelineRunByRunId(runId)
+    if (!existing) return null
+
+    const fields: string[] = []
+    const values: unknown[] = []
+
+    const allowedFields: (keyof Omit<PipelineRun, 'id' | 'created_at' | 'run_id'>)[] = [
+      'completed_steps', 'current_step', 'model_key'
+    ]
+
+    for (const field of allowedFields) {
+      if (data[field] !== undefined) {
+        if (field === 'completed_steps') {
+          fields.push(`${field} = ?`)
+          values.push(JSON.stringify(data[field]))
+        } else {
+          fields.push(`${field} = ?`)
+          values.push(data[field])
+        }
+      }
+    }
+
+    if (fields.length === 0) return existing
+
+    fields.push('updated_at = ?')
+    values.push(Date.now())
+    values.push(runId)
+
+    this.db.prepare(`UPDATE pipeline_runs SET ${fields.join(', ')} WHERE run_id = ?`).run(...values)
+    return this.getPipelineRunByRunId(runId)
+  }
+
+  private normalizePipelineRun(row: any): PipelineRun {
+    return {
+      ...row,
+      completed_steps: typeof row.completed_steps === 'string' ? JSON.parse(row.completed_steps || '[]') : (row.completed_steps || [])
     }
   }
 }
