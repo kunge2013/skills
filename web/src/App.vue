@@ -10,10 +10,10 @@
       <template v-else-if="store.currentView === 'manager'"><SkillManager /></template>
       <template v-else-if="store.currentView === 'prompt'"><PromptView /></template>
       <template v-else-if="store.currentView === 'promptMaintenance'"><PromptMaintenanceView /></template>
-      <template v-else-if="store.currentView === 'agent'"><AgentPanel /></template>
       <template v-else-if="store.currentView === 'apiTester'"><ApiTester /></template>
       <template v-else-if="store.currentView === 'llmCallLogs'"><LLMCallLogs /></template>
       <template v-else-if="store.currentView === 'imageHistory'"><ImageHistoryView /></template>
+      <template v-else-if="store.currentView === 'comic'"><ComicView /></template>
       <template v-else><StatusBar /></template>
     </div>
   </div>
@@ -29,10 +29,10 @@ import SkillToggle from './components/SkillToggle.vue'
 import SkillManager from './components/SkillManager.vue'
 import PromptView from './components/prompt/PromptView.vue'
 import PromptMaintenanceView from './components/prompt/PromptMaintenanceView.vue'
-import AgentPanel from './components/agent/AgentPanel.vue'
 import ApiTester from './components/ApiTester.vue'
 import LLMCallLogs from './components/LLMCallLogs.vue'
 import ImageHistoryView from './components/ImageHistoryView.vue'
+import ComicView from './components/comic/ComicView.vue'
 import { useSkillsStore } from './stores/skills'
 import { usePromptStore } from './stores/prompt'
 const store = useSkillsStore()

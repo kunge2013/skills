@@ -1,6 +1,6 @@
 {
   "name": "kungeskill",
-  "version": "0.14.3",
+  "version": "0.15.0",
   "description": "Manage Claude Code skills via symlinks — install, remove, update skills from a marketplace cache",
   "main": "src/cli.js",
   "bin": {
@@ -24,7 +24,9 @@
     "web:debug": "node --inspect-brk src/cli.js web",
     "build:server": "tsc -p tsconfig.server.json",
     "prepublishOnly": "node src/cli.js --version",
-    "test": "vitest run"
+    "test": "tsx src/server/comic.test.ts && tsx src/server/comic-api.test.ts",
+    "test:service": "tsx src/server/comic.test.ts",
+    "test:api": "tsx src/server/comic-api.test.ts"
   },
   "keywords": [
     "claude-code",
@@ -47,6 +49,7 @@
     "@anthropic-ai/sdk": "^0.39.0",
     "@earendil-works/pi-coding-agent": "^0.74.2",
     "@google/genai": "^1.52.0",
+    "better-sqlite3": "^13.0.3",
     "cors": "^2.8.6",
     "dotenv": "^16.6.1",
     "express": "^5.2.1",

@@ -1,0 +1,734 @@
+<!-- [AGC:FILE] tool=Cc author=fangkun date=2026-09-29 -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>漫画生成系统 - 高保真原型</title>
+<link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script src="https://unpkg.com/element-plus"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; }
+.app-container { display: flex; height: 100vh; }
+.nav-sidebar { width: 220px; height: 100%; background: #1a1a2e; color: #eee; display: flex; flex-direction: column; flex-shrink: 0; }
+.nav-header { padding: 16px; border-bottom: 1px solid #333; }
+.nav-header h2 { font-size: 16px; margin-bottom: 4px; }
+.version { font-size: 12px; color: #888; }
+.nav-menu { flex: 1; padding: 8px 0; }
+.nav-item { padding: 12px 20px; cursor: pointer; color: #ccc; display: flex; align-items: center; gap: 8px; transition: all 0.2s; font-size: 14px; }
+.nav-item:hover { background: #16213e; color: #fff; }
+.nav-item.active { background: #16213e; color: #409eff; border-right: 3px solid #409eff; }
+.nav-icon { width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; }
+.main-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+.page-header { padding: 16px 24px; background: #fff; border-bottom: 1px solid #e8e8e8; display: flex; align-items: center; justify-content: space-between; }
+.page-header h2 { font-size: 20px; font-weight: 600; color: #333; }
+.tab-bar { display: flex; background: #fff; border-bottom: 1px solid #e8e8e8; padding: 0 24px; }
+.tab-item { padding: 12px 20px; cursor: pointer; font-size: 14px; color: #666; border-bottom: 2px solid transparent; transition: all 0.2s; }
+.tab-item:hover { color: #409eff; }
+.tab-item.active { color: #409eff; border-bottom-color: #409eff; font-weight: 500; }
+.tab-content { flex: 1; overflow-y: auto; padding: 20px 24px; }
+
+/* 小说管理 */
+.novel-card { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 12px; border: 1px solid #e8e8e8; display: flex; align-items: center; justify-content: space-between; transition: box-shadow 0.2s; }
+.novel-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.novel-info h4 { font-size: 15px; margin-bottom: 4px; }
+.novel-meta { font-size: 12px; color: #999; display: flex; gap: 12px; }
+.novel-meta span { display: flex; align-items: center; gap: 4px; }
+.progress-tags { display: flex; gap: 4px; }
+.progress-tag { padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+.progress-tag.done { background: #e8f5e9; color: #2e7d32; }
+.progress-tag.pending { background: #f5f5f5; color: #999; }
+
+/* 模板管理 */
+.template-section { margin-bottom: 24px; }
+.template-section-title { font-size: 16px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.template-section-title .badge { background: #409eff; color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+.template-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; }
+.template-card { background: #fff; border-radius: 8px; padding: 16px; border: 1px solid #e8e8e8; transition: all 0.2s; position: relative; }
+.template-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-color: #409eff; }
+.template-card .step-badge { position: absolute; top: 12px; right: 12px; background: #f0f5ff; color: #409eff; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 500; }
+.template-card h4 { font-size: 14px; margin-bottom: 6px; padding-right: 60px; }
+.template-card .desc { font-size: 12px; color: #999; margin-bottom: 8px; }
+.template-card .preview { font-size: 12px; color: #666; background: #fafafa; padding: 8px; border-radius: 4px; max-height: 60px; overflow: hidden; line-height: 1.5; }
+.template-card .actions { margin-top: 10px; display: flex; gap: 8px; }
+.template-vars { margin-top: 8px; display: flex; gap: 4px; flex-wrap: wrap; }
+.var-tag { background: #fff7e6; color: #d48806; font-size: 11px; padding: 1px 6px; border-radius: 3px; }
+
+/* 流水线执行 */
+.pipeline-container { background: #fff; border-radius: 8px; padding: 24px; }
+.pipeline-novel-select { margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #f0f0f0; }
+.pipeline-novel-select label { font-size: 14px; color: #666; margin-right: 12px; }
+.step-flow { display: flex; align-items: flex-start; margin-bottom: 32px; padding: 0 20px; }
+.step-node { display: flex; flex-direction: column; align-items: center; min-width: 100px; position: relative; }
+.step-circle { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; margin-bottom: 8px; transition: all 0.3s; }
+.step-circle.done { background: #52c41a; color: #fff; }
+.step-circle.current { background: #409eff; color: #fff; box-shadow: 0 0 0 4px rgba(64,158,255,0.2); }
+.step-circle.pending { background: #f0f0f0; color: #999; }
+.step-label { font-size: 12px; color: #666; text-align: center; max-width: 80px; }
+.step-connector { flex: 1; height: 2px; background: #e8e8e8; margin-top: 20px; min-width: 30px; position: relative; }
+.step-connector.done { background: #52c41a; }
+.step-connector.active { background: linear-gradient(90deg, #52c41a, #409eff); }
+
+.sub-steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.sub-step-card { background: #fafafa; border-radius: 8px; padding: 14px; border: 1px solid #e8e8e8; cursor: pointer; transition: all 0.2s; }
+.sub-step-card:hover { border-color: #409eff; background: #f0f5ff; }
+.sub-step-card.active { border-color: #409eff; background: #f0f5ff; box-shadow: 0 0 0 2px rgba(64,158,255,0.15); }
+.sub-step-card.done { border-color: #b7eb8f; background: #f6ffed; }
+.sub-step-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.sub-step-header h5 { font-size: 13px; }
+.sub-step-status { font-size: 11px; padding: 1px 6px; border-radius: 3px; }
+.sub-step-status.done { background: #e8f5e9; color: #2e7d32; }
+.sub-step-status.pending { background: #f5f5f5; color: #999; }
+.sub-step-status.running { background: #e3f2fd; color: #1565c0; }
+
+.execute-panel { background: #fff; border: 1px solid #e8e8e8; border-radius: 8px; padding: 20px; }
+.execute-panel h4 { font-size: 15px; margin-bottom: 16px; }
+.var-input-group { margin-bottom: 16px; }
+.var-input-group label { display: block; font-size: 13px; color: #666; margin-bottom: 6px; }
+.var-input-group textarea { width: 100%; border: 1px solid #d9d9d9; border-radius: 6px; padding: 10px; font-size: 13px; resize: vertical; min-height: 80px; font-family: inherit; }
+.var-input-group textarea:focus { outline: none; border-color: #409eff; box-shadow: 0 0 0 2px rgba(64,158,255,0.1); }
+.execute-actions { display: flex; gap: 10px; align-items: center; }
+.output-panel { margin-top: 16px; background: #1e1e1e; border-radius: 8px; padding: 16px; color: #d4d4d4; font-size: 13px; line-height: 1.6; max-height: 300px; overflow-y: auto; font-family: 'Consolas', monospace; white-space: pre-wrap; }
+
+/* 调用记录 */
+.filter-bar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+.record-table { width: 100%; background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #e8e8e8; }
+.record-table th { background: #fafafa; padding: 10px 14px; text-align: left; font-size: 13px; color: #666; font-weight: 500; border-bottom: 1px solid #e8e8e8; }
+.record-table td { padding: 10px 14px; font-size: 13px; color: #333; border-bottom: 1px solid #f0f0f0; }
+.record-table tr:last-child td { border-bottom: none; }
+.record-table tr:hover td { background: #f5f5f5; }
+.status-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+.status-badge.success { background: #e8f5e9; color: #2e7d32; }
+.status-badge.error { background: #fce4ec; color: #c62828; }
+.status-badge.running { background: #e3f2fd; color: #1565c0; }
+
+/* Dialog */
+.dialog-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.dialog { background: #fff; border-radius: 12px; width: 600px; max-height: 80vh; overflow-y: auto; }
+.dialog-header { padding: 16px 20px; border-bottom: 1px solid #e8e8e8; display: flex; align-items: center; justify-content: space-between; }
+.dialog-header h3 { font-size: 16px; }
+.dialog-close { cursor: pointer; font-size: 18px; color: #999; background: none; border: none; }
+.dialog-body { padding: 20px; }
+.dialog-footer { padding: 12px 20px; border-top: 1px solid #e8e8e8; display: flex; justify-content: flex-end; gap: 10px; }
+
+/* Buttons */
+.btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; cursor: pointer; border: 1px solid #d9d9d9; background: #fff; color: #333; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+.btn:hover { border-color: #409eff; color: #409eff; }
+.btn-primary { background: #409eff; color: #fff; border-color: #409eff; }
+.btn-primary:hover { background: #66b1ff; border-color: #66b1ff; color: #fff; }
+.btn-danger { color: #ff4d4f; border-color: #ff4d4f; }
+.btn-danger:hover { background: #fff1f0; }
+.btn-text { border: none; background: none; color: #409eff; padding: 4px 8px; }
+.btn-text:hover { background: #f0f5ff; }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+.btn-success { background: #52c41a; color: #fff; border-color: #52c41a; }
+.btn-success:hover { background: #73d13d; border-color: #73d13d; color: #fff; }
+
+/* Select */
+.select { padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 13px; background: #fff; min-width: 180px; }
+.select:focus { outline: none; border-color: #409eff; }
+.input { padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 13px; }
+.input:focus { outline: none; border-color: #409eff; box-shadow: 0 0 0 2px rgba(64,158,255,0.1); }
+
+/* Empty */
+.empty { text-align: center; padding: 40px; color: #999; }
+.empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-text { font-size: 14px; }
+
+/* Streaming cursor */
+.streaming-cursor { display: inline-block; width: 2px; height: 14px; background: #409eff; animation: blink 1s infinite; vertical-align: middle; margin-left: 2px; }
+@keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+</style>
+</head>
+<body>
+<div id="app">
+<div class="app-container">
+  <!-- Sidebar -->
+  <div class="nav-sidebar">
+    <div class="nav-header">
+      <h2>📚 KungSkill</h2>
+      <span class="version">v0.14.3</span>
+    </div>
+    <div class="nav-menu">
+      <div class="nav-item"><span class="nav-icon">📄</span>全部技能</div>
+      <div class="nav-item"><span class="nav-icon">✏️</span>提示词优化</div>
+      <div class="nav-item"><span class="nav-icon">⚙️</span>提示词管理</div>
+      <div class="nav-item"><span class="nav-icon">📁</span>技能管理</div>
+      <div class="nav-item"><span class="nav-icon">🔀</span>技能开关</div>
+      <div class="nav-item"><span class="nav-icon">🔲</span>外部源管理</div>
+      <div class="nav-item active"><span class="nav-icon">🎬</span>漫画生成</div>
+      <div class="nav-item"><span class="nav-icon">🚀</span>API测试</div>
+      <div class="nav-item"><span class="nav-icon">🎫</span>LLM调用日志</div>
+      <div class="nav-item"><span class="nav-icon">🖼️</span>图片历史</div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main-content">
+    <div class="page-header">
+      <h2>🎬 漫画生成</h2>
+      <div style="display:flex;gap:8px;">
+        <el-tag type="success" size="small">缓存有效</el-tag>
+      </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+      <div class="tab-item" :class="{active: activeTab === 'novels'}" @click="activeTab = 'novels'">📖 小说管理</div>
+      <div class="tab-item" :class="{active: activeTab === 'templates'}" @click="activeTab = 'templates'">📝 模板管理</div>
+      <div class="tab-item" :class="{active: activeTab === 'pipeline'}" @click="activeTab = 'pipeline'">⚡ 流水线执行</div>
+      <div class="tab-item" :class="{active: activeTab === 'logs'}" @click="activeTab = 'logs'">📋 调用记录</div>
+    </div>
+
+    <div class="tab-content">
+      <!-- ===== Tab 1: 小说管理 ===== -->
+      <div v-if="activeTab === 'novels'">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <div style="font-size:14px;color:#666;">共 {{ novels.length }} 部小说</div>
+          <button class="btn btn-primary" @click="showNovelDialog = true">➕ 新增小说</button>
+        </div>
+
+        <div v-for="novel in novels" :key="novel.id" class="novel-card">
+          <div class="novel-info">
+            <h4>{{ novel.name }}</h4>
+            <div class="novel-meta">
+              <span>📏 {{ novel.charCount }} 字符</span>
+              <span>🕐 {{ novel.updatedAt }}</span>
+              <span class="progress-tags">
+                <span class="progress-tag" :class="novel.isFormatCleaned ? 'done' : 'pending'">格式</span>
+                <span class="progress-tag" :class="novel.isSerialCleaned ? 'done' : 'pending'">串行</span>
+                <span class="progress-tag" :class="novel.isPunctCleaned ? 'done' : 'pending'">标点</span>
+                <span class="progress-tag" :class="novel.isShotCleaned ? 'done' : 'pending'">分镜</span>
+              </span>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-sm" @click="activeTab = 'pipeline'">⚡ 执行</button>
+            <button class="btn btn-sm">✏️ 编辑</button>
+            <button class="btn btn-sm btn-danger">🗑️</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Tab 2: 模板管理 ===== -->
+      <div v-if="activeTab === 'templates'">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <div style="font-size:14px;color:#666;">共 {{ allTemplates.length }} 个模板</div>
+          <button class="btn btn-primary" @click="showTemplateDialog = true">➕ 新增自定义模板</button>
+        </div>
+
+        <!-- 清洗类 -->
+        <div class="template-section">
+          <div class="template-section-title">🧹 文本清洗 <span class="badge">4</span></div>
+          <div class="template-grid">
+            <div v-for="t in cleaningTemplates" :key="t.id" class="template-card">
+              <span class="step-badge">P{{ t.step }}</span>
+              <h4>{{ t.name }}</h4>
+              <div class="desc">{{ t.description }}</div>
+              <div class="template-vars">
+                <span class="var-tag" v-for="v in t.vars" :key="v">{{ '{' + v + '}' }}</span>
+              </div>
+              <div class="preview">{{ t.preview }}</div>
+              <div class="actions">
+                <button class="btn btn-text btn-sm" v-if="t.builtin">📋 复制为自定义</button>
+                <button class="btn btn-text btn-sm">✏️ 编辑</button>
+                <button class="btn btn-text btn-sm" style="color:#ff4d4f;" v-if="!t.builtin">🗑️ 删除</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 提取类 -->
+        <div class="template-section">
+          <div class="template-section-title">🕵️ 角色/场景提取 <span class="badge">4</span></div>
+          <div class="template-grid">
+            <div v-for="t in extractionTemplates" :key="t.id" class="template-card">
+              <span class="step-badge">P{{ t.step }}</span>
+              <h4>{{ t.name }}</h4>
+              <div class="desc">{{ t.description }}</div>
+              <div class="template-vars">
+                <span class="var-tag" v-for="v in t.vars" :key="v">{{ '{' + v + '}' }}</span>
+              </div>
+              <div class="preview">{{ t.preview }}</div>
+              <div class="actions">
+                <button class="btn btn-text btn-sm" v-if="t.builtin">📋 复制为自定义</button>
+                <button class="btn btn-text btn-sm">✏️ 编辑</button>
+                <button class="btn btn-text btn-sm" style="color:#ff4d4f;" v-if="!t.builtin">🗑️ 删除</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 剧本化类 -->
+        <div class="template-section">
+          <div class="template-section-title">🎬 剧本化 <span class="badge">2</span></div>
+          <div class="template-grid">
+            <div v-for="t in scriptTemplates" :key="t.id" class="template-card">
+              <span class="step-badge">P{{ t.step }}</span>
+              <h4>{{ t.name }}</h4>
+              <div class="desc">{{ t.description }}</div>
+              <div class="template-vars">
+                <span class="var-tag" v-for="v in t.vars" :key="v">{{ '{' + v + '}' }}</span>
+              </div>
+              <div class="preview">{{ t.preview }}</div>
+              <div class="actions">
+                <button class="btn btn-text btn-sm" v-if="t.builtin">📋 复制为自定义</button>
+                <button class="btn btn-text btn-sm">✏️ 编辑</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 分镜化类 -->
+        <div class="template-section">
+          <div class="template-section-title">🖼️ 分镜化 <span class="badge">3</span></div>
+          <div class="template-grid">
+            <div v-for="t in storyboardTemplates" :key="t.id" class="template-card">
+              <span class="step-badge">P{{ t.step }}</span>
+              <h4>{{ t.name }}</h4>
+              <div class="desc">{{ t.description }}</div>
+              <div class="template-vars">
+                <span class="var-tag" v-for="v in t.vars" :key="v">{{ '{' + v + '}' }}</span>
+              </div>
+              <div class="preview">{{ t.preview }}</div>
+              <div class="actions">
+                <button class="btn btn-text btn-sm" v-if="t.builtin">📋 复制为自定义</button>
+                <button class="btn btn-text btn-sm">✏️ 编辑</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Tab 3: 流水线执行 ===== -->
+      <div v-if="activeTab === 'pipeline'">
+        <div class="pipeline-container">
+          <!-- 小说选择 -->
+          <div class="pipeline-novel-select">
+            <label>选择小说：</label>
+            <select class="select" v-model="selectedNovelId">
+              <option value="">-- 请选择 --</option>
+              <option v-for="n in novels" :key="n.id" :value="n.id">{{ n.name }}</option>
+            </select>
+            <span style="margin-left:12px;font-size:12px;color:#999;" v-if="selectedNovelId">
+              Run ID: <code style="background:#f0f0f0;padding:2px 6px;border-radius:3px;">run_20260929_001</code>
+            </span>
+          </div>
+
+          <!-- 步骤条 -->
+          <div class="step-flow">
+            <div class="step-node">
+              <div class="step-circle done">✓</div>
+              <div class="step-label">文本清洗</div>
+            </div>
+            <div class="step-connector done"></div>
+            <div class="step-node">
+              <div class="step-circle done">✓</div>
+              <div class="step-label">角色提取</div>
+            </div>
+            <div class="step-connector active"></div>
+            <div class="step-node">
+              <div class="step-circle current">3</div>
+              <div class="step-label">剧本化</div>
+            </div>
+            <div class="step-connector"></div>
+            <div class="step-node">
+              <div class="step-circle pending">4</div>
+              <div class="step-label">分镜化</div>
+            </div>
+          </div>
+
+          <!-- 子步骤卡片 -->
+          <div style="margin-bottom:16px;font-size:14px;font-weight:600;">🎬 剧本化 - 子步骤</div>
+          <div class="sub-steps">
+            <div class="sub-step-card done">
+              <div class="sub-step-header">
+                <h5>P6: 小说→剧本</h5>
+                <span class="sub-step-status done">✅ 完成</span>
+              </div>
+              <div style="font-size:12px;color:#999;">耗时 12.3s · 输出 2,847 字符</div>
+            </div>
+            <div class="sub-step-card active">
+              <div class="sub-step-header">
+                <h5>P6b: 旁白/对白分离</h5>
+                <span class="sub-step-status running">⏳ 执行中</span>
+              </div>
+              <div style="font-size:12px;color:#999;">等待输入...</div>
+            </div>
+          </div>
+
+          <!-- 执行面板 -->
+          <div class="execute-panel">
+            <h4>📝 P6b: 图片旁白标注 <span style="font-size:12px;color:#999;font-weight:normal;margin-left:8px;">分离旁白与对白</span></h4>
+
+            <div class="var-input-group">
+              <label>📥 content（剧本化文本）<span style="color:#999;font-size:11px;margin-left:6px;">自动从上一步结果填充</span></label>
+              <textarea rows="5" placeholder="自动填充上一步输出...">SCENE 1
+LOCATION：崔府正房
+TIME：白天
+CHARACTERS：以宁、以清
+
+ACTION：以清疲惫地倚在榻上，以宁坐在一旁，神情担忧。
+
+DIALOGUE：
+以清：以宁，我想与崔珩和离。
+以宁：那我也离！
+
+ACTION：以宁话音刚落，一只脚已经踏出屋子。以清反应快，一把将以宁拉了回来。
+
+以清（嗔怪）：你跑那么急，要做什么？
+以宁（理所当然）：回去收拾包袱啊！</textarea>
+            </div>
+
+            <div class="execute-actions">
+              <label style="font-size:13px;color:#666;">模型：</label>
+              <select class="select" style="min-width:150px;">
+                <option>deepseek-chat</option>
+                <option>gpt-4o</option>
+                <option>claude-sonnet-4-20250514</option>
+              </select>
+              <button class="btn btn-primary" @click="isExecuting = !isExecuting">
+                {{ isExecuting ? '⏸ 暂停' : '▶️ 执行' }}
+              </button>
+              <button class="btn" v-if="!isExecuting">🔄 重新生成</button>
+              <span style="font-size:12px;color:#999;" v-if="isExecuting">
+                已生成 1,247 字符... <span class="streaming-cursor"></span>
+              </span>
+            </div>
+
+            <!-- 输出面板 -->
+            <div class="output-panel">【旁白】以清疲惫地倚在榻上，以宁坐在一旁，神情担忧。
+
+【以清对白】以宁，我想与崔珩和离。
+
+【以宁对白】那我也离！
+
+【旁白】以宁话音刚落，一只脚已经踏出屋子。以清反应快，一把将以宁拉了回来。
+
+【以清对白】你跑那么急，要做什么？
+
+【以宁对白】回去收拾包袱啊！
+
+【以清对白】收拾什么包袱？
+
+【以宁对白】和离以后不能再住崔府了，自然要收拾包袱才方便搬走啊！
+
+【旁白】以清轻轻叹了口气，以宁如幼时一样抱着她的腰，趴在她怀里。
+
+【以宁对白】我没有冲动，阿姐去哪，我就去哪。<span v-if="isExecuting" class="streaming-cursor"></span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Tab 4: 调用记录 ===== -->
+      <div v-if="activeTab === 'logs'">
+        <div class="filter-bar">
+          <select class="select" style="min-width:150px;">
+            <option value="">全部小说</option>
+            <option>富门铁公鸡</option>
+            <option>姐妹和离记</option>
+          </select>
+          <select class="select" style="min-width:130px;">
+            <option value="">全部阶段</option>
+            <option>清洗</option>
+            <option>提取</option>
+            <option>剧本化</option>
+            <option>分镜化</option>
+          </select>
+          <select class="select" style="min-width:130px;">
+            <option value="">全部状态</option>
+            <option>成功</option>
+            <option>失败</option>
+          </select>
+          <input type="date" class="input" style="min-width:140px;">
+          <button class="btn btn-sm">🔍 搜索</button>
+          <button class="btn btn-sm btn-danger" style="margin-left:auto;">🗑️ 清空</button>
+        </div>
+
+        <div style="font-size:13px;color:#666;margin-bottom:10px;">
+          共 28 条记录 · 总耗时 5m 32s · 成功 26 / 失败 2
+        </div>
+
+        <table class="record-table">
+          <thead>
+            <tr>
+              <th>时间</th>
+              <th>小说</th>
+              <th>阶段</th>
+              <th>模板</th>
+              <th>模型</th>
+              <th>耗时</th>
+              <th>字符</th>
+              <th>状态</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="log in callLogs" :key="log.id">
+              <td style="color:#999;font-size:12px;">{{ log.time }}</td>
+              <td>{{ log.novel }}</td>
+              <td>
+                <el-tag size="small" :type="log.stageType">{{ log.stage }}</el-tag>
+              </td>
+              <td style="font-size:12px;">{{ log.template }}</td>
+              <td style="font-size:12px;color:#666;">{{ log.model }}</td>
+              <td style="font-size:12px;">{{ log.duration }}</td>
+              <td style="font-size:12px;">{{ log.chars }}</td>
+              <td><span class="status-badge" :class="log.statusClass">{{ log.status }}</span></td>
+              <td>
+                <button class="btn-text btn-sm" @click="showLogDetail(log)">详情</button>
+                <button class="btn-text btn-sm">🔄 重跑</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 新增小说 Dialog -->
+<div class="dialog-overlay" v-if="showNovelDialog" @click.self="showNovelDialog = false">
+  <div class="dialog">
+    <div class="dialog-header">
+      <h3>📖 新增小说</h3>
+      <button class="dialog-close" @click="showNovelDialog = false">✕</button>
+    </div>
+    <div class="dialog-body">
+      <div class="var-input-group">
+        <label>小说名称</label>
+        <input class="input" style="width:100%;" placeholder="例如：富门铁公鸡">
+      </div>
+      <div class="var-input-group">
+        <label>输入方式</label>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <button class="btn btn-sm" :class="{'btn-primary': inputMode === 'paste'}" @click="inputMode = 'paste'">📋 粘贴文本</button>
+          <button class="btn btn-sm" :class="{'btn-primary': inputMode === 'upload'}" @click="inputMode = 'upload'">📁 上传文件</button>
+        </div>
+        <textarea v-if="inputMode === 'paste'" rows="8" placeholder="粘贴小说原文..." style="width:100%;border:1px solid #d9d9d9;border-radius:6px;padding:10px;font-size:13px;resize:vertical;"></textarea>
+        <div v-if="inputMode === 'upload'" style="border:2px dashed #d9d9d9;border-radius:8px;padding:40px;text-align:center;color:#999;cursor:pointer;">
+          <div style="font-size:32px;margin-bottom:8px;">📁</div>
+          <div>点击或拖拽 .txt 文件到此处</div>
+          <div style="font-size:12px;margin-top:4px;">支持 UTF-8 编码</div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:#999;">
+        💡 提示：小说长度建议 5,000 ~ 10,000 字符
+      </div>
+    </div>
+    <div class="dialog-footer">
+      <button class="btn" @click="showNovelDialog = false">取消</button>
+      <button class="btn btn-primary">确认添加</button>
+    </div>
+  </div>
+</div>
+
+<!-- 模板详情 Dialog -->
+<div class="dialog-overlay" v-if="showTemplateDialog" @click.self="showTemplateDialog = false">
+  <div class="dialog" style="width:700px;">
+    <div class="dialog-header">
+      <h3>📝 新增自定义模板</h3>
+      <button class="dialog-close" @click="showTemplateDialog = false">✕</button>
+    </div>
+    <div class="dialog-body">
+      <div style="display:flex;gap:12px;margin-bottom:16px;">
+        <div class="var-input-group" style="flex:1;">
+          <label>模板名称</label>
+          <input class="input" style="width:100%;" placeholder="例如：自定义角色提取">
+        </div>
+        <div class="var-input-group" style="flex:1;">
+          <label>分类</label>
+          <select class="select" style="width:100%;">
+            <option>🧹 文本清洗</option>
+            <option>🕵️ 角色/场景提取</option>
+            <option>🎬 剧本化</option>
+            <option>🖼️ 分镜化</option>
+          </select>
+        </div>
+      </div>
+      <div class="var-input-group">
+        <label>描述</label>
+        <input class="input" style="width:100%;" placeholder="简要描述模板用途">
+      </div>
+      <div class="var-input-group">
+        <label>System Prompt</label>
+        <textarea rows="8" placeholder="输入系统提示词..." style="width:100%;border:1px solid #d9d9d9;border-radius:6px;padding:10px;font-size:13px;resize:vertical;font-family:'Consolas',monospace;"></textarea>
+      </div>
+      <div class="var-input-group">
+        <label>User Prompt（可选）</label>
+        <textarea rows="4" placeholder="输入用户提示词模板，支持 {{variable}} 变量..." style="width:100%;border:1px solid #d9d9d9;border-radius:6px;padding:10px;font-size:13px;resize:vertical;font-family:'Consolas',monospace;"></textarea>
+      </div>
+      <div class="var-input-group">
+        <label>输入变量（每行一个）</label>
+        <textarea rows="3" placeholder="content&#10;character_text" style="width:100%;border:1px solid #d9d9d9;border-radius:6px;padding:10px;font-size:13px;resize:vertical;font-family:'Consolas',monospace;"></textarea>
+      </div>
+    </div>
+    <div class="dialog-footer">
+      <button class="btn" @click="showTemplateDialog = false">取消</button>
+      <button class="btn btn-primary">保存模板</button>
+    </div>
+  </div>
+</div>
+
+<!-- 调用记录详情 Dialog -->
+<div class="dialog-overlay" v-if="showLogDetailDialog && selectedLog" @click.self="showLogDetailDialog = false">
+  <div class="dialog" style="width:800px;max-height:90vh;">
+    <div class="dialog-header">
+      <h3>📋 调用详情</h3>
+      <button class="dialog-close" @click="showLogDetailDialog = false">✕</button>
+    </div>
+    <div class="dialog-body">
+      <!-- 基本信息 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;padding:16px;background:#fafafa;border-radius:8px;">
+        <div><span style="color:#999;font-size:12px;">调用 ID</span><br><code style="font-size:12px;">{{ selectedLog.id }}</code></div>
+        <div><span style="color:#999;font-size:12px;">运行批次</span><br><code style="font-size:12px;">{{ selectedLog.runId }}</code></div>
+        <div><span style="color:#999;font-size:12px;">小说</span><br><span style="font-size:13px;">{{ selectedLog.novel }}</span></div>
+        <div><span style="color:#999;font-size:12px;">阶段</span><br><el-tag size="small" :type="selectedLog.stageType">{{ selectedLog.stage }}</el-tag></div>
+        <div><span style="color:#999;font-size:12px;">模板</span><br><span style="font-size:13px;">{{ selectedLog.template }}</span></div>
+        <div><span style="color:#999;font-size:12px;">模型</span><br><span style="font-size:13px;">{{ selectedLog.model }}</span></div>
+        <div><span style="color:#999;font-size:12px;">耗时</span><br><span style="font-size:13px;">{{ selectedLog.duration }}</span></div>
+        <div><span style="color:#999;font-size:12px;">时间</span><br><span style="font-size:13px;">{{ selectedLog.time }}</span></div>
+      </div>
+
+      <!-- 输入变量 -->
+      <div style="margin-bottom:16px;">
+        <div style="font-size:14px;font-weight:600;margin-bottom:8px;">📥 输入变量</div>
+        <div style="background:#1e1e1e;border-radius:6px;padding:12px;max-height:150px;overflow-y:auto;">
+          <pre style="color:#d4d4d4;font-size:12px;margin:0;white-space:pre-wrap;font-family:'Consolas',monospace;">{{ selectedLog.inputPreview }}</pre>
+        </div>
+      </div>
+
+      <!-- 输出结果 -->
+      <div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:8px;">📤 输出结果 <span style="font-size:12px;color:#999;font-weight:normal;margin-left:8px;">{{ selectedLog.chars }} 字符</span></div>
+        <div style="background:#1e1e1e;border-radius:6px;padding:12px;max-height:200px;overflow-y:auto;">
+          <pre style="color:#d4d4d4;font-size:12px;margin:0;white-space:pre-wrap;font-family:'Consolas',monospace;">{{ selectedLog.outputPreview }}</pre>
+        </div>
+      </div>
+
+      <!-- 错误信息（如果有） -->
+      <div v-if="selectedLog.error" style="margin-top:16px;">
+        <div style="font-size:14px;font-weight:600;margin-bottom:8px;color:#ff4d4f;">❌ 错误信息</div>
+        <div style="background:#fff1f0;border:1px solid #ffccc7;border-radius:6px;padding:12px;">
+          <pre style="color:#cf1322;font-size:12px;margin:0;white-space:pre-wrap;">{{ selectedLog.error }}</pre>
+        </div>
+      </div>
+    </div>
+    <div class="dialog-footer">
+      <button class="btn">📋 复制</button>
+      <button class="btn btn-primary" @click="showLogDetailDialog = false">关闭</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+const { createApp, ref, computed } = Vue
+const app = createApp({
+  setup() {
+    const activeTab = ref('novels')
+    const showNovelDialog = ref(false)
+    const showTemplateDialog = ref(false)
+    const showLogDetailDialog = ref(false)
+    const selectedLog = ref(null)
+    const inputMode = ref('paste')
+    const selectedNovelId = ref('novel-1')
+    const isExecuting = ref(true)
+
+    const novels = ref([
+      { id: 'novel-1', name: '富门铁公鸡', charCount: 5183, updatedAt: '2026-09-28 14:30', isFormatCleaned: true, isSerialCleaned: true, isPunctCleaned: true, isShotCleaned: false },
+      { id: 'novel-2', name: '浣花溪上', charCount: 5252, updatedAt: '2026-09-27 10:15', isFormatCleaned: true, isSerialCleaned: true, isPunctCleaned: true, isShotCleaned: false },
+      { id: 'novel-3', name: '纪姑娘的爱给谁都盛大', charCount: 10120, updatedAt: '2026-09-26 09:00', isFormatCleaned: true, isSerialCleaned: false, isPunctCleaned: false, isShotCleaned: false },
+      { id: 'novel-4', name: '姐妹和离记', charCount: 3200, updatedAt: '2026-09-29 08:45', isFormatCleaned: true, isSerialCleaned: true, isPunctCleaned: true, isShotCleaned: false },
+    ])
+
+    const allTemplates = ref([
+      // 清洗类
+      { id: 'p0', step: '0', name: 'P0: 文案同义改写', description: '替换重复用词、调整语序，保持原意', category: 'cleaning', vars: ['original_text'], preview: '你是一位专业的小说文案编辑...在保持原意的前提下，替换重复用词...', builtin: true },
+      { id: 'p1', step: '1-1', name: 'P1: 格式清洗', description: '去除HTML标签、特殊字符、统一换行', category: 'cleaning', vars: ['original_text'], preview: '你是一个文本清洗助手...删除所有HTML标签...', builtin: true },
+      { id: 'p2', step: '1-2', name: 'P2: 串行清洗', description: '段落整理、对话提取、去冗余空白', category: 'cleaning', vars: ['format_cleaned_text'], preview: '你是一个小说编辑...把长段落按叙事节奏拆成短段...', builtin: true },
+      { id: 'p3', step: '1-3', name: 'P3: 标点清洗', description: '统一中文标点、规范引号、处理省略号', category: 'cleaning', vars: ['serial_cleaned_text'], preview: '你是一个校对编辑...英文标点→中文标点...', builtin: true },
+      // 提取类
+      { id: 'p5', step: '2', name: 'P5: 角色/场景提取', description: '从文本中抽取角色、场景、道具实体', category: 'extraction', vars: ['content'], preview: '你是一个小说选角导演...按JSON格式列出所有出现的角色/场景/道具...', builtin: true },
+      { id: 'p5b', step: '2b', name: 'P5b: Sora2人物设计', description: '一句话视觉描述，跨帧视觉锚点', category: 'extraction', vars: ['character_text', 'content'], preview: '你是一位Sora2视频人物设计大师...一句话描述角色信息...', builtin: true },
+      { id: 'p5c', step: '2c', name: 'P5c: 人物三视图', description: '白底图4视角角色定妆照', category: 'extraction', vars: ['character_visual_description'], preview: '生成一张角色参考图...左侧近景正面胸像，右侧三视图...', builtin: true },
+      { id: 'p5d', step: '2d', name: 'P5d: 人物形象提示词', description: 'AI绘画专用，7条铁律JSON格式', category: 'extraction', vars: ['content'], preview: '你是一位AI绘画提示词撰写大师...首句融合规则、逗号分隔流...', builtin: true },
+      // 剧本化类
+      { id: 'p6', step: '3', name: 'P6: 小说→剧本', description: '小说文本改为剧本格式', category: 'script', vars: ['content', 'character_text'], preview: '你是一个漫画编剧...把小说改写成剧本格式...', builtin: true },
+      { id: 'p6b', step: '3b', name: 'P6b: 旁白/对白分离', description: '分离旁白与角色对白', category: 'script', vars: ['content'], preview: '你分辨出哪个属于角色对话内容或旁白内容...', builtin: true },
+      // 分镜化类
+      { id: 'p7', step: '4', name: 'P7: 分镜化', description: '剧本拆成一帧帧分镜描述', category: 'storyboard', vars: ['script_text', 'character_text'], preview: '你是一个漫画分镜师...把剧本拆成一帧帧分镜...', builtin: true },
+      { id: 'p8', step: '4b', name: 'P8: 长分镜', description: '按剧情连贯性切割，降低频率', category: 'storyboard', vars: ['content'], preview: '你是一名世界级电影分镜设计师...降低分镜切割频率...', builtin: true },
+      { id: 'p9', step: '4c', name: 'P9: 画风统一', description: '追加韩漫风格描述', category: 'storyboard', vars: ['image_prompt'], preview: '顶级韩漫风格...在每条image_prompt末尾追加画风描述...', builtin: true },
+    ])
+
+    const cleaningTemplates = computed(() => allTemplates.value.filter(t => t.category === 'cleaning'))
+    const extractionTemplates = computed(() => allTemplates.value.filter(t => t.category === 'extraction'))
+    const scriptTemplates = computed(() => allTemplates.value.filter(t => t.category === 'script'))
+    const storyboardTemplates = computed(() => allTemplates.value.filter(t => t.category === 'storyboard'))
+
+    const callLogs = ref([
+      { id: 'log-001', runId: 'run_20260929_001', time: '09-29 11:45:23', novel: '姐妹和离记', stage: '剧本化', stageType: 'warning', template: 'P6: 小说→剧本', model: 'deepseek-chat', duration: '12.3s', chars: '2,847', status: '成功', statusClass: 'success',
+        inputPreview: '{\n  "content": "我自幼缺乏主见，凡事都依从阿姐...",\n  "character_text": "[{\\"name\\": \\"以宁\\", \\"type\\": \\"角色\\"...}]" \n}',
+        outputPreview: 'SCENE 1\nLOCATION：崔府正房\nTIME：白天\nCHARACTERS：以宁、以清\n\nACTION：以清疲惫地倚在榻上，以宁坐在一旁，神情担忧。\n\nDIALOGUE：\n以清：以宁，我想与崔珩和离。\n以宁：那我也离！'
+      },
+      { id: 'log-002', runId: 'run_20260929_001', time: '09-29 11:44:50', novel: '姐妹和离记', stage: '提取', stageType: 'primary', template: 'P5d: 人物形象提示词', model: 'deepseek-chat', duration: '8.7s', chars: '1,623', status: '成功', statusClass: 'success',
+        inputPreview: '{\n  "content": "我自幼缺乏主见，凡事都依从阿姐..."\n}',
+        outputPreview: '[\n  {\n    "name": "以宁",\n    "content": "一个17岁的古代年轻女子, 肤白貌美, 温婉可人, 鹅蛋脸型..."\n  },\n  {\n    "name": "以清",\n    "content": "一个20岁的古代年轻女子, 肤白貌美, 端庄大气..."\n  }\n]'
+      },
+      { id: 'log-003', runId: 'run_20260929_001', time: '09-29 11:43:12', novel: '姐妹和离记', stage: '提取', stageType: 'primary', template: 'P5: 角色/场景提取', model: 'deepseek-chat', duration: '6.2s', chars: '892', status: '成功', statusClass: 'success',
+        inputPreview: '{\n  "content": "我自幼缺乏主见，凡事都依从阿姐..."\n}',
+        outputPreview: '[\n  {"name": "以宁", "type": "角色", "appearance": 1, "description": "阿姐的妹妹", "traits": ["温柔", "忠诚"]},\n  {"name": "以清", "type": "角色", "appearance": 1, "description": "阿姐，崔珩之妻"},\n  {"name": "崔府正房", "type": "场景", "appearance": 6}\n]'
+      },
+      { id: 'log-004', runId: 'run_20260929_001', time: '09-29 11:42:05', novel: '姐妹和离记', stage: '清洗', stageType: 'success', template: 'P3: 标点清洗', model: 'deepseek-chat', duration: '3.1s', chars: '3,180', status: '成功', statusClass: 'success',
+        inputPreview: '{\n  "serial_cleaned_text": "我自幼缺乏主见..."\n}',
+        outputPreview: '我自幼缺乏主见，凡事都依从阿姐。阿姐梳单螺髻好看，我便也梳同样的发式。\n阿姐及笄之年嫁入崔家。我到了及笄年纪，实在选不出合适的人家...'
+      },
+      { id: 'log-005', runId: 'run_20260929_001', time: '09-29 11:41:30', novel: '姐妹和离记', stage: '清洗', stageType: 'success', template: 'P2: 串行清洗', model: 'deepseek-chat', duration: '4.5s', chars: '3,200', status: '成功', statusClass: 'success',
+        inputPreview: '{\n  "format_cleaned_text": "我自幼缺乏主见..."\n}',
+        outputPreview: '我自幼缺乏主见，凡事都依从阿姐。阿姐梳单螺髻好看，我便也梳同样的发式。\n\n阿姐及笄之年嫁入崔家。我到了及笄年纪...'
+      },
+      { id: 'log-006', runId: 'run_20260929_001', time: '09-29 11:40:15', novel: '姐妹和离记', stage: '清洗', stageType: 'success', template: 'P1: 格式清洗', model: 'deepseek-chat', duration: '2.8s', chars: '3,200', status: '成功', statusClass: 'success',
+        inputPreview: '{\n  "original_text": "<p>我自小没主见...</p>"\n}',
+        outputPreview: '我自小没主见。事事都以阿姐为主。阿姐梳单螺髻好看，我便也梳个一样的。\n阿姐及笄后，嫁进崔家...'
+      },
+      { id: 'log-007', runId: 'run_20260929_002', time: '09-29 10:30:00', novel: '富门铁公鸡', stage: '分镜化', stageType: 'danger', template: 'P7: 分镜化', model: 'gpt-4o', duration: '45.2s', chars: '5,244', status: '成功', statusClass: 'success',
+        inputPreview: '{\n  "script_text": "SCENE 1\\nLOCATION：富门正厅...",\n  "character_text": "[{\\"name\\": \\"富门少爷\\"...}]"\n}',
+        outputPreview: '[\n  {\n    "frame_id": 1,\n    "scene_id": 1,\n    "shot_type": "中景",\n    "characters": "富门少爷：眉头紧锁，手持账本",\n    "image_prompt": "A young nobleman holding an account book, looking worried..."\n  }\n]'
+      },
+      { id: 'log-008', runId: 'run_20260929_002', time: '09-29 10:25:00', novel: '富门铁公鸡', stage: '提取', stageType: 'primary', template: 'P5b: Sora2人物设计', model: 'deepseek-chat', duration: '15.1s', chars: '0', status: '失败', statusClass: 'error',
+        inputPreview: '{\n  "character_text": "...",\n  "content": "..."\n}',
+        outputPreview: '',
+        error: 'Rate limit exceeded. Please wait before making another request. (HTTP 429)'
+      },
+      { id: 'log-009', runId: 'run_20260928_003', time: '09-28 16:20:00', novel: '浣花溪上', stage: '清洗', stageType: 'success', template: 'P0: 文案同义改写', model: 'deepseek-chat', duration: '5.4s', chars: '5,100', status: '成功', statusClass: 'success',
+        inputPreview: '{\n  "original_text": "浣花溪上春光好..."\n}',
+        outputPreview: '浣花溪畔春意盎然，柳丝轻拂水面，桃花映红两岸...\n\n（改写后：用词更加丰富，避免重复）'
+      },
+      { id: 'log-010', runId: 'run_20260928_001', time: '09-28 15:10:00', novel: '富门铁公鸡', stage: '清洗', stageType: 'success', template: 'P1: 格式清洗', model: 'deepseek-chat', duration: '2.1s', chars: '5,183', status: '成功', statusClass: 'success',
+        inputPreview: '{\n  "original_text": "<p>富门少爷...</p>"\n}',
+        outputPreview: '富门少爷名唤金元宝，生得面如冠玉，眉目如画...\n\n（去除HTML标签后的纯文本）'
+      },
+    ])
+
+    const showLogDetail = (log) => {
+      selectedLog.value = log
+      showLogDetailDialog.value = true
+    }
+
+    return {
+      activeTab, showNovelDialog, showTemplateDialog, showLogDetailDialog, selectedLog, inputMode,
+      selectedNovelId, isExecuting, showLogDetail,
+      novels, allTemplates, callLogs,
+      cleaningTemplates, extractionTemplates, scriptTemplates, storyboardTemplates,
+    }
+  }
+})
+app.use(ElementPlus)
+app.mount('#app')
+</script>
+</body>
+</html>

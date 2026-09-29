@@ -11,10 +11,10 @@
       <el-menu-item index="manage"><el-icon><FolderOpened /></el-icon><span>{{ $t('nav.skillManagement') }}</span></el-menu-item>
       <el-menu-item index="toggle"><el-icon><Switch /></el-icon><span>{{ $t('nav.skillToggle') }}</span></el-menu-item>
       <el-menu-item index="manager"><el-icon><Grid /></el-icon><span>{{ $t('nav.externalManager') }}</span></el-menu-item>
-      <el-menu-item index="agent"><el-icon><Monitor /></el-icon><span>{{ $t('nav.agent') }}</span></el-menu-item>
       <el-menu-item index="apiTester"><el-icon><Promotion /></el-icon><span>{{ $t('nav.apiTester') }}</span></el-menu-item>
       <el-menu-item index="llmCallLogs"><el-icon><Tickets /></el-icon><span>{{ $t('nav.llmCallLogs') }}</span></el-menu-item>
       <el-menu-item index="imageHistory"><el-icon><Picture /></el-icon><span>{{ $t('nav.imageHistory') }}</span></el-menu-item>
+      <el-menu-item index="comic"><el-icon><Film /></el-icon><span>{{ $t('nav.comic') }}</span></el-menu-item>
     </el-menu>
     <div class="nav-footer">
       <div class="cache-status">
@@ -34,7 +34,7 @@
 </template>
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Document, FolderOpened, EditPen, Setting, Monitor, Switch, Grid, Promotion, Tickets, Picture } from '@element-plus/icons-vue'
+import { Document, FolderOpened, EditPen, Setting, Switch, Grid, Promotion, Tickets, Picture, Film } from '@element-plus/icons-vue'
 import { useSkillsStore } from '../stores/skills'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
@@ -44,10 +44,10 @@ const { t } = useI18n()
 const version = __APP_VERSION__
 const currentLocale = ref(i18n.global.locale.value as SupportedLocale)
 const activeMenu = computed(() => {
-  if (store.currentView === 'agent') return 'agent'
   if (store.currentView === 'apiTester') return 'apiTester'
   if (store.currentView === 'llmCallLogs') return 'llmCallLogs'
   if (store.currentView === 'imageHistory') return 'imageHistory'
+  if (store.currentView === 'comic') return 'comic'
   if (store.currentView === 'promptMaintenance') return 'promptMaintenance'
   if (store.currentView === 'manage') return 'manage'
   if (store.currentView === 'toggle') return 'toggle'
@@ -57,14 +57,14 @@ const activeMenu = computed(() => {
 })
 
 function handleMenuSelect(index: string) {
-  if (index === 'agent') {
-    store.setView('agent')
-  } else if (index === 'apiTester') {
+  if (index === 'apiTester') {
     store.setView('apiTester')
   } else if (index === 'llmCallLogs') {
     store.setView('llmCallLogs')
   } else if (index === 'imageHistory') {
     store.setView('imageHistory')
+  } else if (index === 'comic') {
+    store.setView('comic')
   } else if (index === 'promptMaintenance') {
     store.setView('promptMaintenance')
   } else if (index === 'manage') {

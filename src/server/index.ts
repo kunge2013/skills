@@ -28,6 +28,7 @@ import { registerDataRoutes } from './routes/data';
 import { registerContextRoutes } from './routes/contexts';
 import { registerTemplateTestHistoryRoutes } from './routes/template-test-history';
 import { registerAgentRoutes } from './routes/agent';
+import { registerComicRoutes } from './routes/comic';
 import { AgentService } from './services/agent/service';
 import { SkillRegistry } from './services/agent/registry';
 import { FileStorageProvider } from './storage/file-provider';
@@ -48,6 +49,8 @@ import { createAnthropicAdapter } from './services/llm/adapters/anthropic-adapte
 import { createGeminiAdapter } from './services/llm/adapters/gemini-adapter';
 import { createDeepSeekAdapter } from './services/llm/adapters/deepseek-adapter';
 import { createNanoBananaAdapter } from './services/llm/adapters/nano-banana-adapter';
+import { initDatabase } from './database/sqlite';
+import { ComicService } from './services/comic/service';
 
 export async function createApp(): Promise<{ app: express.Express; viteServer?: ViteDevServer }> {
   const app = express();
@@ -91,6 +94,10 @@ export async function createApp(): Promise<{ app: express.Express; viteServer?: 
   // Agent Service
   const agentService = new AgentService(modelManager, registry);
 
+  // Initialize SQLite database for comic features
+  const sqliteDb = initDatabase(dataDir);
+  const comicService = new ComicService(sqliteDb);
+
   // Skill Registry
   const skillRegistry = new SkillRegistry();
   await skillRegistry.discover(path.join(__dirname, '..', '..', 'skills'));
@@ -112,6 +119,7 @@ export async function createApp(): Promise<{ app: express.Express; viteServer?: 
   registerContextRoutes(router, contextManager);
   registerTemplateTestHistoryRoutes(router, templateTestHistoryManager);
   registerAgentRoutes(router, agentService, skillRegistry);
+  registerComicRoutes(router, comicService);
 
   app.use('/api/v1', authMiddleware, router);
 
