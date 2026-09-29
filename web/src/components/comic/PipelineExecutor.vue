@@ -204,6 +204,34 @@ function selectStep(templateId: string) {
   if (isCompleted(templateId)) return
   currentStepId.value = templateId
   inputValues.value = {}
+  autoFillInputValues(templateId)
+}
+
+function autoFillInputValues(templateId: string) {
+  const template = store.templates.find(t => t.id === templateId)
+  const novel = store.novels.find(n => n.id === selectedNovelId.value)
+  if (!template || !novel) return
+
+  for (const v of template.input_variables) {
+    if (inputValues.value[v]) continue // already filled by user, don't overwrite
+    switch (v) {
+      case 'content':
+        inputValues.value[v] = novel.content || novel.original_text || ''
+        break
+      case 'character_text':
+        inputValues.value[v] = novel.character_text || ''
+        break
+      case 'script_text':
+        inputValues.value[v] = novel.script_text || ''
+        break
+      case 'storyboard_text':
+        inputValues.value[v] = novel.storyboard_text || ''
+        break
+      case 'original_text':
+        inputValues.value[v] = novel.original_text || ''
+        break
+    }
+  }
 }
 
 function getPlaceholder(varName: string): string {
@@ -242,6 +270,7 @@ async function startPipeline() {
   const firstCleaning = getStageTemplates('cleaning')
   if (firstCleaning.length > 0) {
     currentStepId.value = firstCleaning[0].id
+    autoFillInputValues(firstCleaning[0].id)
   }
 
   ElMessage.success(t('comic.pipelineStarted'))
@@ -338,6 +367,7 @@ async function executeCurrentStep() {
     if (nextTemplate) {
       currentStepId.value = nextTemplate.id
       inputValues.value = {}
+      autoFillInputValues(nextTemplate.id)
     } else {
       currentStepId.value = ''
       ElMessage.success(t('comic.pipelineCompleted'))
