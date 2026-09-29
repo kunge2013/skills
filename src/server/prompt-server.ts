@@ -50,6 +50,9 @@ import { createAnthropicAdapter } from './services/llm/adapters/anthropic-adapte
 import { createGeminiAdapter } from './services/llm/adapters/gemini-adapter';
 import { createDeepSeekAdapter } from './services/llm/adapters/deepseek-adapter';
 import { createNanoBananaAdapter } from './services/llm/adapters/nano-banana-adapter';
+import { initDatabase } from './database/sqlite';
+import { ComicService } from './services/comic/service';
+import { registerComicRoutes } from './routes/comic';
 
 function getPort(): number {
   return parseInt(process.env.PORT || '3000', 10);
@@ -106,6 +109,10 @@ export async function createApp(): Promise<express.Express> {
   await skillRegistry.discover(path.join(projectRoot, '.claude', 'skills'));
   const agentService = new AgentService(modelManager, registry, skillRegistry);
 
+  // Initialize SQLite database for comic features
+  const sqliteDb = initDatabase(dataDir);
+  const comicService = new ComicService(sqliteDb);
+
   // Register routes
   const router = express.Router();
   registerHealthRoute(router);
@@ -124,6 +131,7 @@ export async function createApp(): Promise<express.Express> {
   registerImageRoutes(router, imageService, imageModelManager, llmCallLogger);
   registerImageModelRoutes(router, imageModelManager);
   registerAgentRoutes(router, agentService, skillRegistry);
+  registerComicRoutes(router, comicService);
 
   app.use('/api/v1', authMiddleware, router);
 
