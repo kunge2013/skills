@@ -8,16 +8,77 @@ export type ComicStage = 'format_clean' | 'serial_clean' | 'punct_clean' | 'shot
 export interface Novel {
   id: string
   name: string
+  metadata: Record<string, unknown>
+  created_at: number
+  updated_at: number
+}
+
+export interface NovelContent {
+  id: string
+  novel_id: string
   original_text: string | null
-  content: string | null
-  character_text: string | null
-  script_text: string | null
-  storyboard_text: string | null
+  cleaned_text: string | null
   is_format_cleaned: boolean
   is_serial_cleaned: boolean
   is_punct_cleaned: boolean
   is_shot_cleaned: boolean
-  metadata: Record<string, unknown>
+  created_at: number
+  updated_at: number
+}
+
+export interface NovelCharacter {
+  id: string
+  novel_id: string
+  name: string
+  type: string
+  appearance?: string | null
+  description?: string | null
+  order_index?: number | null
+  created_at: number
+  updated_at: number
+}
+
+export interface NovelCharacterTag {
+  id: string
+  character_id: string
+  tag_category: string
+  tag_value: string
+}
+
+export interface NovelScript {
+  id: string
+  novel_id: string
+  scene_number?: number | null
+  scene_location?: string | null
+  scene_time?: string | null
+  scene_description?: string | null
+  order_index?: number | null
+  created_at: number
+  updated_at: number
+}
+
+export interface NovelScriptDialogue {
+  id: string
+  script_id: string
+  character_name?: string | null
+  dialogue_text: string
+  order_index?: number | null
+  created_at: number
+  updated_at: number
+}
+
+export interface NovelStoryboard {
+  id: string
+  novel_id: string
+  frame_number?: number | null
+  shot_type?: string | null
+  camera_angle?: string | null
+  content?: string | null
+  characters?: string | null
+  image_prompt?: string | null
+  subtitles?: string | null
+  notes?: string | null
+  order_index?: number | null
   created_at: number
   updated_at: number
 }
@@ -65,5 +126,30 @@ export interface Paginated<T> {
   total: number
   page: number
   pageSize: number
+}
+
+export interface PipelineRun {
+  id: string
+  novel_id: string
+  run_id: string
+  completed_steps: string[]
+  current_step: string | null
+  model_key: string | null
+  created_at: number
+  updated_at: number
+}
+
+export interface PipelineStepLog {
+  id: string
+  run_id: string
+  novel_id: string
+  template_id: string
+  input_variables: Record<string, string>
+  output: string | null
+  model_key: string | null
+  duration_ms: number | null
+  status: number | null
+  error: string | null
+  created_at: number
 }
 // [AGC:END]

@@ -91,6 +91,247 @@ export function registerComicRoutes(router: Router, comicService: ComicService, 
     }
   })
 
+  // ============ Novel Content ============
+
+  // GET /comic/novels/:id/content - Get novel content
+  router.get('/comic/novels/:id/content', (req, res) => {
+    try {
+      const content = comicService.getNovelContent(req.params.id)
+      if (!content) {
+        res.status(404).json({ success: false, error: { message: 'Novel content not found' } })
+        return
+      }
+      res.json({ success: true, data: content })
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: { message: error.message } })
+    }
+  })
+
+  // PUT /comic/novels/:id/content - Update novel content
+  router.put('/comic/novels/:id/content', (req, res) => {
+    try {
+      const content = comicService.updateNovelContent(req.params.id, req.body)
+      if (!content) {
+        res.status(404).json({ success: false, error: { message: 'Novel content not found' } })
+        return
+      }
+      res.json({ success: true, data: content })
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: { message: error.message } })
+    }
+  })
+
+  // ============ Novel Characters ============
+
+  // GET /comic/novels/:id/characters - List characters for a novel
+  router.get('/comic/novels/:id/characters', (req, res) => {
+    try {
+      const characters = comicService.listNovelCharacters(req.params.id)
+      res.json({ success: true, data: characters })
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: { message: error.message } })
+    }
+  })
+
+  // POST /comic/novels/:id/characters - Create character
+  router.post('/comic/novels/:id/characters', (req, res) => {
+    try {
+      const { name, type, appearance, description, order_index } = req.body
+      if (!name || !type) {
+        res.status(400).json({ success: false, error: { message: 'Name and type are required' } })
+        return
+      }
+      const character = comicService.createNovelCharacter(req.params.id, { name, type, appearance, description, order_index })
+      res.json({ success: true, data: character })
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: { message: error.message } })
+    }
+  })
+
+  // PUT /comic/novels/:id/characters/:charId - Update character
+  router.put('/comic/novels/:id/characters/:charId', (req, res) => {
+    try {
+      const character = comicService.updateNovelCharacter(req.params.charId, req.body)
+      if (!character) {
+        res.status(404).json({ success: false, error: { message: 'Character not found' } })
+        return
+      }
+      res.json({ success: true, data: character })
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: { message: error.message } })
+    }
+  })
+
+  // DELETE /comic/novels/:id/characters/:charId - Delete character
+  router.delete('/comic/novels/:id/characters/:charId', (req, res) => {
+    try {
+      const deleted = comicService.deleteNovelCharacter(req.params.charId)
+      if (!deleted) {
+        res.status(404).json({ success: false, error: { message: 'Character not found' } })
+        return
+      }
+      res.json({ success: true })
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: { message: error.message } })
+    }
+  })
+
+  // POST /comic/novels/:id/characters/:charId/tags - Create character tag
+  router.post('/comic/novels/:id/characters/:charId/tags', (req, res) => {
+    try {
+      const { tag_category, tag_value } = req.body
+      if (!tag_category || !tag_value) {
+        res.status(400).json({ success: false, error: { message: 'tag_category and tag_value are required' } })
+        return
+      }
+      const tag = comicService.createNovelCharacterTag(req.params.charId, { tag_category, tag_value })
+      res.json({ success: true, data: tag })
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: { message: error.message } })
+    }
+  })
+
+  // GET /comic/novels/:id/characters/:charId/tags - List character tags
+  router.get('/comic/novels/:id/characters/:charId/tags', (req, res) => {
+    try {
+      const tags = comicService.listNovelCharacterTags(req.params.charId)
+      res.json({ success: true, data: tags })
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: { message: error.message } })
+    }
+  })
+
+  // ============ Novel Scripts ============
+
+  // GET /comic/novels/:id/scripts - List scripts for a novel
+  router.get('/comic/novels/:id/scripts', (req, res) => {
+    try {
+      const scripts = comicService.listNovelScripts(req.params.id)
+      res.json({ success: true, data: scripts })
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: { message: error.message } })
+    }
+  })
+
+  // POST /comic/novels/:id/scripts - Create script scene
+  router.post('/comic/novels/:id/scripts', (req, res) => {
+    try {
+      const { scene_number, scene_location, scene_time, scene_description, order_index } = req.body
+      const script = comicService.createNovelScript(req.params.id, { scene_number, scene_location, scene_time, scene_description, order_index })
+      res.json({ success: true, data: script })
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: { message: error.message } })
+    }
+  })
+
+  // PUT /comic/novels/:id/scripts/:scriptId - Update script scene
+  router.put('/comic/novels/:id/scripts/:scriptId', (req, res) => {
+    try {
+      const script = comicService.updateNovelScript(req.params.scriptId, req.body)
+      if (!script) {
+        res.status(404).json({ success: false, error: { message: 'Script not found' } })
+        return
+      }
+      res.json({ success: true, data: script })
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: { message: error.message } })
+    }
+  })
+
+  // DELETE /comic/novels/:id/scripts/:scriptId - Delete script scene
+  router.delete('/comic/novels/:id/scripts/:scriptId', (req, res) => {
+    try {
+      const deleted = comicService.deleteNovelScript(req.params.scriptId)
+      if (!deleted) {
+        res.status(404).json({ success: false, error: { message: 'Script not found' } })
+        return
+      }
+      res.json({ success: true })
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: { message: error.message } })
+    }
+  })
+
+  // ============ Novel Script Dialogues ============
+
+  // GET /comic/scripts/:scriptId/dialogues - List dialogues for a script
+  router.get('/comic/scripts/:scriptId/dialogues', (req, res) => {
+    try {
+      const dialogues = comicService.listScriptDialogues(req.params.scriptId)
+      res.json({ success: true, data: dialogues })
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: { message: error.message } })
+    }
+  })
+
+  // POST /comic/scripts/:scriptId/dialogues - Create dialogue
+  router.post('/comic/scripts/:scriptId/dialogues', (req, res) => {
+    try {
+      const { character_name, dialogue_text, order_index } = req.body
+      if (!dialogue_text) {
+        res.status(400).json({ success: false, error: { message: 'dialogue_text is required' } })
+        return
+      }
+      const dialogue = comicService.createNovelScriptDialogue(req.params.scriptId, { character_name, dialogue_text, order_index })
+      res.json({ success: true, data: dialogue })
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: { message: error.message } })
+    }
+  })
+
+  // ============ Novel Storyboards ============
+
+  // GET /comic/novels/:id/storyboards - List storyboards for a novel
+  router.get('/comic/novels/:id/storyboards', (req, res) => {
+    try {
+      const storyboards = comicService.listNovelStoryboards(req.params.id)
+      res.json({ success: true, data: storyboards })
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: { message: error.message } })
+    }
+  })
+
+  // POST /comic/novels/:id/storyboards - Create storyboard
+  router.post('/comic/novels/:id/storyboards', (req, res) => {
+    try {
+      const { frame_number, shot_type, camera_angle, content, characters, image_prompt, subtitles, notes, order_index } = req.body
+      const storyboard = comicService.createNovelStoryboard(req.params.id, {
+        frame_number, shot_type, camera_angle, content, characters, image_prompt, subtitles, notes, order_index
+      })
+      res.json({ success: true, data: storyboard })
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: { message: error.message } })
+    }
+  })
+
+  // PUT /comic/novels/:id/storyboards/:sbId - Update storyboard
+  router.put('/comic/novels/:id/storyboards/:sbId', (req, res) => {
+    try {
+      const storyboard = comicService.updateNovelStoryboard(req.params.sbId, req.body)
+      if (!storyboard) {
+        res.status(404).json({ success: false, error: { message: 'Storyboard not found' } })
+        return
+      }
+      res.json({ success: true, data: storyboard })
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: { message: error.message } })
+    }
+  })
+
+  // DELETE /comic/novels/:id/storyboards/:sbId - Delete storyboard
+  router.delete('/comic/novels/:id/storyboards/:sbId', (req, res) => {
+    try {
+      const deleted = comicService.deleteNovelStoryboard(req.params.sbId)
+      if (!deleted) {
+        res.status(404).json({ success: false, error: { message: 'Storyboard not found' } })
+        return
+      }
+      res.json({ success: true })
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: { message: error.message } })
+    }
+  })
+
   // ============ Templates ============
 
   // GET /comic/templates - List templates
@@ -244,7 +485,18 @@ export function registerComicRoutes(router: Router, comicService: ComicService, 
     }
   })
 
-  // ============ Pipeline Execution ============
+  // ============ Pipeline Runs ============
+
+  // GET /comic/pipeline-runs - List pipeline runs (optionally filter by novel_id)
+  router.get('/comic/pipeline-runs', (req, res) => {
+    try {
+      const novelId = req.query.novel_id as string | undefined
+      const runs = comicService.listPipelineRuns(novelId || undefined)
+      res.json({ success: true, data: runs })
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: { message: error.message } })
+    }
+  })
 
   // GET /comic/pipeline-runs/:run_id - Get pipeline run status
   router.get('/comic/pipeline-runs/:run_id', (req, res) => {
@@ -259,6 +511,27 @@ export function registerComicRoutes(router: Router, comicService: ComicService, 
       res.status(500).json({ success: false, error: { message: error.message } })
     }
   })
+
+  // GET /comic/pipeline/step-logs - List step logs by run_id or novel_id
+  // [AGC:START] tool=Cc author=fangkun
+  router.get('/comic/pipeline/step-logs', (req, res) => {
+    try {
+      const { run_id, novel_id } = req.query
+
+      if (run_id) {
+        const logs = comicService.listStepLogsByRunId(run_id as string)
+        res.json({ success: true, data: { items: logs, total: logs.length } })
+      } else if (novel_id) {
+        const logs = comicService.listStepLogsByNovelId(novel_id as string)
+        res.json({ success: true, data: { items: logs, total: logs.length } })
+      } else {
+        res.status(400).json({ success: false, error: { message: 'run_id or novel_id is required' } })
+      }
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: { message: error.message } })
+    }
+  })
+  // [AGC:END]
 
   // POST /comic/execute - Execute template with SSE streaming
   router.post('/comic/execute', async (req, res) => {
@@ -307,15 +580,24 @@ export function registerComicRoutes(router: Router, comicService: ComicService, 
       let fullOutput = ''
 
       try {
-        // Build the prompt with variables
+        // Build the prompt with variables - replace in both system_prompt and user_prompt
+        let systemPrompt = template.system_prompt || ''
         let userPrompt = template.user_prompt || ''
+
         for (const [key, value] of Object.entries(input_variables || {})) {
-          userPrompt = userPrompt.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value))
+          const regex = new RegExp(`\\{${key}\\}`, 'g')
+          systemPrompt = systemPrompt.replace(regex, String(value))
+          userPrompt = userPrompt.replace(regex, String(value))
+        }
+
+        // If user_prompt is empty after substitution, use a default trigger
+        if (!userPrompt.trim()) {
+          userPrompt = '请根据上述指令执行任务。'
         }
 
         // Build messages
         const messages: Message[] = [
-          { role: 'system', content: template.system_prompt },
+          { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ]
 
@@ -343,8 +625,24 @@ export function registerComicRoutes(router: Router, comicService: ComicService, 
                 error: null
               })
 
-              // Update pipeline run: mark step completed
-              const completedSteps = [...(pipelineRun!.completed_steps || []), template_id]
+              // Save step log with full input/output
+              comicService.createStepLog({
+                run_id,
+                novel_id,
+                template_id,
+                input_variables: input_variables || {},
+                output: fullOutput,
+                model_key: model,
+                duration_ms: duration,
+                status: 200,
+                error: null
+              })
+
+              // Update pipeline run: mark step completed (deduplicate)
+              const existingSteps = pipelineRun!.completed_steps || []
+              const completedStepsSet = new Set(existingSteps)
+              completedStepsSet.add(template_id)
+              const completedSteps = Array.from(completedStepsSet)
               comicService.updatePipelineRun(run_id, {
                 completed_steps: completedSteps,
                 current_step: null
@@ -371,6 +669,19 @@ export function registerComicRoutes(router: Router, comicService: ComicService, 
                 error: error.message
               })
 
+              // Save step log with error
+              comicService.createStepLog({
+                run_id,
+                novel_id,
+                template_id,
+                input_variables: input_variables || {},
+                output: null,
+                model_key: model,
+                duration_ms: duration,
+                status: 500,
+                error: error.message
+              })
+
               res.write(`data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`)
               res.end()
             }
@@ -386,7 +697,7 @@ export function registerComicRoutes(router: Router, comicService: ComicService, 
             body: JSON.stringify({
               model: model || 'gpt-4o',
               messages: [
-                { role: 'system', content: template.system_prompt },
+                { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt }
               ],
               stream: true
@@ -448,6 +759,19 @@ export function registerComicRoutes(router: Router, comicService: ComicService, 
             error: null
           })
 
+          // Save step log with full input/output
+          comicService.createStepLog({
+            run_id,
+            novel_id,
+            template_id,
+            input_variables: input_variables || {},
+            output: fullOutput,
+            model_key: model || 'gpt-4o',
+            duration_ms: duration,
+            status: 200,
+            error: null
+          })
+
           // Update pipeline run: mark step completed
           const completedSteps = [...(pipelineRun!.completed_steps || []), template_id]
           comicService.updatePipelineRun(run_id, {
@@ -468,6 +792,19 @@ export function registerComicRoutes(router: Router, comicService: ComicService, 
           novel_id,
           template_id,
           stage: template.category as ComicStage,
+          input_variables: input_variables || {},
+          output: null,
+          model_key: model || 'unknown',
+          duration_ms: duration,
+          status: 500,
+          error: error.message
+        })
+
+        // Save step log with error
+        comicService.createStepLog({
+          run_id,
+          novel_id,
+          template_id,
           input_variables: input_variables || {},
           output: null,
           model_key: model || 'unknown',

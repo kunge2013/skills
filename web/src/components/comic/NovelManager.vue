@@ -14,18 +14,20 @@
         <div class="novel-info">
           <h4>{{ novel.name }}</h4>
           <div class="novel-meta">
-            <span>📏 {{ formatLength(novel.original_text?.length || 0) }} {{ $t('comic.chars') }}</span>
+            <span>📏 {{ formatLength(getNovelContentLength(novel.id)) }} {{ $t('comic.chars') }}</span>
             <span>🕐 {{ formatTime(novel.updated_at) }}</span>
             <span class="progress-tags">
-              <span class="progress-tag" :class="novel.is_format_cleaned ? 'done' : 'pending'">{{ $t('comic.format') }}</span>
-              <span class="progress-tag" :class="novel.is_serial_cleaned ? 'done' : 'pending'">{{ $t('comic.serial') }}</span>
-              <span class="progress-tag" :class="novel.is_punct_cleaned ? 'done' : 'pending'">{{ $t('comic.punct') }}</span>
-              <span class="progress-tag" :class="novel.is_shot_cleaned ? 'done' : 'pending'">{{ $t('comic.shot') }}</span>
+              <span class="progress-tag" :class="getContentField(novel.id, 'is_format_cleaned') ? 'done' : 'pending'">{{ $t('comic.format') }}</span>
+              <span class="progress-tag" :class="getContentField(novel.id, 'is_serial_cleaned') ? 'done' : 'pending'">{{ $t('comic.serial') }}</span>
+              <span class="progress-tag" :class="getContentField(novel.id, 'is_punct_cleaned') ? 'done' : 'pending'">{{ $t('comic.punct') }}</span>
+              <span class="progress-tag" :class="getContentField(novel.id, 'is_shot_cleaned') ? 'done' : 'pending'">{{ $t('comic.shot') }}</span>
             </span>
           </div>
         </div>
         <div class="novel-actions">
-          <el-button size="small" @click="goToPipeline(novel.id)">{{ $t('comic.execute') }}</el-button>
+          <el-button size="small" :type="hasIncompleteRun(novel.id) ? 'success' : 'primary'" @click="goToPipeline(novel.id)">
+            {{ hasIncompleteRun(novel.id) ? $t('comic.resumeExecution') : $t('comic.startExecution') }}
+          </el-button>
           <el-button size="small" @click="startEdit(novel)">{{ $t('comic.edit') }}</el-button>
           <el-button size="small" type="danger" @click="handleDelete(novel)">
             <el-icon><Delete /></el-icon>
@@ -80,7 +82,7 @@
 
 <script setup lang="ts">
 // [AGC:START] tool=Cc author=fangkun
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Delete } from '@element-plus/icons-vue'
@@ -100,6 +102,30 @@ const form = reactive({
   original_text: '',
 })
 
+onMounted(async () => {
+  // Load latest runs and content for all novels
+  if (store.novels.length > 0) {
+    await Promise.all([
+      store.loadLatestRunsForAllNovels(),
+      ...store.novels.map(n => store.loadNovelContent(n.id)),
+    ])
+  }
+})
+
+function hasIncompleteRun(novelId: string): boolean {
+  return store.novelHasIncompleteRun(novelId)
+}
+
+function getNovelContentLength(novelId: string): number {
+  return store.novelContent[novelId]?.original_text?.length || 0
+}
+
+function getContentField(novelId: string, field: 'is_format_cleaned' | 'is_serial_cleaned' | 'is_punct_cleaned' | 'is_shot_cleaned'): boolean {
+  const content = store.novelContent[novelId]
+  if (!content) return false
+  return content[field]
+}
+
 function formatLength(len: number): string {
   return len.toLocaleString()
 }
@@ -111,7 +137,7 @@ function formatTime(ts: number): string {
 function startEdit(novel: Novel) {
   editingNovel.value = novel
   form.name = novel.name
-  form.original_text = novel.original_text || ''
+  form.original_text = store.novelContent[novel.id]?.original_text || ''
   inputMode.value = 'paste'
   showCreateDialog.value = true
 }
@@ -136,10 +162,8 @@ async function handleSave() {
   saving.value = true
   try {
     if (editingNovel.value) {
-      await store.updateNovel(editingNovel.value.id, {
-        name: form.name,
-        original_text: form.original_text,
-      })
+      await store.updateNovel(editingNovel.value.id, { name: form.name })
+      await store.updateNovelContent(editingNovel.value.id, { original_text: form.original_text })
       ElMessage.success(t('comic.updateSuccess'))
     } else {
       await store.createNovel({

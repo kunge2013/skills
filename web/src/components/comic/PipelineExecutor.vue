@@ -2,6 +2,44 @@
 <template>
   <div class="pipeline-executor">
     <div class="pipeline-container">
+      <!-- Resume Banner -->
+      <div v-if="store.latestRun && hasIncompleteRun" class="resume-banner">
+        <div class="resume-info">
+          <span class="resume-icon">🔵</span>
+          <span class="resume-text">
+            {{ $t('comic.detectIncompleteRun', { completed: store.latestRun.completed_steps.length, total: totalSteps }) }}
+          </span>
+          <span class="resume-meta">
+            {{ $t('comic.model') }}: {{ store.latestRun.model_key || '-' }} |
+            {{ $t('comic.lastUpdate') }}: {{ formatTime(store.latestRun.updated_at) }}
+          </span>
+        </div>
+        <div class="resume-actions">
+          <el-button type="primary" size="small" @click="resumePipeline">
+            ▶️ {{ $t('comic.resumeExecution') }}
+          </el-button>
+          <el-button size="small" @click="startPipeline">
+            🔄 {{ $t('comic.restartPipeline') }}
+          </el-button>
+          <el-dropdown v-if="store.pipelineRuns.length > 0" @command="handleRunHistory">
+            <el-button size="small">
+              {{ $t('comic.viewHistory') }} ▼
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item
+                  v-for="run in store.pipelineRuns"
+                  :key="run.run_id"
+                  :command="run"
+                >
+                  {{ run.run_id.slice(0, 12) }}... | {{ run.completed_steps.length }}/{{ totalSteps }} | {{ formatTime(run.updated_at) }}
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
+      </div>
+
       <!-- Novel Selection -->
       <div class="pipeline-novel-select">
         <label>{{ $t('comic.selectNovel') }}：</label>
@@ -17,7 +55,12 @@
       <div class="step-flow">
         <div v-for="(stage, index) in stages" :key="stage.key" class="step-node-wrapper">
           <div class="step-node">
-            <div class="step-circle" :class="getStepCircleClass(stage.key)">
+            <div
+              class="step-circle"
+              :class="getStepCircleClass(stage.key)"
+              @click="selectStage(stage.key)"
+              title="点击展开子步骤"
+            >
               <span v-if="isStageDone(stage.key)">✓</span>
               <span v-else-if="isStageCurrent(stage.key)">{{ index + 1 }}</span>
               <span v-else>{{ index + 1 }}</span>
@@ -37,7 +80,7 @@
             :key="t.id"
             class="sub-step-card"
             :class="{ done: isCompleted(t.id), active: currentStepId === t.id }"
-            @click="selectStep(t.id)"
+            @click="selectStep(t.id, isCompleted(t.id))"
           >
             <div class="sub-step-header">
               <h5>P{{ t.step_order }}: {{ t.name }}</h5>
@@ -46,6 +89,7 @@
               </span>
             </div>
             <div class="sub-step-meta">{{ t.description }}</div>
+            <div v-if="isCompleted(t.id)" class="rerun-hint">{{ $t('comic.clickToRerun') }}</div>
           </div>
         </div>
       </div>
@@ -151,6 +195,14 @@ const currentTemplate = computed(() => {
   return store.templates.find(t => t.id === currentStepId.value) || null
 })
 
+const totalSteps = computed(() => store.templates.length)
+
+const hasIncompleteRun = computed(() => {
+  const run = store.latestRun
+  if (!run) return false
+  return run.completed_steps.length < totalSteps.value || run.current_step !== null
+})
+
 function isCompleted(templateId: string): boolean {
   return completedSteps.value.has(templateId)
 }
@@ -200,96 +252,365 @@ function getCurrentStageTemplates(): ComicTemplate[] {
   return getStageTemplates(currentStage.value.key)
 }
 
-function selectStep(templateId: string) {
-  if (isCompleted(templateId)) return
+function selectStage(category: ComicCategory) {
+  // Select the first template in this stage
+  const templates = getStageTemplates(category)
+  if (templates.length > 0) {
+    // Find the first uncompleted template, or fallback to the first one
+    const firstUncompleted = templates.find(t => !isCompleted(t.id))
+    const targetTemplate = firstUncompleted || templates[0]
+    selectStep(targetTemplate.id)
+  }
+}
+
+function selectStep(templateId: string, isCompletedStep: boolean = false) {
+  // Allow clicking completed steps for re-run
   currentStepId.value = templateId
   inputValues.value = {}
   autoFillInputValues(templateId)
 }
 
+// [AGC:START] tool=Cc author=fangkun
 function autoFillInputValues(templateId: string) {
   const template = store.templates.find(t => t.id === templateId)
-  const novel = store.novels.find(n => n.id === selectedNovelId.value)
-  if (!template || !novel) return
+  const novelId = selectedNovelId.value
+  if (!template || !novelId) return
+
+  // Build map of template_id → output from current step logs
+  const stepOutputMap = new Map<string, string>()
+  for (const log of store.stepLogs) {
+    if (log.output && log.status === 200) {
+      stepOutputMap.set(log.template_id, log.output)
+    }
+  }
 
   for (const v of template.input_variables) {
     if (inputValues.value[v]) continue // already filled by user, don't overwrite
-    switch (v) {
-      case 'content':
-        inputValues.value[v] = novel.content || novel.original_text || ''
-        break
-      case 'character_text':
-        inputValues.value[v] = novel.character_text || ''
-        break
-      case 'script_text':
-        inputValues.value[v] = novel.script_text || ''
-        break
-      case 'storyboard_text':
-        inputValues.value[v] = novel.storyboard_text || ''
-        break
-      case 'original_text':
-        inputValues.value[v] = novel.original_text || ''
-        break
+
+    // 1. Try to resolve from step logs via depend_on chain
+    const fromStep = resolveFromStepLogs(v, template, stepOutputMap)
+    if (fromStep !== undefined) {
+      inputValues.value[v] = fromStep
+      continue
     }
+
+    // 2. Fallback: resolve from novel sub-tables
+    const fromTables = resolveFromSubTables(v, novelId)
+    if (fromTables) {
+      inputValues.value[v] = fromTables
+      continue
+    }
+
+    // 3. Use placeholder or empty
+    inputValues.value[v] = getPlaceholder(v) || ''
   }
 }
 
-function getPlaceholder(varName: string): string {
-  const novel = store.novels.find(n => n.id === selectedNovelId.value)
-  if (!novel) return ''
+function resolveFromStepLogs(
+  varName: string,
+  template: ComicTemplate,
+  stepOutputMap: Map<string, string>
+): string | undefined {
+  // Walk the depend_on chain upward to find a completed step's output
+  let current = template
+  const visited = new Set<string>()
+  while (current.depend_on && !visited.has(current.depend_on)) {
+    visited.add(current.depend_on)
+    const prevTemplate = store.templates.find(t => t.id === current.depend_on)
+    if (!prevTemplate) break
+
+    const output = stepOutputMap.get(prevTemplate.id)
+    if (output) {
+      return output
+    }
+
+    current = prevTemplate
+  }
+  return undefined
+}
+
+function resolveFromSubTables(varName: string, novelId: string): string {
+  const content = store.novelContent[novelId]
+  const characters = store.novelCharacters[novelId] || []
+  const scripts = store.novelScripts[novelId] || []
+  const storyboards = store.novelStoryboards[novelId] || []
 
   switch (varName) {
     case 'content':
-      return novel.content || novel.original_text || ''
+      return content?.cleaned_text || content?.original_text || ''
+    case 'original_text':
+      return content?.original_text || ''
     case 'character_text':
-      return novel.character_text || ''
+      return characters.map(c => {
+        let text = `[${c.type}] ${c.name}`
+        if (c.appearance) text += ` | 外貌: ${c.appearance}`
+        if (c.description) text += ` | ${c.description}`
+        return text
+      }).join('\n')
     case 'script_text':
-      return novel.script_text || ''
+      return scripts.map(s => {
+        let text = `场景${s.scene_number || ''}: ${s.scene_location || ''} ${s.scene_time || ''}`
+        if (s.scene_description) text += `\n${s.scene_description}`
+        return text
+      }).join('\n\n')
+    case 'storyboard_text':
+      return storyboards.map(sb => {
+        let text = `分镜${sb.frame_number || ''}: ${sb.content || ''}`
+        if (sb.shot_type) text += ` [${sb.shot_type}]`
+        return text
+      }).join('\n')
+    default:
+      return ''
+  }
+}
+// [AGC:END]
+
+function getPlaceholder(varName: string): string {
+  const novelId = selectedNovelId.value
+  if (!novelId) return ''
+
+  const content = store.novelContent[novelId]
+  const characters = store.novelCharacters[novelId] || []
+  const scripts = store.novelScripts[novelId] || []
+
+  switch (varName) {
+    case 'content':
+      return content?.cleaned_text || content?.original_text || ''
+    case 'character_text':
+      return characters.map(c => `[${c.type}] ${c.name}`).join(', ')
+    case 'script_text':
+      return scripts.map(s => `场景${s.scene_number || ''}: ${s.scene_description || ''}`).join('\n')
     default:
       return ''
   }
 }
 
-// Map category to the novel field that stores the output
-function getCategoryOutputField(category: ComicCategory): keyof Novel | null {
-  switch (category) {
-    case 'cleaning': return 'content'
-    case 'extraction': return 'character_text'
-    case 'script': return 'script_text'
-    case 'storyboard': return 'storyboard_text'
-    default: return null
-  }
-}
-
-// Save step output to novel and persist to backend
+// Save step output to the appropriate sub-table and persist to backend
 async function saveStepOutput(template: ComicTemplate, output: string) {
-  const novel = store.novels.find(n => n.id === selectedNovelId.value)
-  if (!novel) return
+  const novelId = selectedNovelId.value
+  if (!novelId) return
 
-  const field = getCategoryOutputField(template.category)
-  if (!field) return
-
-  // Update local store state immediately so next step can use it
-  const novelIndex = store.novels.findIndex(n => n.id === novel.id)
-  if (novelIndex >= 0) {
-    store.novels[novelIndex] = { ...novel, [field]: output, updated_at: Date.now() }
-  }
-
-  // Persist to backend directly (without reloading all novels to avoid race conditions)
   try {
-    await fetch(`/api/v1/comic/novels/${novel.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ [field]: output }),
-    })
+    switch (template.category) {
+      case 'cleaning':
+        // Save cleaned text to novel_content
+        await store.updateNovelContent(novelId, { cleaned_text: output })
+        break
+
+      case 'extraction':
+        // Parse JSON output and save characters
+        try {
+          const parsed = JSON.parse(output)
+          const items = Array.isArray(parsed) ? parsed : [parsed]
+          // Delete old characters and recreate
+          await fetch(`/api/v1/comic/novels/${novelId}/characters`, { method: 'DELETE' })
+          for (let i = 0; i < items.length; i++) {
+            const item = items[i]
+            await store.createNovelCharacter(novelId, {
+              name: item.name || '',
+              type: item.type || 'character',
+              appearance: item.appearance || null,
+              description: item.description || null,
+              order_index: i,
+            })
+          }
+          await store.loadNovelCharacters(novelId)
+        } catch (parseErr) {
+          console.warn('Failed to parse character extraction output:', parseErr)
+        }
+        break
+
+      case 'script':
+        // Parse output and save script scenes
+        try {
+          const parsed = JSON.parse(output)
+          const scenes = Array.isArray(parsed) ? parsed : [parsed]
+          // Delete old scripts and recreate
+          await fetch(`/api/v1/comic/novels/${novelId}/scripts`, { method: 'DELETE' })
+          for (let i = 0; i < scenes.length; i++) {
+            const scene = scenes[i]
+            const script = await store.createNovelScript(novelId, {
+              scene_number: scene.scene_number || i + 1,
+              scene_location: scene.scene_location || null,
+              scene_time: scene.scene_time || null,
+              scene_description: scene.scene_description || null,
+              order_index: i,
+            })
+            // Save dialogues if present
+            if (scene.dialogues && Array.isArray(scene.dialogues)) {
+              for (let j = 0; j < scene.dialogues.length; j++) {
+                const d = scene.dialogues[j]
+                await store.createNovelScriptDialogue(script.id, {
+                  character_name: d.character_name || null,
+                  dialogue_text: d.dialogue_text || d.text || '',
+                  order_index: j,
+                })
+              }
+            }
+          }
+          await store.loadNovelScripts(novelId)
+        } catch (parseErr) {
+          console.warn('Failed to parse script output:', parseErr)
+        }
+        break
+
+      case 'storyboard':
+        // Parse JSON output and save storyboards
+        try {
+          const parsed = JSON.parse(output)
+          const frames = Array.isArray(parsed) ? parsed : [parsed]
+          // Delete old storyboards and recreate
+          await fetch(`/api/v1/comic/novels/${novelId}/storyboards`, { method: 'DELETE' })
+          for (let i = 0; i < frames.length; i++) {
+            const frame = frames[i]
+            await store.createNovelStoryboard(novelId, {
+              frame_number: frame.frame_number || frame.frame_id || i + 1,
+              shot_type: frame.shot_type || null,
+              camera_angle: frame.camera_angle || frame.camera || null,
+              content: frame.content || frame.description || null,
+              characters: Array.isArray(frame.characters) ? frame.characters.join(',') : (frame.characters || null),
+              image_prompt: frame.image_prompt || null,
+              subtitles: frame.subtitles || null,
+              notes: frame.notes || null,
+              order_index: i,
+            })
+          }
+          await store.loadNovelStoryboards(novelId)
+        } catch (parseErr) {
+          console.warn('Failed to parse storyboard output:', parseErr)
+        }
+        break
+    }
   } catch (err) {
-    console.warn('Failed to save step output to novel:', err)
+    console.warn('Failed to save step output:', err)
   }
 }
 
-watch(selectedNovelId, (newId) => {
+watch(selectedNovelId, async (newId) => {
   store.setSelectedNovel(newId)
+  if (newId) {
+    await Promise.all([
+      store.loadLatestRun(newId),
+      store.loadPipelineRuns(newId),
+      store.loadNovelContent(newId),
+      store.loadNovelCharacters(newId),
+      store.loadNovelScripts(newId),
+      store.loadNovelStoryboards(newId),
+      store.loadNovelStepLogs(newId),
+    ])
+  }
 })
+
+watch(() => store.pendingRestoreRun, (run) => {
+  if (!run) return
+  // Restore state from the pending run
+  selectedNovelId.value = run.novel_id
+  store.setSelectedNovel(run.novel_id)
+  runId.value = run.run_id
+  completedSteps.value = new Set(run.completed_steps)
+  selectedModel.value = run.model_key || ''
+
+  if (run.current_step) {
+    currentStepId.value = run.current_step
+  } else {
+    const nextStep = findNextUncompletedStep()
+    currentStepId.value = nextStep?.id || ''
+  }
+
+  inputValues.value = {}
+  if (currentStepId.value) {
+    autoFillInputValues(currentStepId.value)
+  }
+
+  store.executeOutput = ''
+  store.executeError = ''
+  store.setPendingRestoreRun(null)
+  ElMessage.success(t('comic.restoredRunState'))
+})
+
+function formatTime(ts: number): string {
+  const d = new Date(ts)
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const hour = String(d.getHours()).padStart(2, '0')
+  const min = String(d.getMinutes()).padStart(2, '0')
+  return `${month}-${day} ${hour}:${min}`
+}
+
+async function resumePipeline() {
+  const run = store.latestRun
+  if (!run) return
+
+  // Restore state from saved run
+  runId.value = run.run_id
+  completedSteps.value = new Set(run.completed_steps)
+  selectedModel.value = run.model_key || ''
+
+  // Find current step: use saved current_step, or find next uncompleted step
+  if (run.current_step) {
+    currentStepId.value = run.current_step
+  } else {
+    // Find the first uncompleted step
+    const nextStep = findNextUncompletedStep()
+    if (nextStep) {
+      currentStepId.value = nextStep.id
+    } else {
+      // All steps completed
+      currentStepId.value = ''
+      ElMessage.info(t('comic.allStepsCompleted'))
+    }
+  }
+
+  inputValues.value = {}
+  if (currentStepId.value) {
+    autoFillInputValues(currentStepId.value)
+  }
+
+  store.executeOutput = ''
+  store.executeError = ''
+  ElMessage.success(t('comic.resumedFromBreakpoint'))
+}
+
+function findNextUncompletedStep(): ComicTemplate | null {
+  // Get all templates in order
+  const allTemplates: ComicTemplate[] = []
+  const categories: ComicCategory[] = ['cleaning', 'extraction', 'script', 'storyboard']
+  for (const cat of categories) {
+    allTemplates.push(...getStageTemplates(cat))
+  }
+
+  // Find first uncompleted
+  for (const t of allTemplates) {
+    if (!completedSteps.value.has(t.id)) {
+      return t
+    }
+  }
+  return null
+}
+
+function handleRunHistory(run: any) {
+  // Restore state from selected run
+  runId.value = run.run_id
+  completedSteps.value = new Set(run.completed_steps)
+  selectedModel.value = run.model_key || ''
+
+  // Find current step
+  if (run.current_step) {
+    currentStepId.value = run.current_step
+  } else {
+    const nextStep = findNextUncompletedStep()
+    currentStepId.value = nextStep?.id || ''
+  }
+
+  inputValues.value = {}
+  if (currentStepId.value) {
+    autoFillInputValues(currentStepId.value)
+  }
+
+  store.executeOutput = ''
+  store.executeError = ''
+  ElMessage.success(t('comic.restoredRunState'))
+}
 
 async function startPipeline() {
   if (!selectedNovelId.value) {
@@ -400,8 +721,11 @@ async function executeCurrentStep() {
 
     completedSteps.value.add(currentTemplate.value.id)
 
-    // Save output to novel for next step chaining
+    // Save output to novel sub-tables (extraction/script/storyboard)
     await saveStepOutput(currentTemplate.value, fullOutput)
+
+    // Reload step logs so next step's autoFill can use this step's output
+    await store.loadStepLogs(runId.value)
 
     const nextTemplate = findNextTemplate(currentTemplate.value)
     if (nextTemplate) {
@@ -458,6 +782,47 @@ function findNextTemplate(current: ComicTemplate): ComicTemplate | null {
   background: #fff;
   border-radius: 8px;
   padding: 24px;
+}
+
+/* Resume Banner */
+.resume-banner {
+  background: linear-gradient(135deg, #e6f7ff 0%, #f0f5ff 100%);
+  border: 1px solid #91d5ff;
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.resume-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.resume-icon {
+  font-size: 18px;
+}
+
+.resume-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1890ff;
+}
+
+.resume-meta {
+  font-size: 12px;
+  color: #666;
+}
+
+.resume-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .pipeline-novel-select {
@@ -517,6 +882,12 @@ function findNextTemplate(current: ComicTemplate): ComicTemplate | null {
   font-weight: 600;
   margin-bottom: 8px;
   transition: all 0.3s;
+  cursor: pointer;
+}
+
+.step-circle:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .step-circle.done {
@@ -528,6 +899,10 @@ function findNextTemplate(current: ComicTemplate): ComicTemplate | null {
   background: #409eff;
   color: #fff;
   box-shadow: 0 0 0 4px rgba(64, 158, 255, 0.2);
+}
+
+.step-circle.current:hover {
+  box-shadow: 0 0 0 4px rgba(64, 158, 255, 0.3), 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .step-circle.pending {
@@ -637,6 +1012,17 @@ function findNextTemplate(current: ComicTemplate): ComicTemplate | null {
 .sub-step-meta {
   font-size: 12px;
   color: #999;
+}
+
+.rerun-hint {
+  font-size: 11px;
+  color: #1890ff;
+  margin-top: 4px;
+  opacity: 0.8;
+}
+
+.sub-step-card.done:hover .rerun-hint {
+  opacity: 1;
 }
 
 /* Execute Panel */

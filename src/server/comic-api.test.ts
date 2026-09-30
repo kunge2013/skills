@@ -31,23 +31,92 @@ describe('Comic API Routes', () => {
 
     const testDb = new Database(dbPath)
     testDb.pragma('journal_mode = WAL')
+    testDb.pragma('foreign_keys = ON')
 
+    // Use the same schema as the production sqlite.ts
     testDb.exec(`
       CREATE TABLE IF NOT EXISTS novels (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
+        metadata TEXT DEFAULT '{}',
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS novel_content (
+        id TEXT PRIMARY KEY,
+        novel_id TEXT NOT NULL UNIQUE,
         original_text TEXT,
-        content TEXT,
-        character_text TEXT,
-        script_text TEXT,
-        storyboard_text TEXT,
+        cleaned_text TEXT,
         is_format_cleaned INTEGER DEFAULT 0,
         is_serial_cleaned INTEGER DEFAULT 0,
         is_punct_cleaned INTEGER DEFAULT 0,
         is_shot_cleaned INTEGER DEFAULT 0,
-        metadata TEXT DEFAULT '{}',
         created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (novel_id) REFERENCES novels(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS novel_character (
+        id TEXT PRIMARY KEY,
+        novel_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL,
+        appearance TEXT,
+        description TEXT,
+        order_index INTEGER,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (novel_id) REFERENCES novels(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS novel_character_tags (
+        id TEXT PRIMARY KEY,
+        character_id TEXT NOT NULL,
+        tag_category TEXT NOT NULL,
+        tag_value TEXT NOT NULL,
+        FOREIGN KEY (character_id) REFERENCES novel_character(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS novel_script (
+        id TEXT PRIMARY KEY,
+        novel_id TEXT NOT NULL,
+        scene_number INTEGER,
+        scene_location TEXT,
+        scene_time TEXT,
+        scene_description TEXT,
+        order_index INTEGER,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (novel_id) REFERENCES novels(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS novel_script_dialogue (
+        id TEXT PRIMARY KEY,
+        script_id TEXT NOT NULL,
+        character_name TEXT,
+        dialogue_text TEXT NOT NULL,
+        order_index INTEGER,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (script_id) REFERENCES novel_script(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS novel_storyboard (
+        id TEXT PRIMARY KEY,
+        novel_id TEXT NOT NULL,
+        frame_number INTEGER,
+        shot_type TEXT,
+        camera_angle TEXT,
+        content TEXT,
+        characters TEXT,
+        image_prompt TEXT,
+        subtitles TEXT,
+        notes TEXT,
+        order_index INTEGER,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (novel_id) REFERENCES novels(id) ON DELETE CASCADE
       );
 
       CREATE TABLE IF NOT EXISTS comic_templates (
@@ -78,8 +147,35 @@ describe('Comic API Routes', () => {
         status INTEGER,
         error TEXT,
         created_at INTEGER NOT NULL,
-        FOREIGN KEY (novel_id) REFERENCES novels(id),
+        FOREIGN KEY (novel_id) REFERENCES novels(id) ON DELETE CASCADE,
         FOREIGN KEY (template_id) REFERENCES comic_templates(id)
+      );
+
+      CREATE TABLE IF NOT EXISTS pipeline_runs (
+        id TEXT PRIMARY KEY,
+        novel_id TEXT NOT NULL,
+        run_id TEXT NOT NULL,
+        completed_steps TEXT DEFAULT '[]',
+        current_step TEXT,
+        model_key TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (novel_id) REFERENCES novels(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS pipeline_step_logs (
+        id TEXT PRIMARY KEY,
+        run_id TEXT NOT NULL,
+        novel_id TEXT NOT NULL,
+        template_id TEXT NOT NULL,
+        input_variables TEXT DEFAULT '{}',
+        output TEXT,
+        model_key TEXT,
+        duration_ms INTEGER,
+        status INTEGER,
+        error TEXT,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (novel_id) REFERENCES novels(id) ON DELETE CASCADE
       );
     `)
 
@@ -148,7 +244,6 @@ describe('Comic API Routes', () => {
     })
 
     it('GET /comic/novels/:id - should get novel by id', async () => {
-      // Create a novel first
       const createResponse = await fetch(`${baseUrl}/comic/novels`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -170,8 +265,7 @@ describe('Comic API Routes', () => {
       assert.strictEqual(response.status, 404)
     })
 
-    it('PUT /comic/novels/:id - should update novel', async () => {
-      // Create a novel first
+    it('PUT /comic/novels/:id - should update novel name', async () => {
       const createResponse = await fetch(`${baseUrl}/comic/novels`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -183,18 +277,16 @@ describe('Comic API Routes', () => {
       const response = await fetch(`${baseUrl}/comic/novels/${createdId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: '更新后', is_format_cleaned: true })
+        body: JSON.stringify({ name: '更新后' })
       })
 
       assert.strictEqual(response.status, 200)
       const result = await response.json() as any
       assert.strictEqual(result.success, true)
       assert.strictEqual(result.data.name, '更新后')
-      assert.strictEqual(result.data.is_format_cleaned, true)
     })
 
     it('DELETE /comic/novels/:id - should delete novel', async () => {
-      // Create a novel first
       const createResponse = await fetch(`${baseUrl}/comic/novels`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -209,9 +301,140 @@ describe('Comic API Routes', () => {
 
       assert.strictEqual(response.status, 200)
 
-      // Verify deletion
       const getResponse = await fetch(`${baseUrl}/comic/novels/${createdId}`)
       assert.strictEqual(getResponse.status, 404)
+    })
+  })
+
+  describe('Novel Content API', () => {
+    it('GET /comic/novels/:id/content - should get novel content', async () => {
+      const createResponse = await fetch(`${baseUrl}/comic/novels`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: '内容测试', original_text: '这是原始内容' })
+      })
+      const createResult = await createResponse.json() as any
+      const createdId = createResult.data.id
+
+      const response = await fetch(`${baseUrl}/comic/novels/${createdId}/content`)
+      assert.strictEqual(response.status, 200)
+      const result = await response.json() as any
+      assert.strictEqual(result.success, true)
+      assert.strictEqual(result.data.original_text, '这是原始内容')
+    })
+
+    it('PUT /comic/novels/:id/content - should update novel content', async () => {
+      const createResponse = await fetch(`${baseUrl}/comic/novels`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: '内容更新测试', original_text: '原始内容' })
+      })
+      const createResult = await createResponse.json() as any
+      const createdId = createResult.data.id
+
+      const response = await fetch(`${baseUrl}/comic/novels/${createdId}/content`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cleaned_text: '清洗后的内容', is_format_cleaned: true })
+      })
+
+      assert.strictEqual(response.status, 200)
+      const result = await response.json() as any
+      assert.strictEqual(result.success, true)
+      assert.strictEqual(result.data.cleaned_text, '清洗后的内容')
+      assert.strictEqual(result.data.is_format_cleaned, true)
+    })
+  })
+
+  describe('Novel Characters API', () => {
+    it('POST and GET /comic/novels/:id/characters - should create and list characters', async () => {
+      const createResponse = await fetch(`${baseUrl}/comic/novels`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: '角色测试' })
+      })
+      const createResult = await createResponse.json() as any
+      const novelId = createResult.data.id
+
+      // Create characters
+      await fetch(`${baseUrl}/comic/novels/${novelId}/characters`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: '唐僧', type: 'character', appearance: '袈裟', description: '取经人' })
+      })
+      await fetch(`${baseUrl}/comic/novels/${novelId}/characters`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: '孙悟空', type: 'character', appearance: '金甲' })
+      })
+
+      // List characters
+      const response = await fetch(`${baseUrl}/comic/novels/${novelId}/characters`)
+      assert.strictEqual(response.status, 200)
+      const result = await response.json() as any
+      assert.strictEqual(result.data.length, 2)
+      assert.strictEqual(result.data[0].name, '唐僧')
+      assert.strictEqual(result.data[1].name, '孙悟空')
+    })
+  })
+
+  describe('Novel Scripts API', () => {
+    it('POST and GET /comic/novels/:id/scripts - should create and list scripts', async () => {
+      const createResponse = await fetch(`${baseUrl}/comic/novels`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: '剧本测试' })
+      })
+      const createResult = await createResponse.json() as any
+      const novelId = createResult.data.id
+
+      // Create script
+      const scriptResponse = await fetch(`${baseUrl}/comic/novels/${novelId}/scripts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scene_number: 1, scene_location: '花果山', scene_description: '孙悟空出世' })
+      })
+      const scriptResult = await scriptResponse.json() as any
+      assert.ok(scriptResult.data.id)
+
+      // List scripts
+      const response = await fetch(`${baseUrl}/comic/novels/${novelId}/scripts`)
+      assert.strictEqual(response.status, 200)
+      const result = await response.json() as any
+      assert.strictEqual(result.data.length, 1)
+      assert.strictEqual(result.data[0].scene_location, '花果山')
+    })
+  })
+
+  describe('Novel Storyboards API', () => {
+    it('POST and GET /comic/novels/:id/storyboards - should create and list storyboards', async () => {
+      const createResponse = await fetch(`${baseUrl}/comic/novels`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: '分镜测试' })
+      })
+      const createResult = await createResponse.json() as any
+      const novelId = createResult.data.id
+
+      // Create storyboards
+      await fetch(`${baseUrl}/comic/novels/${novelId}/storyboards`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ frame_number: 1, shot_type: '全景', content: '花果山全景' })
+      })
+      await fetch(`${baseUrl}/comic/novels/${novelId}/storyboards`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ frame_number: 2, shot_type: '特写', content: '仙石崩裂' })
+      })
+
+      // List storyboards
+      const response = await fetch(`${baseUrl}/comic/novels/${novelId}/storyboards`)
+      assert.strictEqual(response.status, 200)
+      const result = await response.json() as any
+      assert.strictEqual(result.data.length, 2)
+      assert.strictEqual(result.data[0].shot_type, '全景')
+      assert.strictEqual(result.data[1].shot_type, '特写')
     })
   })
 
@@ -255,7 +478,6 @@ describe('Comic API Routes', () => {
 
   describe('Call Logs API', () => {
     it('POST /comic/call-logs - should create call log', async () => {
-      // Create novel and template first
       const novelResponse = await fetch(`${baseUrl}/comic/novels`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -302,5 +524,90 @@ describe('Comic API Routes', () => {
       assert.ok(typeof result.data.total === 'number', 'Should return total count')
     })
   })
+
+  // [AGC:START] tool=Cc author=fangkun
+  describe('Pipeline Step Logs API', () => {
+    it('GET /comic/pipeline/step-logs - should return 400 without params', async () => {
+      const response = await fetch(`${baseUrl}/comic/pipeline/step-logs`)
+
+      assert.strictEqual(response.status, 400)
+    })
+
+    it('GET /comic/pipeline/step-logs?run_id=xxx - should return step logs', async () => {
+      // Arrange: create novel, pipeline run, and step logs
+      const novelRes = await fetch(`${baseUrl}/comic/novels`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Step Log Test', original_text: 'Test content' })
+      })
+      const novel = (await novelRes.json() as any).data
+
+      const template = service.listTemplates()[0]
+      const runId = 'api-test-run-1'
+      service.createPipelineRun({
+        novel_id: novel.id,
+        run_id: runId,
+        completed_steps: [],
+        current_step: null,
+        model_key: 'test-model'
+      })
+      service.createStepLog({
+        run_id: runId,
+        novel_id: novel.id,
+        template_id: template.id,
+        input_variables: { original_text: 'Test content' },
+        output: 'Step output text',
+        model_key: 'test-model',
+        duration_ms: 1000,
+        status: 200,
+        error: null
+      })
+
+      // Act
+      const response = await fetch(`${baseUrl}/comic/pipeline/step-logs?run_id=${runId}`)
+
+      // Assert
+      assert.strictEqual(response.status, 200)
+      const result = await response.json() as any
+      assert.strictEqual(result.success, true)
+      assert.strictEqual(result.data.items.length, 1)
+      assert.strictEqual(result.data.items[0].output, 'Step output text')
+      assert.deepStrictEqual(result.data.items[0].input_variables, { original_text: 'Test content' })
+    })
+
+    it('GET /comic/pipeline/step-logs?novel_id=xxx - should return step logs by novel', async () => {
+      // Arrange
+      const novelRes = await fetch(`${baseUrl}/comic/novels`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Novel Step Logs', original_text: 'Content' })
+      })
+      const novel = (await novelRes.json() as any).data
+
+      const template = service.listTemplates()[0]
+      service.createStepLog({
+        run_id: 'novel-run-1',
+        novel_id: novel.id,
+        template_id: template.id,
+        input_variables: {},
+        output: 'Novel step output',
+        model_key: 'test-model',
+        duration_ms: 500,
+        status: 200,
+        error: null
+      })
+
+      // Act
+      const response = await fetch(`${baseUrl}/comic/pipeline/step-logs?novel_id=${novel.id}`)
+
+      // Assert
+      assert.strictEqual(response.status, 200)
+      const result = await response.json() as any
+      assert.strictEqual(result.success, true)
+      assert.strictEqual(result.data.items.length, 1)
+      assert.strictEqual(result.data.items[0].output, 'Novel step output')
+    })
+  })
+  // [AGC:END]
 })
 // [AGC:END]

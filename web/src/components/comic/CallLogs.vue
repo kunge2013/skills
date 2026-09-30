@@ -1,97 +1,166 @@
 <!-- [AGC:FILE] tool=Cc author=fangkun date=2026-09-29 -->
 <template>
   <div class="call-logs">
-    <!-- Filter Bar -->
-    <div class="filter-bar">
-      <el-select v-model="filter.novel_id" :placeholder="$t('comic.filterNovel')" clearable filterable @change="applyFilter" style="min-width: 150px;">
-        <el-option v-for="n in store.novels" :key="n.id" :label="n.name" :value="n.id" />
-      </el-select>
-      <el-select v-model="filter.stage" :placeholder="$t('comic.filterStage')" clearable @change="applyFilter" style="min-width: 130px;">
-        <el-option label="格式清洗" value="format_clean" />
-        <el-option label="连字清洗" value="serial_clean" />
-        <el-option label="标点清洗" value="punct_clean" />
-        <el-option label="分镜清洗" value="shot_clean" />
-        <el-option label="提取" value="extract" />
-        <el-option label="剧本化" value="script" />
-        <el-option label="分镜化" value="storyboard" />
-      </el-select>
-      <el-select v-model="filter.status" :placeholder="$t('comic.filterStatus')" clearable @change="applyFilter" style="min-width: 130px;">
-        <el-option label="成功" :value="200" />
-        <el-option label="失败" :value="500" />
-      </el-select>
-      <el-button size="small" @click="applyFilter">🔍 {{ $t('comic.search') }}</el-button>
-      <el-button size="small" type="danger" @click="handleDeleteAll" style="margin-left: auto;">
-        🗑️ {{ $t('comic.deleteAll') }}
-      </el-button>
+    <!-- Sub-tab Toggle -->
+    <div class="sub-tab-bar">
+      <button
+        class="sub-tab"
+        :class="{ active: currentSubTab === 'logs' }"
+        @click="currentSubTab = 'logs'"
+      >
+        📋 {{ $t('comic.callLogsTab') }}
+      </button>
+      <button
+        class="sub-tab"
+        :class="{ active: currentSubTab === 'runs' }"
+        @click="switchToRuns"
+      >
+        🚀 {{ $t('comic.runsTab') }}
+      </button>
     </div>
 
-    <!-- Stats Summary -->
-    <div class="stats-summary">
-      {{ $t('comic.totalLogs', { count: store.callLogsTotal }) }}
-      <span v-if="computedStats.totalDuration"> · {{ $t('comic.totalDuration') }} {{ computedStats.totalDuration }}</span>
-      · {{ $t('comic.success') }} {{ computedStats.successCount }} / {{ $t('comic.failure') }} {{ computedStats.failureCount }}
-    </div>
+    <!-- Call Logs Sub-tab -->
+    <template v-if="currentSubTab === 'logs'">
+      <!-- Filter Bar -->
+      <div class="filter-bar">
+        <el-select v-model="filter.novel_id" :placeholder="$t('comic.filterNovel')" clearable filterable @change="applyFilter" style="min-width: 150px;">
+          <el-option v-for="n in store.novels" :key="n.id" :label="n.name" :value="n.id" />
+        </el-select>
+        <el-select v-model="filter.stage" :placeholder="$t('comic.filterStage')" clearable @change="applyFilter" style="min-width: 130px;">
+          <el-option label="格式清洗" value="format_clean" />
+          <el-option label="连字清洗" value="serial_clean" />
+          <el-option label="标点清洗" value="punct_clean" />
+          <el-option label="分镜清洗" value="shot_clean" />
+          <el-option label="提取" value="extract" />
+          <el-option label="剧本化" value="script" />
+          <el-option label="分镜化" value="storyboard" />
+        </el-select>
+        <el-select v-model="filter.status" :placeholder="$t('comic.filterStatus')" clearable @change="applyFilter" style="min-width: 130px;">
+          <el-option label="成功" :value="200" />
+          <el-option label="失败" :value="500" />
+        </el-select>
+        <el-button size="small" @click="applyFilter">🔍 {{ $t('comic.search') }}</el-button>
+        <el-button size="small" type="danger" @click="handleDeleteAll" style="margin-left: auto;">
+          🗑️ {{ $t('comic.deleteAll') }}
+        </el-button>
+      </div>
 
-    <!-- Records Table -->
-    <table class="record-table">
-      <thead>
-        <tr>
-          <th>{{ $t('comic.time') }}</th>
-          <th>{{ $t('comic.novel') }}</th>
-          <th>{{ $t('comic.stage') }}</th>
-          <th>{{ $t('comic.template') }}</th>
-          <th>{{ $t('comic.model') }}</th>
-          <th>{{ $t('comic.duration') }}</th>
-          <th>{{ $t('comic.chars') }}</th>
-          <th>{{ $t('comic.status') }}</th>
-          <th>{{ $t('comic.actions') }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="log in store.callLogs" :key="log.id">
-          <td class="time-cell">{{ formatTime(log.created_at) }}</td>
-          <td>{{ getNovelName(log.novel_id) }}</td>
-          <td>
-            <el-tag size="small" :type="getStageTagType(log.stage)">{{ getStageName(log.stage) }}</el-tag>
-          </td>
-          <td class="template-cell">{{ getTemplateName(log.template_id) }}</td>
-          <td class="model-cell">{{ log.model_key || '-' }}</td>
-          <td class="duration-cell">{{ log.duration_ms ? `${(log.duration_ms / 1000).toFixed(1)}s` : '-' }}</td>
-          <td class="chars-cell">{{ log.output ? log.output.length.toLocaleString() : '-' }}</td>
-          <td>
-            <span class="status-badge" :class="log.status === 200 ? 'success' : 'error'">
-              {{ log.status === 200 ? $t('comic.successShort') : $t('comic.failureShort') }}
-            </span>
-          </td>
-          <td class="actions-cell">
-            <el-button size="small" text type="primary" @click="showDetail(log)">
-              {{ $t('comic.detail') }}
-            </el-button>
-            <el-button size="small" text type="primary" @click="rerunLog(log)">
-              🔄 {{ $t('comic.rerun') }}
-            </el-button>
-          </td>
-        </tr>
-        <tr v-if="store.callLogs.length === 0">
-          <td colspan="9" class="empty-cell">
-            <el-empty :description="$t('comic.noLogs')" :image-size="80" />
-          </td>
-        </tr>
-      </tbody>
-    </table>
+      <!-- Stats Summary -->
+      <div class="stats-summary">
+        {{ $t('comic.totalLogs', { count: store.callLogsTotal }) }}
+        <span v-if="computedStats.totalDuration"> · {{ $t('comic.totalDuration') }} {{ computedStats.totalDuration }}</span>
+        · {{ $t('comic.success') }} {{ computedStats.successCount }} / {{ $t('comic.failure') }} {{ computedStats.failureCount }}
+      </div>
 
-    <!-- Pagination -->
-    <div class="pagination">
-      <el-pagination
-        v-model:current-page="currentPage"
-        :page-size="20"
-        :total="store.callLogsTotal"
-        layout="prev, pager, next"
-        @current-change="handlePageChange"
-      />
-    </div>
+      <!-- Records Table -->
+      <table class="record-table">
+        <thead>
+          <tr>
+            <th>{{ $t('comic.time') }}</th>
+            <th>{{ $t('comic.novel') }}</th>
+            <th>{{ $t('comic.stage') }}</th>
+            <th>{{ $t('comic.template') }}</th>
+            <th>{{ $t('comic.model') }}</th>
+            <th>{{ $t('comic.duration') }}</th>
+            <th>{{ $t('comic.chars') }}</th>
+            <th>{{ $t('comic.status') }}</th>
+            <th>{{ $t('comic.actions') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="log in store.callLogs" :key="log.id">
+            <td class="time-cell">{{ formatTime(log.created_at) }}</td>
+            <td>{{ getNovelName(log.novel_id) }}</td>
+            <td>
+              <el-tag size="small" :type="getStageTagType(log.stage)">{{ getStageName(log.stage) }}</el-tag>
+            </td>
+            <td class="template-cell">{{ getTemplateName(log.template_id) }}</td>
+            <td class="model-cell">{{ log.model_key || '-' }}</td>
+            <td class="duration-cell">{{ log.duration_ms ? `${(log.duration_ms / 1000).toFixed(1)}s` : '-' }}</td>
+            <td class="chars-cell">{{ log.output ? log.output.length.toLocaleString() : '-' }}</td>
+            <td>
+              <span class="status-badge" :class="log.status === 200 ? 'success' : 'error'">
+                {{ log.status === 200 ? $t('comic.successShort') : $t('comic.failureShort') }}
+              </span>
+            </td>
+            <td class="actions-cell">
+              <el-button size="small" text type="primary" @click="showDetail(log)">
+                {{ $t('comic.detail') }}
+              </el-button>
+              <el-button size="small" text type="primary" @click="rerunLog(log)">
+                🔄 {{ $t('comic.rerun') }}
+              </el-button>
+            </td>
+          </tr>
+          <tr v-if="store.callLogs.length === 0">
+            <td colspan="9" class="empty-cell">
+              <el-empty :description="$t('comic.noLogs')" :image-size="80" />
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
-    <!-- Detail Dialog -->
+      <!-- Pagination -->
+      <div class="pagination">
+        <el-pagination
+          v-model:current-page="currentPage"
+          :page-size="20"
+          :total="store.callLogsTotal"
+          layout="prev, pager, next"
+          @current-change="handlePageChange"
+        />
+      </div>
+    </template>
+
+    <!-- Execution History Sub-tab -->
+    <template v-if="currentSubTab === 'runs'">
+      <div class="runs-summary">
+        {{ $t('comic.totalRuns', { count: store.allPipelineRuns.length }) }}
+      </div>
+
+      <table class="record-table">
+        <thead>
+          <tr>
+            <th>{{ $t('comic.runId') }}</th>
+            <th>{{ $t('comic.novel') }}</th>
+            <th>{{ $t('comic.stepProgress') }}</th>
+            <th>{{ $t('comic.model') }}</th>
+            <th>{{ $t('comic.createdAt') }}</th>
+            <th>{{ $t('comic.lastUpdate') }}</th>
+            <th>{{ $t('comic.actions') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="run in store.allPipelineRuns" :key="run.run_id">
+            <td class="run-id-cell"><code>{{ run.run_id.slice(0, 12) }}...</code></td>
+            <td>{{ getNovelName(run.novel_id) }}</td>
+            <td>
+              <span class="step-progress-badge">
+                {{ run.completed_steps.length }} / {{ totalSteps }}
+              </span>
+            </td>
+            <td class="model-cell">{{ run.model_key || '-' }}</td>
+            <td class="time-cell">{{ formatTime(run.created_at) }}</td>
+            <td class="time-cell">{{ formatTime(run.updated_at) }}</td>
+            <td class="actions-cell">
+              <el-button size="small" text type="primary" @click="viewRunDetail(run)">
+                {{ $t('comic.viewRunDetail') }}
+              </el-button>
+              <el-button size="small" text type="success" @click="restoreRun(run)">
+                ▶️ {{ $t('comic.restoreExecution') }}
+              </el-button>
+            </td>
+          </tr>
+          <tr v-if="store.allPipelineRuns.length === 0">
+            <td colspan="7" class="empty-cell">
+              <el-empty :description="$t('comic.noRuns')" :image-size="80" />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </template>
+
+    <!-- Detail Dialog (unchanged) -->
     <el-dialog v-model="showDetailDialog" :title="$t('comic.logDetail')" width="800px">
       <div v-if="selectedLog" class="log-detail">
         <!-- Basic Info -->
@@ -132,7 +201,7 @@
           </div>
         </div>
 
-        <!-- Input Variables - dark code block -->
+        <!-- Input Variables -->
         <div class="detail-section">
           <div class="section-title">📥 {{ $t('comic.inputVariables') }}</div>
           <div class="dark-code-block">
@@ -140,7 +209,7 @@
           </div>
         </div>
 
-        <!-- Output - dark code block -->
+        <!-- Output -->
         <div v-if="selectedLog.output" class="detail-section">
           <div class="section-title">📤 {{ $t('comic.output') }}
             <span class="output-chars">{{ selectedLog.output.length.toLocaleString() }} {{ $t('comic.chars') }}</span>
@@ -163,6 +232,57 @@
         <el-button type="primary" @click="showDetailDialog = false">{{ $t('common.close') }}</el-button>
       </template>
     </el-dialog>
+
+    <!-- Run Detail Dialog -->
+    <el-dialog v-model="showRunDetailDialog" :title="$t('comic.viewRunDetail')" width="600px">
+      <div v-if="selectedRun" class="run-detail">
+        <div class="detail-basic-info">
+          <div class="info-item">
+            <span class="info-label">{{ $t('comic.runId') }}</span>
+            <code>{{ selectedRun.run_id }}</code>
+          </div>
+          <div class="info-item">
+            <span class="info-label">{{ $t('comic.novel') }}</span>
+            <span>{{ getNovelName(selectedRun.novel_id) }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">{{ $t('comic.stepProgress') }}</span>
+            <span class="step-progress-badge">{{ selectedRun.completed_steps.length }} / {{ totalSteps }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">{{ $t('comic.model') }}</span>
+            <span>{{ selectedRun.model_key || '-' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">{{ $t('comic.createdAt') }}</span>
+            <span>{{ formatTime(selectedRun.created_at) }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">{{ $t('comic.lastUpdate') }}</span>
+            <span>{{ formatTime(selectedRun.updated_at) }}</span>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="section-title">✅ {{ $t('comic.completedSteps', { count: selectedRun.completed_steps.length }) || 'Completed Steps' }}</div>
+          <div class="completed-steps-list">
+            <el-tag v-for="stepId in selectedRun.completed_steps" :key="stepId" size="small" type="success" style="margin: 2px;">
+              {{ getTemplateName(stepId) }}
+            </el-tag>
+            <span v-if="selectedRun.completed_steps.length === 0" class="no-steps">{{ $t('comic.noSteps') || 'No completed steps' }}</span>
+          </div>
+        </div>
+        <div v-if="selectedRun.current_step" class="detail-section">
+          <div class="section-title">⏳ {{ $t('comic.currentStep') || 'Current Step' }}</div>
+          <el-tag size="small" type="warning">{{ getTemplateName(selectedRun.current_step) }}</el-tag>
+        </div>
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="restoreRun(selectedRun!); showRunDetailDialog = false">
+          ▶️ {{ $t('comic.restoreExecution') }}
+        </el-button>
+        <el-button @click="showRunDetailDialog = false">{{ $t('common.close') }}</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -172,7 +292,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useComicStore } from '../../stores/comic'
-import type { ComicCallLog, ComicStage } from '../../types/comic'
+import type { ComicCallLog, ComicStage, PipelineRun } from '../../types/comic'
 
 const { t } = useI18n()
 const store = useComicStore()
@@ -180,12 +300,17 @@ const store = useComicStore()
 const currentPage = ref(1)
 const showDetailDialog = ref(false)
 const selectedLog = ref<ComicCallLog | null>(null)
+const currentSubTab = ref<'logs' | 'runs'>('logs')
+const showRunDetailDialog = ref(false)
+const selectedRun = ref<PipelineRun | null>(null)
 
 const filter = reactive({
   novel_id: '',
   stage: '' as ComicStage | '',
   status: undefined as number | undefined,
 })
+
+const totalSteps = computed(() => store.templates.length)
 
 const computedStats = computed(() => {
   const logs = store.callLogs
@@ -222,6 +347,11 @@ function applyFilter() {
 function handlePageChange(page: number) {
   currentPage.value = page
   loadLogs()
+}
+
+async function switchToRuns() {
+  currentSubTab.value = 'runs'
+  await store.loadAllPipelineRuns()
 }
 
 function formatTime(ts: number): string {
@@ -310,6 +440,18 @@ function rerunLog(log: ComicCallLog) {
   store.setActiveTab('pipeline')
 }
 
+function viewRunDetail(run: PipelineRun) {
+  selectedRun.value = run
+  showRunDetailDialog.value = true
+}
+
+function restoreRun(run: PipelineRun | null) {
+  if (!run) return
+  store.setPendingRestoreRun(run)
+  store.setSelectedNovel(run.novel_id)
+  store.setActiveTab('pipeline')
+}
+
 async function handleDeleteAll() {
   try {
     await ElMessageBox.confirm(
@@ -334,6 +476,82 @@ async function handleDeleteAll() {
   height: 100%;
   display: flex;
   flex-direction: column;
+}
+
+/* Sub-tab Bar */
+.sub-tab-bar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-bottom: 2px solid #e8e8e8;
+  padding-bottom: 0;
+}
+
+.sub-tab {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  color: #666;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s;
+}
+
+.sub-tab:hover {
+  color: #409eff;
+}
+
+.sub-tab.active {
+  color: #409eff;
+  border-bottom-color: #409eff;
+  font-weight: 500;
+}
+
+/* Runs Summary */
+.runs-summary {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 10px;
+}
+
+/* Run ID cell */
+.run-id-cell code {
+  background: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+/* Step Progress Badge */
+.step-progress-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  background: #e6f7ff;
+  color: #1890ff;
+  font-weight: 500;
+}
+
+/* Completed Steps List */
+.completed-steps-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px 0;
+}
+
+.no-steps {
+  color: #999;
+  font-size: 12px;
+}
+
+/* Run Detail Dialog */
+.run-detail {
+  max-height: 60vh;
+  overflow: auto;
 }
 
 /* Filter Bar */
